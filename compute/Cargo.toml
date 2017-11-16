@@ -1,0 +1,8 @@
+[package]
+name = "compute"
+version = "0.1.0"
+authors = ["Raymond Cheng <me@raymondcheng.net>"]
+
+[dependencies]
+rand = "0.3.14"
+

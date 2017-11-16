@@ -1,0 +1,6 @@
+[package]
+name = "storage"
+version = "0.1.0"
+authors = ["Raymond Cheng <me@raymondcheng.net>"]
+
+[dependencies]
