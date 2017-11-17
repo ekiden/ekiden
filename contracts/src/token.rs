@@ -102,8 +102,13 @@ impl TokenContract {
   pub fn transfer(&mut self, msg_sender: &Address, to: &Address, value: u64) -> Result<(), ContractError> {
     self.do_transfer(msg_sender, to, value)
   }
-  //pub fn burn(value: u64) -> Result<(), ContractError> {
-  //}
+  pub fn burn(&mut self, msg_sender: &Address, value: u64) -> Result<(), ContractError> {
+    let from_balance = self.get_from_balance(msg_sender, value)?;
+    self.balance_of.insert(msg_sender.to_string(), from_balance - value);
+    self.total_supply -= value;
+    // Emit Burn(msg_sender, value) event;
+    Ok(())
+  }
 }
 
 #[cfg(test)]
