@@ -55,24 +55,25 @@ impl TokenContract {
     }
   }
   
-  fn _transfer(&mut self, from: &Address, to: &Address, value: u64) -> Result<(), ContractError>{
-    let from_balance = {
-      match self.balance_of.get(from.as_str()) {
-        Some(b) => {
-          if *b < value {
-            return Err(ContractError { message: String::from("Insufficient `from` balance") })
-          }
-          *b
-        },
-        None => return Err(ContractError { message: String::from("Nonexistent `from` account") }),
-      }
-    };
-    let to_balance = {
-      match self.balance_of.get(to.as_str()) {
-        Some(b) => *b,
-        None => 0,
-      }
-    };
+  // PRIVATE METHODS
+  fn get_from_balance(&self, addr: &Address, value: u64) -> Result<u64, ContractError> {
+    match self.balance_of.get(addr.as_str()) {
+      Some(b) if *b < value => Err(ContractError { message: String::from("Insufficient `from` balance") }),
+      Some(b) => Ok(*b),
+      None => Err(ContractError { message: String::from("Nonexistent `from` account") }),
+    }
+  }
+
+  fn get_to_balance(&self, addr: &Address) -> Result<u64, ContractError> {
+    match self.balance_of.get(addr.as_str()) {
+      Some(b) => Ok(*b),
+      None => Ok(0),
+    }
+  }
+  
+  fn do_transfer(&mut self, from: &Address, to: &Address, value: u64) -> Result<(), ContractError>{
+    let from_balance = self.get_from_balance(from, value)?;
+    let to_balance = self.get_to_balance(to)?;
     if to_balance + value <= to_balance {
       return Err(ContractError { message: String::from("Transfer value too large, overflow `to` account") })
     }
@@ -85,12 +86,33 @@ impl TokenContract {
     self.balance_of.insert(to.to_string(), to_balance);
     
     //Emit Transfer(_from, _to, _value) event;
-    assert!((self.balance_of.get(from.as_str()).unwrap() + self.balance_of.get(to.as_str()).unwrap()) == previous_balances);
+    assert_eq!(
+      previous_balances,
+      (self.balance_of.get(from.as_str()).unwrap() + self.balance_of.get(to.as_str()).unwrap()),
+      "new balance sum should equal old balance sum after transfer"
+    );
 
     return Ok(())
   }
 
-  fn transfer(&mut self, msg_sender: &Address, to: &Address, value: u64) -> Result<(), ContractError> {
-    return self._transfer(msg_sender, to, value);
+  // PUBLIC METHODS
+  fn transfer(&mut self, msg_sender: &Address, to: &Address, value: u64) -> Result<(), ContractError>{
+    return self.do_transfer(msg_sender, to, value);
   }
+  //fn burn(value: u64) -> Result<(), ContractError> {
+  //}
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn it_works() {
+    let a1 = Address::from(String::from("testaddr"));
+    let c = TokenContract::new(&a1, 8, String::from("Ekiden Tokiden"), String::from("EKI"));
+
+
+  }
+
 }
