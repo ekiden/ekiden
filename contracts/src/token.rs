@@ -121,4 +121,6 @@ mod tests {
     assert_eq!(c.total_supply, b, "creator should get all the tokens");
   }
 
+  // @todo - add more tests
+
 }
