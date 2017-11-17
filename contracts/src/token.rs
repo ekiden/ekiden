@@ -2,10 +2,12 @@
 
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct ContractError {
   message: String
 }
 
+#[derive(Debug)]
 pub struct Address {
   value: String
 }
@@ -116,11 +118,22 @@ mod tests {
   use super::*;
 
   #[test]
-  fn it_works() {
+  fn new_contract() {
+    let name = "Ekiden Token";
+    let symbol = "EKI";
+    let a1 = Address::from(String::from("testaddr"));
+    let c = TokenContract::new(&a1, 8, String::from(name), String::from(symbol));
+    assert_eq!(name, c.name, "name should be set");
+    assert_eq!(symbol, c.symbol, "symbol should be set");
+    assert!(0 < c.total_supply, "total_supply should be set");
+  }
+
+  #[test]
+  fn get_initial_balance() {
     let a1 = Address::from(String::from("testaddr"));
     let c = TokenContract::new(&a1, 8, String::from("Ekiden Tokiden"), String::from("EKI"));
-
-
+    let b = c.get_balance(&a1).expect("testaddr should have tokens");
+    assert_eq!(c.total_supply, b, "creator should get all the tokens");
   }
 
 }
