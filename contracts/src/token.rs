@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 
-struct ContractError {
+pub struct ContractError {
   message: String
 }
 
-struct Address {
+pub struct Address {
   value: String
 }
 
@@ -36,7 +36,7 @@ pub struct TokenContract {
 }
 
 impl TokenContract {
-  fn new(
+  pub fn new(
       msg_sender: &Address,
       initial_supply: u64, 
       token_name: String,
@@ -71,7 +71,7 @@ impl TokenContract {
     }
   }
   
-  fn do_transfer(&mut self, from: &Address, to: &Address, value: u64) -> Result<(), ContractError>{
+  fn do_transfer(&mut self, from: &Address, to: &Address, value: u64) -> Result<(), ContractError> {
     let from_balance = self.get_from_balance(from, value)?;
     let to_balance = self.get_to_balance(to)?;
     if to_balance + value <= to_balance {
@@ -96,10 +96,13 @@ impl TokenContract {
   }
 
   // PUBLIC METHODS
-  fn transfer(&mut self, msg_sender: &Address, to: &Address, value: u64) -> Result<(), ContractError>{
-    return self.do_transfer(msg_sender, to, value);
+  pub fn get_balance(&self, msg_sender: &Address) -> Result<u64, ContractError> {
+    self.get_to_balance(msg_sender)
   }
-  //fn burn(value: u64) -> Result<(), ContractError> {
+  pub fn transfer(&mut self, msg_sender: &Address, to: &Address, value: u64) -> Result<(), ContractError> {
+    self.do_transfer(msg_sender, to, value)
+  }
+  //pub fn burn(value: u64) -> Result<(), ContractError> {
   //}
 }
 
