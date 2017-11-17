@@ -73,11 +73,12 @@ impl TokenContract {
         None => 0,
       }
     };
-    if to_balance + value < to_balance {
+    if to_balance + value <= to_balance {
       return Err(ContractError { message: String::from("Transfer value too large, overflow `to` account") })
     }
-    let previous_balances = from_balance + to_balance;
+
     // Set new balances
+    let previous_balances = from_balance + to_balance;
     let from_balance = from_balance - value;
     let to_balance = to_balance + value;
     self.balance_of.insert(from.to_string(), from_balance);
