@@ -1,34 +1,8 @@
 // Inspired by https://www.ethereum.org/token
 
 use std::collections::HashMap;
-
-#[derive(Debug)]
-pub struct ContractError {
-  message: String
-}
-
-#[derive(Debug)]
-pub struct Address {
-  value: String
-}
-
-impl Address {
-  fn from(addr: String) -> Address {
-    Address {
-      value: addr
-    }
-  }
-
-  fn as_str(&self) -> &str {
-    self.value.as_str()
-  }
-}
-
-impl ToString for Address {
-  fn to_string(&self) -> String {
-    self.value.clone()
-  }
-}
+use super::address::Address;
+use super::contract_error::ContractError;
 
 pub struct TokenContract {
   name: String,
@@ -60,9 +34,9 @@ impl TokenContract {
   // PRIVATE METHODS
   fn get_from_balance(&self, addr: &Address, value: u64) -> Result<u64, ContractError> {
     match self.balance_of.get(addr.as_str()) {
-      Some(b) if *b < value => Err(ContractError { message: String::from("Insufficient `from` balance") }),
+      None => Err(ContractError::new(String::from("Nonexistent `from` account"))),
+      Some(b) if *b < value => Err(ContractError::new(String::from("Insufficient `from` balance"))),
       Some(b) => Ok(*b),
-      None => Err(ContractError { message: String::from("Nonexistent `from` account") }),
     }
   }
 
@@ -77,7 +51,7 @@ impl TokenContract {
     let from_balance = self.get_from_balance(from, value)?;
     let to_balance = self.get_to_balance(to)?;
     if to_balance + value <= to_balance {
-      return Err(ContractError { message: String::from("Transfer value too large, overflow `to` account") })
+      return Err(ContractError::new(String::from("Transfer value too large, overflow `to` account")));
     }
 
     // Set new balances
@@ -98,12 +72,23 @@ impl TokenContract {
   }
 
   // PUBLIC METHODS
+  // - callable over RPC
+  pub fn get_name(&self) -> Result<String, ContractError> {
+    Ok(self.name.clone())
+  }
+
+  pub fn get_symbol(&self) -> Result<String, ContractError> {
+    Ok(self.symbol.clone())
+  }
+
   pub fn get_balance(&self, msg_sender: &Address) -> Result<u64, ContractError> {
     self.get_to_balance(msg_sender)
   }
+
   pub fn transfer(&mut self, msg_sender: &Address, to: &Address, value: u64) -> Result<(), ContractError> {
     self.do_transfer(msg_sender, to, value)
   }
+
   pub fn burn(&mut self, msg_sender: &Address, value: u64) -> Result<(), ContractError> {
     let from_balance = self.get_from_balance(msg_sender, value)?;
     self.balance_of.insert(msg_sender.to_string(), from_balance - value);
@@ -123,8 +108,8 @@ mod tests {
     let symbol = "EKI";
     let a1 = Address::from(String::from("testaddr"));
     let c = TokenContract::new(&a1, 8, String::from(name), String::from(symbol));
-    assert_eq!(name, c.name, "name should be set");
-    assert_eq!(symbol, c.symbol, "symbol should be set");
+    assert_eq!(name, c.get_name().unwrap(), "name should be set");
+    assert_eq!(symbol, c.get_symbol().unwrap(), "symbol should be set");
     assert!(0 < c.total_supply, "total_supply should be set");
   }
 
