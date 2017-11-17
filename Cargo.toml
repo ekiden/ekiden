@@ -1,5 +1,6 @@
 [workspace]
 members = [
   "compute",
+  "contracts",
   "storage",
 ]
