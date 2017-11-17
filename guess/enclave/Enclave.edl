@@ -1,0 +1,15 @@
+/*
+ * TODO: license
+ */
+
+enclave {
+    from "../../sgx/edl/sgx_tstd.edl" import *;
+    from "../../sgx/edl/sgx_stdio.edl" import *;
+    from "../../sgx/edl/sgx_backtrace.edl" import *;
+    from "sgx_tstdc.edl" import *;
+    trusted {
+        /* define ECALLs here. */
+        public sgx_status_t guess_enclave_init();
+        public sgx_status_t guess_enclave_guess(int32_t guess);
+    };
+};

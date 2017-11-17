@@ -1,0 +1,9 @@
+[package]
+name = "guess_app"
+version = "0.1.0"
+authors = ["w <none>"]
+build = "build.rs"
+
+[dependencies]
+sgx_types = { path = "../../../sgx/sgx_types" }
+sgx_urts = { path = "../../../sgx/sgx_urts" }
