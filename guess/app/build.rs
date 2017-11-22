@@ -31,10 +31,15 @@ use std::env;
 fn main () {
 
     let sdk_dir = env::var("SGX_SDK").unwrap();
+    let mode = env::var("SGX_MODE").unwrap();
+    let urts_library_name = match mode.as_ref() {
+        "HW" => "sgx_urts",
+        _ => "sgx_urts_sim",
+    };
     
     println!("cargo:rustc-link-search=native=../lib");
     println!("cargo:rustc-link-lib=static=Enclave_u");
 
     println!("cargo:rustc-link-search=native={}/lib64", sdk_dir);
-    println!("cargo:rustc-link-lib=dylib=sgx_urts");
+    println!("cargo:rustc-link-lib=dylib={}", urts_library_name);
 }
