@@ -9,9 +9,9 @@ extern crate sgx_types;
 extern crate sgx_tstd as std;
 extern crate sgx_rand as rand;
 
+use core::cmp::Ordering;
+use core::result::Result;
 use rand::Rng;
-use std::cmp::Ordering;
-use std::result::Result;
 
 enum State {
     Uninitialized,
