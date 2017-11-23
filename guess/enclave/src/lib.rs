@@ -13,8 +13,7 @@ use core::cmp::Ordering;
 use core::result::Result;
 use rand::Rng;
 
-enum State {
-    Uninitialized,
+pub enum State {
     Guessing { secret: i32 },
     Guessed,
 }
@@ -25,29 +24,19 @@ pub enum GuessFeedback {
     Win,
 }
 
-static mut state: State = State::Uninitialized;
-
 #[no_mangle]
-pub extern "C" fn guess_enclave_init() -> Result<(), &'static str> {
-    if let State::Uninitialized = state {
-        let secret: i32 = rand::thread_rng().gen_range(1, 101);
-        state = State::Guessing { secret };
-        Result::Ok
-    } else {
-        Result::Err("Invalid state")
-    }
+pub extern "C" fn guess_enclave_init() -> Result<State, &'static str> {
+    let secret: i32 = rand::thread_rng().gen_range(1, 101);
+    Ok(State::Guessing { secret })
 }
 
 #[no_mangle]
-pub extern "C" fn guess_enclave_guess(guess: i32) -> Result<GuessFeedback, &'static str> {
+pub extern "C" fn guess_enclave_guess(state: State, guess: i32) -> Result<(State, GuessFeedback), &'static str> {
     if let State::Guessing { secret } = state {
-        match secret.cmp(guess) {
-            Ordering::Greader => Ok(GuessFeedback::Higher),
-            Ordering::Less => GuessFeedback::Lower,
-            Ordering::Equal => {
-                state = State::Guessed;
-                GuessFeedback::Win
-            },
+        match secret.cmp(&guess) {
+            Ordering::Greater => Ok((state, GuessFeedback::Higher)),
+            Ordering::Less => Ok((state, GuessFeedback::Lower)),
+            Ordering::Equal => Ok((State::Guessed, GuessFeedback::Win)),
         }
     } else {
         Err("Invalid state")

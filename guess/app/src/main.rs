@@ -39,9 +39,19 @@ use std::env;
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 static ENCLAVE_TOKEN: &'static str = "enclave.token";
 
+// TODO: import these from a common header
+enum State {
+    Guessing { secret: i32 },
+    Guessed,
+}
+enum GuessFeedback {
+    Higher,
+    Lower,
+    Win,
+}
 extern {
-    // fn guess_enclave_init(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
-    //                  some_string: *const u8, len: usize) -> sgx_status_t;
+    fn guess_enclave_init(eid: sgx_enclave_id_t, retval: *mut Result<State, &'static str>) -> sgx_status_t;
+    fn guess_enclave_guess(eid: sgx_enclave_id_t, retval: *mut Result<(State, GuessFeedback), &'static str>, state: State, guess: i32) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -125,26 +135,66 @@ fn main() {
         },
     };
 
-    // let input_string = String::from("This is a normal world string passed into Enclave!\n");
-    
-    // let mut retval = sgx_status_t::SGX_SUCCESS; 
+    let mut state: State;
 
-    // let result = unsafe {
-    //     say_something(enclave.geteid(),
-    //                   &mut retval,
-    //                   input_string.as_ptr() as * const u8,
-    //                   input_string.len())
-    // };
+    let mut retval: Result<State, &'static str> = Err("uninitialized");
+    let result = unsafe { guess_enclave_init(enclave.geteid(), &mut retval) };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {},
+        _ => {
+            println!("[-] ECALL Enclave Failed {}!", result.as_str());
+            return;
+        },
+    }
+    match retval {
+        Ok(new_state) => {
+            println!("[+] Initialized");
+            state = new_state;
+        },
+        Err(msg) => {
+            println!("[-] Initialize failed {}", msg);
+            return;
+        },
+    }
 
-    // match result {
-    //     sgx_status_t::SGX_SUCCESS => {},
-    //     _ => {
-    //         println!("[-] ECALL Enclave Failed {}!", result.as_str());
-    //         return;
-    //     }
-    // }
+    loop {
+        println!("Please input your guess.");
+        let mut guess = String::new();
+        std::io::stdin().read_line(&mut guess).expect("Failed to read line");
+        let guess: i32 = match guess.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue,
+        };
+        println!("You guessed: {}", guess);
 
-    // println!("[+] say_something success...");
-    
+        let mut retval: Result<(State, GuessFeedback), &'static str> = Err("uninitialized");
+        let result = unsafe { guess_enclave_guess(enclave.geteid(), &mut retval, state, guess) };
+        match result {
+            sgx_status_t::SGX_SUCCESS => {},
+            _ => {
+                println!("[-] ECALL Enclave Failed {}!", result.as_str());
+                return;
+            },
+        }
+        match retval {
+            Ok((new_state, feedback)) => {
+                println!("[+] Guessed");
+                state = new_state;
+                match feedback {
+                    GuessFeedback::Higher => println!("Higher!"),
+                    GuessFeedback::Lower => println!("Lower!"),
+                    GuessFeedback::Win => {
+                        println!("You win!");
+                        break;
+                    }
+                }
+            },
+            Err(msg) => {
+                println!("[-] Initialize failed {}", msg);
+                return;
+            },
+        }
+    }
+
     enclave.destroy();
 }

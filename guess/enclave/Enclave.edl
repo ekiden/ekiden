@@ -7,9 +7,17 @@ enclave {
     from "../../sgx/edl/sgx_stdio.edl" import *;
     from "../../sgx/edl/sgx_backtrace.edl" import *;
     from "sgx_tstdc.edl" import *;
+
+    struct s8a4 {
+        uint32_t data[2];
+    };
+    struct s24a8 {
+        uint64_t data[3];
+    };
+
     trusted {
         /* define ECALLs here. */
-        public sgx_status_t guess_enclave_init();
-        public sgx_status_t guess_enclave_guess(int32_t guess);
+        public struct s24a8 guess_enclave_init();
+        public struct s24a8 guess_enclave_guess(struct s8a4 state, int32_t guess);
     };
 };
