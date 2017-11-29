@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 
 [dependencies]
+tsp = "0.2.3"

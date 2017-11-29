@@ -18,5 +18,7 @@ else
 fi
 
 # Start
-docker run -it --rm -v "$DATAPATH:/tendermint" -p "$HOSTPORT:46657" tendermint/tendermint node #--proxy_app=dummy
+docker run -it --rm -v "$DATAPATH:/tendermint" --net=host -p "$HOSTPORT:46657" tendermint/tendermint node
+# 
+#--proxy_app=dummy
 
