@@ -1,11 +1,12 @@
-extern crate tsp;
+extern crate abci;
 
-use tsp::types;
+use abci::types;
 
-#[derive(Copy, Clone)]
+//#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Ekidenmint;
 
-impl tsp::Application for Ekidenmint {
+impl abci::Application for Ekidenmint {
   fn info(&self, req: &types::RequestInfo) -> types::ResponseInfo {
     println!("info");
     types::ResponseInfo::new()

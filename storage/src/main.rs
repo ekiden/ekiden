@@ -1,4 +1,4 @@
-extern crate tsp;
+extern crate abci;
 
 use std::env;
 use std::thread;
@@ -12,7 +12,7 @@ fn main() {
 
   println!("Ekiden Storage starting... ");
   static APP: ekidenmint::Ekidenmint = ekidenmint::Ekidenmint;
-  let app_server = tsp::server::new("127.0.0.1:46658".parse().unwrap(), &APP);
+  let app_server = abci::server::new("127.0.0.1:46658".parse().unwrap(), &APP);
 
   loop {
     thread::park();
