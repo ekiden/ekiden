@@ -18,7 +18,7 @@ enclave {
 
     trusted {
         /* define ECALLs here. */
-        public struct s24a8 guess_enclave_init();
-        public struct s24a8 guess_enclave_guess(struct s8a4 state, int32_t guess);
+        public void guess_enclave_init([out] struct s24a8 *result);
+        public void guess_enclave_guess([out] struct s24a8 *result, [in] const struct s8a4 *state, int32_t guess);
     };
 };

@@ -40,18 +40,20 @@ static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 static ENCLAVE_TOKEN: &'static str = "enclave.token";
 
 // TODO: import these from a common header
+#[derive(Copy, Clone)]
 enum State {
     Guessing { secret: i32 },
     Guessed,
 }
+#[derive(Copy, Clone)]
 enum GuessFeedback {
     Higher,
     Lower,
     Win,
 }
 extern {
-    fn guess_enclave_init(eid: sgx_enclave_id_t, retval: *mut Result<State, &'static str>) -> sgx_status_t;
-    fn guess_enclave_guess(eid: sgx_enclave_id_t, retval: *mut Result<(State, GuessFeedback), &'static str>, state: State, guess: i32) -> sgx_status_t;
+    fn guess_enclave_init(eid: sgx_enclave_id_t, result: *mut Result<State, &'static str>) -> sgx_status_t;
+    fn guess_enclave_guess(eid: sgx_enclave_id_t, result: *mut Result<(State, GuessFeedback), &'static str>, state: *const State, guess: i32) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -137,16 +139,16 @@ fn main() {
 
     let mut state: State;
 
-    let mut retval: Result<State, &'static str> = Err("uninitialized");
-    let result = unsafe { guess_enclave_init(enclave.geteid(), &mut retval) };
-    match result {
+    let mut result: Result<State, &'static str> = Err("uninitialized");
+    let status = unsafe { guess_enclave_init(enclave.geteid(), &mut result) };
+    match status {
         sgx_status_t::SGX_SUCCESS => {},
         _ => {
-            println!("[-] ECALL Enclave Failed {}!", result.as_str());
+            println!("[-] ECALL Enclave Failed {}!", status.as_str());
             return;
         },
     }
-    match retval {
+    match result {
         Ok(new_state) => {
             println!("[+] Initialized");
             state = new_state;
@@ -167,16 +169,16 @@ fn main() {
         };
         println!("You guessed: {}", guess);
 
-        let mut retval: Result<(State, GuessFeedback), &'static str> = Err("uninitialized");
-        let result = unsafe { guess_enclave_guess(enclave.geteid(), &mut retval, state, guess) };
-        match result {
+        let mut result: Result<(State, GuessFeedback), &'static str> = Err("uninitialized");
+        let status = unsafe { guess_enclave_guess(enclave.geteid(), &mut result, &state, guess) };
+        match status {
             sgx_status_t::SGX_SUCCESS => {},
             _ => {
-                println!("[-] ECALL Enclave Failed {}!", result.as_str());
+                println!("[-] ECALL Enclave Failed {}!", status.as_str());
                 return;
             },
         }
-        match retval {
+        match result {
             Ok((new_state, feedback)) => {
                 println!("[+] Guessed");
                 state = new_state;

@@ -13,11 +13,13 @@ use core::cmp::Ordering;
 use core::result::Result;
 use rand::Rng;
 
+#[derive(Copy, Clone)]
 pub enum State {
     Guessing { secret: i32 },
     Guessed,
 }
 
+#[derive(Copy, Clone)]
 pub enum GuessFeedback {
     Higher,
     Lower,
@@ -25,20 +27,24 @@ pub enum GuessFeedback {
 }
 
 #[no_mangle]
-pub extern "C" fn guess_enclave_init() -> Result<State, &'static str> {
+pub extern "C" fn guess_enclave_init(result: *mut Result<State, &'static str>) {
+    std::backtrace::enable_backtrace("enclave.signed.so", std::backtrace::PrintFormat::Short).expect("Couldn't enable backtrace");
+    let result = unsafe { &mut *result };
     let secret: i32 = rand::thread_rng().gen_range(1, 101);
-    Ok(State::Guessing { secret })
+    *result = Ok(State::Guessing { secret });
 }
 
 #[no_mangle]
-pub extern "C" fn guess_enclave_guess(state: State, guess: i32) -> Result<(State, GuessFeedback), &'static str> {
-    if let State::Guessing { secret } = state {
+pub extern "C" fn guess_enclave_guess(result: *mut Result<(State, GuessFeedback), &'static str>, state: *const State, guess: i32) {
+    let result = unsafe { &mut *result };
+    let state = unsafe { &*state };
+    *result = if let State::Guessing { secret } = *state {
         match secret.cmp(&guess) {
-            Ordering::Greater => Ok((state, GuessFeedback::Higher)),
-            Ordering::Less => Ok((state, GuessFeedback::Lower)),
+            Ordering::Greater => Ok((*state, GuessFeedback::Higher)),
+            Ordering::Less => Ok((*state, GuessFeedback::Lower)),
             Ordering::Equal => Ok((State::Guessed, GuessFeedback::Win)),
         }
     } else {
         Err("Invalid state")
-    }
+    };
 }
