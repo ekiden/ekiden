@@ -8,6 +8,7 @@ enclave {
     from "../../sgx/edl/sgx_backtrace.edl" import *;
     from "sgx_tstdc.edl" import *;
 
+    /* Use `SGX_MODE=SIM cargo rustc -- -Z print-type-sizes` */
     struct s8a4 {
         uint32_t data[2];
     };
