@@ -23,3 +23,10 @@ To build and run a storage node:
   $ cargo build
   $ ./target/debug/storage
 ```
+
+## Packages
+- `abci`: Tendermint Application Blockchain Interface
+- `compute`: Ekiden compute node
+- `contracts`: Ekiden contracts (e.g. token)
+- `storage`: Ekiden storage node
+- `scripts`: Bash scripts for development
