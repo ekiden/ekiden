@@ -1,12 +1,12 @@
-extern crate abci;
-
+use abci;
+use abci::application::Application;
 use abci::types;
 
 //#[derive(Copy, Clone)]
 #[derive(Clone)]
 pub struct Ekidenmint;
 
-impl abci::Application for Ekidenmint {
+impl Application for Ekidenmint {
   fn info(&self, req: &types::RequestInfo) -> types::ResponseInfo {
     println!("info");
     types::ResponseInfo::new()
