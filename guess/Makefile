@@ -135,7 +135,7 @@ $(App_Enclave_u_Object): app/Enclave_u.o
 	$(AR) rcsD $@ $^
 	cp $(App_Enclave_u_Object) ./lib
 
-$(App_Name): $(App_Enclave_u_Object)
+$(App_Name): $(App_Enclave_u_Object) app/src/main.rs
 	@cd app && cargo build $(App_Rust_Flags)
 	@echo "Cargo  =>  $@"
 	cp $(App_Rust_Path)/guess_app ./bin
