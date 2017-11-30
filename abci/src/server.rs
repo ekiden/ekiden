@@ -1,3 +1,4 @@
+
 use std::cmp;
 use std::io;
 use std::io::Write;
@@ -18,15 +19,10 @@ use tokio_service::Service;
 use application::Application;
 use types::*;
 
-pub fn new<A: Application + Send + Sync + 'static>(listen_addr: SocketAddr, app: &'static A) {
-  let server = TcpServer::new(AbciProto, listen_addr);
-  server.serve(move|| Ok(AbciService{app: app}));
-}
-
 // A codec describes how to go from a bunch of bytes from the wire into a
 // deserialised request. The codec handles the deserialisation from buffer
 // to request as defined in types.proto
-struct AbciCodec;
+pub struct AbciCodec;
 
 impl Decoder for AbciCodec {
   type Item = Request;
@@ -89,7 +85,7 @@ impl Encoder for AbciCodec {
   }
 }
 
-struct AbciProto;
+pub struct AbciProto;
 
 impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for AbciProto {
   type Request = Request;
@@ -102,8 +98,8 @@ impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for AbciProto {
   }
 }
 
-struct AbciService {
-  app: &'static Application
+pub struct AbciService {
+  pub app: Box<Application>
 }
 
 impl Service for AbciService {
@@ -119,6 +115,7 @@ impl Service for AbciService {
 }
 
 impl AbciService {
+
   fn handle(&self, request: &Request) -> Response {
     let mut response = Response::new();
 

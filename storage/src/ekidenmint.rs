@@ -1,10 +1,19 @@
-use abci;
 use abci::application::Application;
 use abci::types;
 
 //#[derive(Copy, Clone)]
 #[derive(Clone)]
-pub struct Ekidenmint;
+pub struct Ekidenmint {
+  name: String,
+}
+
+impl Ekidenmint {
+  pub fn new() -> Ekidenmint {
+    Ekidenmint{
+      name: String::from("test"),
+    }
+  }
+}
 
 impl Application for Ekidenmint {
   fn info(&self, req: &types::RequestInfo) -> types::ResponseInfo {

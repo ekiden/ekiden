@@ -3,6 +3,7 @@ name = "storage"
 version = "0.1.0"
 dependencies = [
  "abci 0.2.3",
+ "tokio-proto 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
