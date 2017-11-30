@@ -4,7 +4,6 @@ extern crate tokio_proto;
 mod ekidenmint;
 
 use std::env;
-use std::thread;
 use tokio_proto::TcpServer;
 
 use abci::server::{ AbciProto, AbciService };
@@ -24,7 +23,4 @@ fn main() {
     })
   });
 
-  loop {
-    thread::park();
-  }
 }
