@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 
 [dependencies]
+tokio-proto = "0.1"
+abci = { path = "../abci" }
