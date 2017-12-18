@@ -1,0 +1,8 @@
+[package]
+name = "token"
+version = "0.1.0"
+authors = ["Raymond Cheng <me@raymondcheng.net>"]
+
+[dependencies]
+libcontract = { path = "../../libcontract" }
+

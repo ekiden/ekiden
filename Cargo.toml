@@ -2,7 +2,7 @@
 members = [
   "abci",
   "compute",
-  "contracts",
+  "contracts/token",
   "libcontract",
   "storage",
 ]

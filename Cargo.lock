@@ -1,9 +1,8 @@
 [root]
-name = "storage"
+name = "token"
 version = "0.1.0"
 dependencies = [
- "abci 0.2.3",
- "tokio-proto 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libcontract 0.1.0",
 ]
 
 [[package]]
@@ -54,13 +53,6 @@ version = "0.1.0"
 dependencies = [
  "protobuf 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "contracts"
-version = "0.1.0"
-dependencies = [
- "libcontract 0.1.0",
 ]
 
 [[package]]
@@ -230,6 +222,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "smallvec"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "storage"
+version = "0.1.0"
+dependencies = [
+ "abci 0.2.3",
+ "tokio-proto 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "take"
