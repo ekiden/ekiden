@@ -59,6 +59,9 @@ dependencies = [
 [[package]]
 name = "contracts"
 version = "0.1.0"
+dependencies = [
+ "libcontract 0.1.0",
+]
 
 [[package]]
 name = "fuchsia-zircon"
