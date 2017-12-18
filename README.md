@@ -3,11 +3,12 @@
 ## Dependencies
 
 Here is a brief list of system dependencies currently used for development:
-- [Rust](https://www.rust-lang.org/en-US/)
-- [Cargo](http://doc.crates.io/)
-- [Docker](https://www.docker.com/)
-- [Tendermint](https://www.tendermint.com/)
+- [rustc](https://www.rust-lang.org/en-US/)
+- [cargo](http://doc.crates.io/)
+- [docker](https://www.docker.com/)
+- [tendermint](https://www.tendermint.com/)
   - Install with [golang](https://golang.org/) `go get github.com/tendermint/tendermint/cmd/tendermint`
+- [protoc](https://github.com/google/protobuf/releases)
 
 ## Running
 

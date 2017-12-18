@@ -1,7 +1,7 @@
 syntax = "proto3";
 package tutorial;
 
-message TokenState
+message TokenState {
   string name = 1;
   string symbol = 2;
   uint64 total_supply = 3;

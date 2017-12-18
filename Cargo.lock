@@ -3,6 +3,8 @@ name = "token"
 version = "0.1.0"
 dependencies = [
  "libcontract 0.1.0",
+ "protobuf 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc-rust 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
