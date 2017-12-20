@@ -5,4 +5,5 @@ members = [
   "contracts/token",
   "libcontract",
   "storage",
+  "client",
 ]
