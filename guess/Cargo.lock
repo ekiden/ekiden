@@ -1,0 +1,109 @@
+[[package]]
+name = "build_helper"
+version = "0.9.1"
+dependencies = [
+ "filetime 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "cfg-if"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "filetime"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)",
+ "redox_syscall 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "guess_app"
+version = "0.1.0"
+dependencies = [
+ "sgx_types 0.9.1",
+ "sgx_urts 0.9.1",
+]
+
+[[package]]
+name = "guess_enclave"
+version = "0.1.0"
+dependencies = [
+ "sgx_rand 0.9.1",
+ "sgx_tstd 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "redox_syscall"
+version = "0.1.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "sgx_alloc"
+version = "0.9.1"
+dependencies = [
+ "sgx_trts 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_rand"
+version = "0.9.1"
+dependencies = [
+ "sgx_trts 0.9.1",
+ "sgx_tstd 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_tprotected_fs"
+version = "0.9.1"
+dependencies = [
+ "sgx_trts 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_trts"
+version = "0.9.1"
+dependencies = [
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_tstd"
+version = "0.9.1"
+dependencies = [
+ "build_helper 0.9.1",
+ "sgx_alloc 0.9.1",
+ "sgx_tprotected_fs 0.9.1",
+ "sgx_trts 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_types"
+version = "0.9.1"
+
+[[package]]
+name = "sgx_urts"
+version = "0.9.1"
+dependencies = [
+ "libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_types 0.9.1",
+]
+
+[metadata]
+"checksum cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c819a1287eb618df47cc647173c5c4c66ba19d888a6e50d605672aed3140de"
+"checksum filetime 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "aa75ec8f7927063335a9583e7fa87b0110bb888cf766dc01b54c0ff70d760c8e"
+"checksum libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)" = "36fbc8a8929c632868295d0178dd8f63fc423fd7537ad0738372bd010b3ac9b0"
+"checksum redox_syscall 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)" = "ab105df655884ede59d45b7070c8a65002d921461ee813a024558ca16030eea0"

@@ -9,28 +9,46 @@ Here is a brief list of system dependencies currently used for development:
 - [tendermint](https://www.tendermint.com/)
   - Install with [golang](https://golang.org/) `go get github.com/tendermint/tendermint/cmd/tendermint`
 - [protoc](https://github.com/google/protobuf/releases)
+- [rust-sgx-sdk](https://github.com/baidu/rust-sgx-sdk)
 
 ## Running
 
-To get Tendermint running:
+### Tendermint
 
+The easiest way to run Tendermint is to use the provided scripts, which run the Docker
+containers for you.
+
+To start a Tendermint node:
 ```bash
-  $ tendermint init   # This only has to run once
-  $ tendermint node
+$ ./scripts/tendermint_start
 ```
+
+To clear all data:
+```bash
+$ ./scripts/tendermint_clear
+```
+
+### Storage node
 
 To build and run a storage node:
 ```bash
-  $ cargo build
-  $ ./target/debug/storage
+$ cargo build -p storage
+$ ./target/debug/storage
 ```
 
-## Building in simulation mode
+### SGX code
+
+The easiest way to build SGX code is to use the provided scripts, which run a Docker
+container with all the included tools.
+
+To start the SGX development container:
+```bash
+$ ./scripts/rust-sgx-enter.sh
+```
 
 Set the following in the `make` invocation to build in the SDK's simulation mode:
-
 ```bash
-  $ make SGX_MODE=SIM
+$ make SGX_MODE=SIM
 ```
 
 ## Packages
@@ -39,4 +57,3 @@ Set the following in the `make` invocation to build in the SDK's simulation mode
 - `contracts`: Ekiden contracts (e.g. token)
 - `storage`: Ekiden storage node
 - `scripts`: Bash scripts for development
-

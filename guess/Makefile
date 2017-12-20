@@ -80,8 +80,8 @@ App_Rust_Flags := --release
 App_Include_Paths := -I ./app -I./include -I$(SGX_SDK)/include
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
 
-App_Rust_Path := ./app/target/release
-App_Enclave_u_Object :=app/libEnclave_u.a
+App_Rust_Path := ./target/release
+App_Enclave_u_Object := app/libEnclave_u.a
 App_Name := bin/guess_app
 
 ######## Enclave Settings ########
@@ -138,6 +138,7 @@ $(App_Enclave_u_Object): app/Enclave_u.o
 $(App_Name): $(App_Enclave_u_Object) app/src/main.rs
 	@cd app && cargo build $(App_Rust_Flags)
 	@echo "Cargo  =>  $@"
+	mkdir -p bin
 	cp $(App_Rust_Path)/guess_app ./bin
 
 ######## Enclave Objects ########
@@ -146,8 +147,9 @@ enclave/Enclave_t.o: $(Enclave_EDL_Files)
 	@$(CC) $(RustEnclave_Compile_Flags) -c enclave/Enclave_t.c -o $@
 	@echo "CC   <=  $<"
 
-$(RustEnclave_Name): enclave compiler-rt enclave/Enclave_t.o 
-	cp ./enclave/target/release/libguessenclave.a ./lib/libenclave.a
+$(RustEnclave_Name): enclave compiler-rt enclave/Enclave_t.o
+	mkdir -p lib
+	cp ./target/release/libguessenclave.a ./lib/libenclave.a
 	cp ../../sgx/compiler-rt/libcompiler-rt-patch.a ./lib
 	@$(CXX) enclave/Enclave_t.o -o $@ $(RustEnclave_Link_Flags)
 	@echo "LINK =>  $@"
@@ -159,7 +161,7 @@ $(Signed_RustEnclave_Name): $(RustEnclave_Name)
 .PHONY: enclave
 enclave:
 	$(MAKE) -C ./enclave/
-	
+
 .PHONY: compiler-rt
 compiler-rt:
 	$(MAKE) -C ../../sgx/compiler-rt/ 2> /dev/null
@@ -169,4 +171,4 @@ clean:
 	@rm -f $(App_Name) $(RustEnclave_Name) $(Signed_RustEnclave_Name) enclave/*_t.* app/*_u.* lib/*.a
 	@cd enclave && cargo clean && rm -f Cargo.lock
 	@cd app && cargo clean && rm -f Cargo.lock
-	
+

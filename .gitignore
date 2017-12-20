@@ -1,6 +1,12 @@
-
-# Build
+# Build.
 /target/
 **/*.rs.bk
+*.a
+*.o
+*.so
 
+# IDE.
 .idea/*
+
+# Temporay files.
+*.swp
