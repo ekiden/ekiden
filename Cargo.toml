@@ -3,4 +3,5 @@ members = [
   "compute",
   "contracts",
   "storage",
+  "client",
 ]
