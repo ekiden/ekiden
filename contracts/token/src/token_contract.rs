@@ -1,8 +1,8 @@
 // Inspired by https://www.ethereum.org/token
 
 use std::collections::HashMap;
-use super::address::Address;
-use super::contract_error::ContractError;
+use libcontract::address::Address;
+use libcontract::contract_error::ContractError;
 
 pub struct TokenContract {
   name: String,

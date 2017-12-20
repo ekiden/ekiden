@@ -3,13 +3,13 @@ extern crate tokio_proto;
 
 mod ekidenmint;
 
-use std::env;
+//use std::env;
 use tokio_proto::TcpServer;
 
 use abci::server::{ AbciProto, AbciService };
 
 fn main() {
-  let args: Vec<String> = env::args().collect();
+  //let args: Vec<String> = env::args().collect();
   //let connection_type: &str = &args[1];
   //let listen_addr: &str = &args[2];
   let listen_addr = "127.0.0.1:46658".parse().unwrap();

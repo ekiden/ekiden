@@ -2,17 +2,15 @@
 use std::cmp;
 use std::io;
 use std::io::Write;
-use std::net::SocketAddr;
 
 use bytes::{BigEndian, BytesMut, ByteOrder, BufMut};
 use byteorder::WriteBytesExt;
 use futures::future;
-use futures::{BoxFuture, Future};
+use futures::Future;
 use protobuf;
 use protobuf::Message;
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::codec::{Decoder, Encoder, Framed};
-use tokio_proto::TcpServer;
 use tokio_proto::pipeline::ServerProto;
 use tokio_service::Service;
 
@@ -106,11 +104,11 @@ impl Service for AbciService {
   type Request = Request;
   type Response = Response;
   type Error = io::Error;
-  type Future = BoxFuture<Self::Response, Self::Error>;
+  type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
   fn call(&self, req: Self::Request) -> Self::Future {
     let response = self.handle(&req);
-    future::ok(response).boxed()
+    Box::new(future::ok(response))
   }
 }
 
