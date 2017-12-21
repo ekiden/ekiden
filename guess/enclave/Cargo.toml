@@ -2,6 +2,7 @@
 name = "guess_enclave"
 version = "0.1.0"
 authors = ["w <none>"]
+build = "build.rs"
 
 [lib]
 name = "guessenclave"
@@ -14,3 +15,7 @@ default = []
 sgx_types = { path = "../../../sgx/sgx_types" }
 sgx_tstd = { path = "../../../sgx/sgx_tstd" }
 sgx_rand = { path = "../../../sgx/sgx_rand" }
+protobuf = { path = "../third_party/protobuf" }
+
+[build-dependencies]
+protoc-rust = "1.4"

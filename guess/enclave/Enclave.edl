@@ -20,5 +20,12 @@ enclave {
         /* define ECALLs here. */
         public void guess_enclave_init([out] struct s24a8 *result);
         public void guess_enclave_guess([out] struct s24a8 *result, [in] const struct s8a4 *state, int32_t guess);
+
+        public void rpc_call(
+            [in, size=request_length] const uint8_t *request_data,
+            size_t request_length,
+            [out, size=response_length] uint8_t *response_data,
+            size_t response_length
+        );
     };
 };

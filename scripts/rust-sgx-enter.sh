@@ -21,5 +21,5 @@ docker run --rm -t -i \
     -v ${work_dir}:/code \
     -v ${rust_sgx_sdk_dir}:/sgx \
     -w /code \
-    baiduxlab/sgx-rust \
+    baiduxlab/sgx-rust-experimental \
     bash

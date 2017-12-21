@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package enclave_rpc;
+
+message Request {
+    // Request method.
+    string method = 1;
+    // Payload.
+    bytes payload = 2;
+}
+
+message Response {
+    enum Code {
+        INVALID = 0;
+
+        // 2xx indicades success.
+        SUCCESS = 200;
+
+        // 4xx indicates errors.
+        ERROR = 400;
+    }
+    // Response code.
+    Code code = 1;
+    // Payload.
+    bytes payload = 2;
+}
