@@ -56,25 +56,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "guess_app"
-version = "0.1.0"
-dependencies = [
- "sgx_types 0.9.1",
- "sgx_urts 0.9.1",
-]
-
-[[package]]
-name = "guess_enclave"
-version = "0.1.0"
-dependencies = [
- "protobuf 1.4.1",
- "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "sgx_rand 0.9.1",
- "sgx_tstd 0.9.1",
- "sgx_types 0.9.1",
-]
-
-[[package]]
 name = "iovec"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -137,6 +118,27 @@ dependencies = [
 name = "redox_syscall"
 version = "0.1.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "rpc_enclave"
+version = "0.1.0"
+dependencies = [
+ "protobuf 1.4.1",
+ "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_rand 0.9.1",
+ "sgx_tstd 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "rpc_untrusted"
+version = "0.1.0"
+dependencies = [
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_types 0.9.1",
+ "sgx_urts 0.9.1",
+]
 
 [[package]]
 name = "sgx_alloc"

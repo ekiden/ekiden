@@ -30,6 +30,7 @@
 ######## SGX SDK Settings ########
 
 SGX_SDK ?= /opt/intel/sgxsdk
+SGX_RUST_SDK ?= /sgx
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 
@@ -82,7 +83,8 @@ App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
 
 App_Rust_Path := ./target/release
 App_Enclave_u_Object := app/libEnclave_u.a
-App_Name := bin/guess_app
+App_Binary := rpc_untrusted
+App_Name := bin/$(App_Binary)
 
 ######## Enclave Settings ########
 
@@ -121,8 +123,8 @@ all: $(App_Name) $(Signed_RustEnclave_Name)
 ######## EDL Objects ########
 
 $(Enclave_EDL_Files): $(SGX_EDGER8R) enclave/Enclave.edl
-	$(SGX_EDGER8R) --trusted enclave/Enclave.edl --search-path $(SGX_SDK)/include --trusted-dir enclave
-	$(SGX_EDGER8R) --untrusted enclave/Enclave.edl --search-path $(SGX_SDK)/include --untrusted-dir app
+	$(SGX_EDGER8R) --trusted enclave/Enclave.edl --search-path $(SGX_SDK)/include --search-path $(SGX_RUST_SDK)/edl --trusted-dir enclave
+	$(SGX_EDGER8R) --untrusted enclave/Enclave.edl --search-path $(SGX_SDK)/include --search-path $(SGX_RUST_SDK)/edl --untrusted-dir app
 	@echo "GEN  =>  $(Enclave_EDL_Files)"
 
 ######## App Objects ########
@@ -139,7 +141,7 @@ $(App_Name): $(App_Enclave_u_Object) app/src/main.rs
 	@cd app && cargo build $(App_Rust_Flags)
 	@echo "Cargo  =>  $@"
 	mkdir -p bin
-	cp $(App_Rust_Path)/guess_app ./bin
+	cp $(App_Rust_Path)/$(App_Binary) ./bin
 
 ######## Enclave Objects ########
 
@@ -149,8 +151,8 @@ enclave/Enclave_t.o: $(Enclave_EDL_Files)
 
 $(RustEnclave_Name): enclave compiler-rt enclave/Enclave_t.o
 	mkdir -p lib
-	cp ./target/release/libguessenclave.a ./lib/libenclave.a
-	cp ../../sgx/compiler-rt/libcompiler-rt-patch.a ./lib
+	cp ./target/release/librpc_enclave.a ./lib/libenclave.a
+	cp $(SGX_RUST_SDK)/compiler-rt/libcompiler-rt-patch.a ./lib
 	@$(CXX) enclave/Enclave_t.o -o $@ $(RustEnclave_Link_Flags)
 	@echo "LINK =>  $@"
 
@@ -160,11 +162,11 @@ $(Signed_RustEnclave_Name): $(RustEnclave_Name)
 
 .PHONY: enclave
 enclave:
-	$(MAKE) -C ./enclave/
+	@cd enclave && cargo build --release
 
 .PHONY: compiler-rt
 compiler-rt:
-	$(MAKE) -C ../../sgx/compiler-rt/ 2> /dev/null
+	$(MAKE) -C $(SGX_RUST_SDK)/compiler-rt/ 2> /dev/null
 
 .PHONY: clean
 clean:

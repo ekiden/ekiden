@@ -1,0 +1,19 @@
+enclave {
+    from "sgx_tstd.edl" import *;
+    from "sgx_stdio.edl" import *;
+    from "sgx_backtrace.edl" import *;
+    from "sgx_tstdc.edl" import *;
+
+    trusted {
+        /**
+         * RPC call interface.
+         */
+        public void rpc_call(
+            [in, size=request_length] const uint8_t *request_data,
+            size_t request_length,
+            [out, size=response_capacity] uint8_t *response_data,
+            size_t response_capacity,
+            [out] size_t *response_length
+        );
+    };
+};

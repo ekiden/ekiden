@@ -1,20 +1,20 @@
 [package]
-name = "guess_enclave"
+name = "rpc_enclave"
 version = "0.1.0"
 authors = ["w <none>"]
 build = "build.rs"
 
 [lib]
-name = "guessenclave"
+name = "rpc_enclave"
 crate-type = ["staticlib"]
 
 [features]
 default = []
 
 [dependencies]
-sgx_types = { path = "../../../sgx/sgx_types" }
-sgx_tstd = { path = "../../../sgx/sgx_tstd" }
-sgx_rand = { path = "../../../sgx/sgx_rand" }
+sgx_types = { path = "/sgx/sgx_types" }
+sgx_tstd = { path = "/sgx/sgx_tstd" }
+sgx_rand = { path = "/sgx/sgx_rand" }
 protobuf = { path = "../third_party/protobuf" }
 
 [build-dependencies]
