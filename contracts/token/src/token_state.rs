@@ -142,7 +142,7 @@ impl TokenState {
         &mut self.total_supply
     }
 
-    // repeated .tutorial.TokenState.BalanceOfEntry balance_of = 4;
+    // repeated .token.TokenState.BalanceOfEntry balance_of = 4;
 
     pub fn clear_balance_of(&mut self) {
         self.balance_of.clear();
@@ -336,13 +336,13 @@ impl ::protobuf::reflect::ProtobufValue for TokenState {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x11token_state.proto\x12\x08tutorial\"\xdd\x01\n\nTokenState\x12\x12\
-    \n\x04name\x18\x01\x20\x01(\tR\x04name\x12\x16\n\x06symbol\x18\x02\x20\
-    \x01(\tR\x06symbol\x12!\n\x0ctotal_supply\x18\x03\x20\x01(\x04R\x0btotal\
-    Supply\x12B\n\nbalance_of\x18\x04\x20\x03(\x0b2#.tutorial.TokenState.Bal\
-    anceOfEntryR\tbalanceOf\x1a<\n\x0eBalanceOfEntry\x12\x10\n\x03key\x18\
-    \x01\x20\x01(\tR\x03key\x12\x14\n\x05value\x18\x02\x20\x01(\x04R\x05valu\
-    e:\x028\x01b\x06proto3\
+    \n\x11token_state.proto\x12\x05token\"\xda\x01\n\nTokenState\x12\x12\n\
+    \x04name\x18\x01\x20\x01(\tR\x04name\x12\x16\n\x06symbol\x18\x02\x20\x01\
+    (\tR\x06symbol\x12!\n\x0ctotal_supply\x18\x03\x20\x01(\x04R\x0btotalSupp\
+    ly\x12?\n\nbalance_of\x18\x04\x20\x03(\x0b2\x20.token.TokenState.Balance\
+    OfEntryR\tbalanceOf\x1a<\n\x0eBalanceOfEntry\x12\x10\n\x03key\x18\x01\
+    \x20\x01(\tR\x03key\x12\x14\n\x05value\x18\x02\x20\x01(\x04R\x05value:\
+    \x028\x01b\x06proto3\
 ";
 
 static mut file_descriptor_proto_lazy: ::protobuf::lazy::Lazy<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::lazy::Lazy {
