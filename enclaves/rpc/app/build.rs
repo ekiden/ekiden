@@ -1,6 +1,5 @@
 use std::env;
 
-extern crate protoc_rust;
 
 fn main () {
 
@@ -25,9 +24,4 @@ fn main () {
     println!("cargo:rustc-link-search=native={}/lib64", sdk_dir);
     println!("cargo:rustc-link-lib=dylib={}", urts_library_name);
 
-    protoc_rust::run(protoc_rust::Args {
-        out_dir: "src/",
-        input: &["../common/enclave_rpc.proto"],
-        includes: &["../common/"],
-    }).expect("protoc");
 }
