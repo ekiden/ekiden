@@ -1,10 +1,10 @@
 [package]
-name = "libcontract_enclave"
+name = "libcontract_trusted"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 
 [lib]
-path = "src/lib_enclave.rs"
+path = "src/lib_trusted.rs"
 crate-type = ["staticlib"]
 
 [features]
