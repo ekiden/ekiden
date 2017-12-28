@@ -1,5 +1,5 @@
 [package]
-name = "ekiden-web3"
+name = "ekiden_web3"
 version = "0.1.0"
 authors = ["Fan Zhang <fanz@linux.com>"]
 

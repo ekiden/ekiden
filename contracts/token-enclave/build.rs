@@ -11,6 +11,6 @@ fn main() {
   }).expect("protoc");
 
   let mut file = File::create("./src/generated/mod.rs").unwrap();
-  file.write_all(b"mod token_state;").unwrap();
+  file.write_all(b"pub mod token_state;").unwrap();
 
 }

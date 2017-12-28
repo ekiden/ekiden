@@ -58,7 +58,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ekiden-web3"
+name = "ekiden_web3"
 version = "0.1.0"
 dependencies = [
  "futures 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",

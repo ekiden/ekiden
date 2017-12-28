@@ -1,9 +1,9 @@
-extern crate ekiden_web3;
 extern crate grpc;
 extern crate futures;
+extern crate ekiden_web3;
 
-use ekiden_web3::ekiden_web3_grpc::*;
-use ekiden_web3::ekiden_web3::*;
+use ekiden_web3::generated::ekiden_web3_grpc::*;
+use ekiden_web3::generated::ekiden_web3::*;
 
 use std::env;
 
