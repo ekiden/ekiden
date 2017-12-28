@@ -1,4 +1,3 @@
-use std::string::String;
 
 #[derive(Debug)]
 pub struct ContractError {

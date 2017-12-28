@@ -1,7 +1,8 @@
-#![crate_name = "libcontract_trusted"]
-#![crate_type = "staticlib"]
 
 #![no_std]
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::v1::*;
 
 #[macro_use]
 extern crate sgx_tstd as std;

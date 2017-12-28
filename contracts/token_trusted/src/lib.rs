@@ -1,11 +1,11 @@
-#![crate_name = "token_enclave"]
+#![crate_name = "token_trusted"]
 #![crate_type = "staticlib"]
 
 #![no_std]
-//#![feature(prelude_import)]
 //#[allow(unused)]
-//#[prelude_import]
-//use std::prelude::v1::*;
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::v1::*;
 
 #[macro_use]
 extern crate sgx_tstd as std;

@@ -2,7 +2,6 @@
 name = "libcontract_untrusted"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
-build = "build.rs"
 
 [lib]
 path = "src/lib_untrusted.rs"
@@ -10,5 +9,3 @@ path = "src/lib_untrusted.rs"
 [dependencies]
 protobuf = "1.4.2"
 
-[build-dependencies]
-protoc-rust = "1.4"
