@@ -1,0 +1,23 @@
+[package]
+name = "token_enclave"
+version = "0.1.0"
+authors = ["Raymond Cheng <me@raymondcheng.net>"]
+build = "build.rs"
+
+[lib]
+name = "token_enclave"
+crate-type = ["staticlib"]
+
+[features]
+default = []
+
+[dependencies]
+sgx_types = { path = "/sgx/sgx_types" }
+sgx_tstd = { path = "/sgx/sgx_tstd" }
+sgx_rand = { path = "/sgx/sgx_rand" }
+protobuf = { path = "../../third_party_sgx/protobuf" }
+libcontract = { path = "../../libcontract" }
+
+[build-dependencies]
+protoc-rust = "1.4"
+

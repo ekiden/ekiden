@@ -31,6 +31,13 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "build_helper"
+version = "0.9.1"
+dependencies = [
+ "filetime 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "byteorder"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -68,6 +75,16 @@ dependencies = [
  "protobuf 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "protoc-rust-grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tls-api 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "filetime"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
+ "redox_syscall 0.1.33 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -238,6 +255,14 @@ dependencies = [
 
 [[package]]
 name = "protobuf"
+version = "1.4.1"
+dependencies = [
+ "bytes 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_tstd 0.9.1",
+]
+
+[[package]]
+name = "protobuf"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
@@ -284,6 +309,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_syscall"
+version = "0.1.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "safemem"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -292,6 +322,53 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "scoped-tls"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "sgx_alloc"
+version = "0.9.1"
+dependencies = [
+ "sgx_trts 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_rand"
+version = "0.9.1"
+dependencies = [
+ "sgx_trts 0.9.1",
+ "sgx_tstd 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_tprotected_fs"
+version = "0.9.1"
+dependencies = [
+ "sgx_trts 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_trts"
+version = "0.9.1"
+dependencies = [
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_tstd"
+version = "0.9.1"
+dependencies = [
+ "build_helper 0.9.1",
+ "sgx_alloc 0.9.1",
+ "sgx_tprotected_fs 0.9.1",
+ "sgx_trts 0.9.1",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "sgx_types"
+version = "0.9.1"
 
 [[package]]
 name = "slab"
@@ -347,17 +424,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "token"
+name = "token_app"
+version = "0.1.0"
+
+[[package]]
+name = "token_enclave"
 version = "0.1.0"
 dependencies = [
  "libcontract 0.1.0",
- "protobuf 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protobuf 1.4.1",
  "protoc-rust 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_rand 0.9.1",
+ "sgx_tstd 0.9.1",
+ "sgx_types 0.9.1",
 ]
-
-[[package]]
-name = "token-app"
-version = "0.1.0"
 
 [[package]]
 name = "tokio-core"
@@ -459,6 +539,7 @@ dependencies = [
 "checksum byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ff81738b726f5d099632ceaffe7fb65b90212e8dce59d518729e7e8634032d3d"
 "checksum bytes 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "d828f97b58cc5de3e40c421d0cf2132d6b2da4ee0e11b8632fa838f0f9333ad6"
 "checksum cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c819a1287eb618df47cc647173c5c4c66ba19d888a6e50d605672aed3140de"
+"checksum filetime 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "aa75ec8f7927063335a9583e7fa87b0110bb888cf766dc01b54c0ff70d760c8e"
 "checksum fuchsia-zircon 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f6c0581a4e363262e52b87f59ee2afe3415361c6ec35e665924eb08afe8ff159"
 "checksum fuchsia-zircon-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "43f3795b4bae048dc6123a6b972cadde2e676f9ded08aef6bb77f5f157684a82"
 "checksum futures 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)" = "118b49cac82e04121117cbd3121ede3147e885627d82c4546b87c702debb90c1"
@@ -480,6 +561,7 @@ dependencies = [
 "checksum protoc-rust 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0943274fd2755772b4f95189fabe2334634655ab43b49135647009a309e87878"
 "checksum protoc-rust-grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "68bc8fa6685f274fe41d6d47e3c7d702662ff7c268e5bfa8d5e7a809784418c6"
 "checksum rand 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)" = "6475140dfd8655aeb72e1fd4b7a1cc1c202be65d71669476e392fe62532b9edd"
+"checksum redox_syscall 0.1.33 (registry+https://github.com/rust-lang/crates.io-index)" = "07b8f011e3254d5a9b318fde596d409a0001c9ae4c6e7907520c2eaa4d988c99"
 "checksum safemem 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e27a8b19b835f7aea908818e871f5cc3a5a186550c30773be987e155e8163d8f"
 "checksum scoped-tls 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f417c22df063e9450888a7561788e9bd46d3bb3c1466435b4eccb903807f147d"
 "checksum slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "17b4fcaed89ab08ef143da37bc52adbcc04d4a69014f4c1208d6b51f0c47bc23"

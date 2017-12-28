@@ -3,8 +3,8 @@ members = [
   "abci",
   "client",
   "compute",
-  "contracts/token-app",
-  "contracts/token-enclave",
+  "contracts/token_app",
+  "contracts/token_enclave",
   "libcontract",
   "storage",
 ]
