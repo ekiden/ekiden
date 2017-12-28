@@ -2,6 +2,7 @@
 name = "compute"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
+build = "build.rs"
 
 [dependencies]
 rand = "0.3.14"
