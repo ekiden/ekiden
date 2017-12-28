@@ -57,3 +57,4 @@ $ make SGX_MODE=SIM
 - `contracts`: Ekiden contracts (e.g. token)
 - `storage`: Ekiden storage node
 - `scripts`: Bash scripts for development
+- `third_party_sgx`: Forks of third-party packages, with modifications that enable their use with the SGX standard library (`sgx_tstd`).
