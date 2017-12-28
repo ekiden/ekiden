@@ -1,6 +1,7 @@
 // Inspired by https://www.ethereum.org/token
 
 use std::collections::HashMap;
+use std::string::String;
 use libcontract::address::Address;
 use libcontract::contract_error::ContractError;
 

@@ -1,23 +1,22 @@
 #![crate_name = "token_enclave"]
 #![crate_type = "staticlib"]
 
-#![feature(prelude_import)]
-
 #![no_std]
+//#![feature(prelude_import)]
+//#[allow(unused)]
+//#[prelude_import]
+//use std::prelude::v1::*;
 
 #[macro_use]
 extern crate sgx_tstd as std;
-
 extern crate libcontract;
 extern crate protobuf;
+
+use libcontract::generated::enclave_rpc;
 use protobuf::Message;
 
-#[allow(unused)]
-#[prelude_import]
-use std::prelude::v1::*;
-
-mod token_contract;
-mod generated;
+//mod token_contract;
+//mod generated;
 
 #[no_mangle]
 pub extern "C" fn rpc_call(request_data: *const u8,
