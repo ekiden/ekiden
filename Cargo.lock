@@ -356,6 +356,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "token-app"
+version = "0.1.0"
+
+[[package]]
 name = "tokio-core"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
