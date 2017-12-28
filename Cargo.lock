@@ -433,11 +433,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "token_app"
-version = "0.1.0"
-
-[[package]]
-name = "token_enclave"
+name = "token_trusted"
 version = "0.1.0"
 dependencies = [
  "libcontract_trusted 0.1.0",
@@ -447,6 +443,10 @@ dependencies = [
  "sgx_tstd 0.9.1",
  "sgx_types 0.9.1",
 ]
+
+[[package]]
+name = "token_untrusted"
+version = "0.1.0"
 
 [[package]]
 name = "tokio-core"

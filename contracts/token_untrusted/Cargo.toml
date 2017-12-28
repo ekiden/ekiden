@@ -1,5 +1,5 @@
 [package]
-name = "token_app"
+name = "token_untrusted"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 
