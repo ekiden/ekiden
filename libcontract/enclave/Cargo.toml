@@ -1,0 +1,8 @@
+[package]
+name = "libcontract_enclave"
+version = "0.1.0"
+authors = ["Raymond Cheng <me@raymondcheng.net>"]
+
+[dependencies]
+protobuf = { path = "../../third_party_sgx/protobuf" }
+

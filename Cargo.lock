@@ -192,11 +192,18 @@ version = "0.2.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "libcontract"
+name = "libcontract_app"
 version = "0.1.0"
 dependencies = [
  "protobuf 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "protoc-rust 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "libcontract_enclave"
+version = "0.1.0"
+dependencies = [
+ "protobuf 1.4.1",
 ]
 
 [[package]]
@@ -431,7 +438,7 @@ version = "0.1.0"
 name = "token_enclave"
 version = "0.1.0"
 dependencies = [
- "libcontract 0.1.0",
+ "libcontract_enclave 0.1.0",
  "protobuf 1.4.1",
  "protoc-rust 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sgx_rand 0.9.1",

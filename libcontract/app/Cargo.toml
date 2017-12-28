@@ -1,5 +1,5 @@
 [package]
-name = "libcontract"
+name = "libcontract_app"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 build = "build.rs"
