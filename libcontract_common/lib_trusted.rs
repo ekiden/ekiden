@@ -1,4 +1,4 @@
-#![crate_name = "libcontract_enclave"]
+#![crate_name = "libcontract_trusted"]
 #![crate_type = "staticlib"]
 
 #![no_std]

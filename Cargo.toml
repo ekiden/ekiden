@@ -5,7 +5,7 @@ members = [
   "compute",
   "contracts/token_app",
   "contracts/token_enclave",
-  "libcontract/app",
-  "libcontract/enclave",
+  "libcontract_trusted",
+  "libcontract_untrusted",
   "storage",
 ]
