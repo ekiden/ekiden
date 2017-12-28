@@ -1,3 +1,5 @@
+use std::string::String;
+use std::string::ToString;
 
 #[derive(Debug)]
 pub struct Address {

@@ -3,6 +3,15 @@ name = "libcontract_enclave"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 
+[lib]
+path = "src/lib_enclave.rs"
+crate-type = ["staticlib"]
+
+[features]
+default = []
+
 [dependencies]
+sgx_types = { path = "/sgx/sgx_types" }
+sgx_tstd = { path = "/sgx/sgx_tstd" }
 protobuf = { path = "../../third_party_sgx/protobuf" }
 

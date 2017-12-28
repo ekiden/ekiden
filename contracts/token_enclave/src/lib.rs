@@ -9,8 +9,8 @@
 
 #[macro_use]
 extern crate sgx_tstd as std;
-extern crate libcontract_enclave;
 extern crate protobuf;
+extern crate libcontract_enclave;
 
 use libcontract_enclave::generated::enclave_rpc;
 use protobuf::Message;

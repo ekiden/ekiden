@@ -204,6 +204,8 @@ name = "libcontract_enclave"
 version = "0.1.0"
 dependencies = [
  "protobuf 1.4.1",
+ "sgx_tstd 0.9.1",
+ "sgx_types 0.9.1",
 ]
 
 [[package]]
