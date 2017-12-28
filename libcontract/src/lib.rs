@@ -1,6 +1,9 @@
+extern crate protobuf;
+
 pub mod address;
 pub mod contract;
 pub mod contract_error;
+pub mod generated;
 
 #[cfg(test)]
 mod tests {

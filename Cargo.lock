@@ -177,6 +177,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "libcontract"
 version = "0.1.0"
+dependencies = [
+ "protobuf 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc-rust 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "log"
