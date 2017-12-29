@@ -380,6 +380,14 @@ name = "sgx_types"
 version = "0.9.1"
 
 [[package]]
+name = "sgx_urts"
+version = "0.9.1"
+dependencies = [
+ "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_types 0.9.1",
+]
+
+[[package]]
 name = "slab"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -442,6 +450,17 @@ dependencies = [
  "sgx_rand 0.9.1",
  "sgx_tstd 0.9.1",
  "sgx_types 0.9.1",
+]
+
+[[package]]
+name = "token_untrusted"
+version = "0.1.0"
+dependencies = [
+ "libcontract_trusted 0.1.0",
+ "libcontract_untrusted 0.1.0",
+ "protobuf 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_types 0.9.1",
+ "sgx_urts 0.9.1",
 ]
 
 [[package]]

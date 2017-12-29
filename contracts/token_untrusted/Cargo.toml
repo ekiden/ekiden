@@ -9,3 +9,6 @@ sgx_types = { path = "/sgx/sgx_types" }
 sgx_urts = { path = "/sgx/sgx_urts" }
 libcontract_untrusted = { path = "../../libcontract_untrusted" }
 protobuf = "1.4.2"
+
+[build-dependencies]
+libcontract_trusted = { path = "../../libcontract_trusted" }

@@ -1,10 +1,34 @@
 extern crate protoc_rust;
 
+use std::env;
 use std::fs::File;
 use std::io::Write;
+use std::path::{ Path, PathBuf };
+use std::process::Command;
 //use std::fs::OpenOptions;
 
 fn main() {
+  // Gather necessary environment variables
+  let rust_sgx_sdk_dir = match env::var("RUST_SGX_SDK") {
+    Ok(val) => val,
+    Err(_) => panic!("Required environment variable RUST_SGX_SDK not defined")
+  };
+
+  let intel_sgx_sdk_dir = match env::var("INTEL_SGX_SDK") {
+    Ok(val) => val,
+    Err(_) => panic!("Required environment variable INTEL_SGX_SDK not defined")
+  };
+
+  let sgx_mode = match env::var("SGX_MODE") {
+    Ok(val) => val,
+    Err(_) => panic!("Required environment variable SGX_MODE not defined")
+  };
+
+  let urts_library_name = match sgx_mode.as_ref() {
+    "HW" => "sgx_urts",
+    _ => "sgx_urts_sim",
+  };
+
   // Compile .proto files
   protoc_rust::run(protoc_rust::Args {
       out_dir: "src/generated/",
@@ -26,5 +50,35 @@ fn main() {
   file.write_all(b"
     pub mod enclave_rpc;
   ").unwrap();
+
+  // Compile EDL files
+  let sgx_edger8r_path = Path::new(&intel_sgx_sdk_dir).join("bin/x64/sgx_edger8r");
+  let sgx_include_path = Path::new(&intel_sgx_sdk_dir).join("include");
+  let sgx_edl_path = Path::new(&rust_sgx_sdk_dir).join("edl");
+  let output = Command::new(sgx_edger8r_path.to_str().unwrap())
+    .arg("--trusted")
+    .arg("enclave_config/Enclave.edl")
+    .arg("--search-path")
+    .arg(sgx_include_path.to_str().unwrap())
+    .arg("--search-path")
+    .arg(sgx_edl_path.to_str().unwrap())
+    .arg("--trusted-dir")
+    .arg("src/generated/trusted")
+    .output()
+    .unwrap();
+  assert!(output.status.success());
+  let output = Command::new(sgx_edger8r_path.to_str().unwrap())
+    .arg("--untrusted")
+    .arg("enclave_config/Enclave.edl")
+    .arg("--search-path")
+    .arg(sgx_include_path.to_str().unwrap())
+    .arg("--search-path")
+    .arg(sgx_edl_path.to_str().unwrap())
+    .arg("--untrusted-dir")
+    .arg("src/generated/untrusted")
+    .output()
+    .unwrap();
+  assert!(output.status.success());
+
 
 }
