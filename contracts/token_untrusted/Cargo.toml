@@ -2,5 +2,9 @@
 name = "token_untrusted"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
+build = "build.rs"
 
 [dependencies]
+sgx_types = { path = "/sgx/sgx_types" }
+sgx_urts = { path = "/sgx/sgx_urts" }
+protobuf = "1.4.2"
