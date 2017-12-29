@@ -1,4 +1,4 @@
-#![crate_name = "token_trusted"]
+#![crate_name = "token"]
 #![crate_type = "staticlib"]
 
 #![no_std]

@@ -1,30 +1,23 @@
-extern crate rand;
+extern crate sgx_types;
+extern crate sgx_urts;
+extern crate libcontract_untrusted;
+extern crate protobuf;
 
-use std::io;
-use std::cmp::Ordering;
-use rand::Rng;
+mod enclave;
+mod errors;
+
+use libcontract_untrusted::generated::enclave_rpc;
 
 fn main() {
-  println!("Guess the number!");
-  let secret_number = rand::thread_rng().gen_range(1, 101);
+    // Create a new ekiden enclave from the given library.
+    let simple = enclave::EkidenEnclave::new("enclave.signed.so").unwrap();
 
-  println!("The secret number is: {}", secret_number);
-  println!("Please input your guess.");
-  let mut guess = String::new();
+    // Fire off an RPC.
+    let mut request = enclave_rpc::Request::new();
+    request.set_method(String::from("hello_world"));
+    let response = simple.call(&request).unwrap();
+    println!("Response status={:?}", response.code);
 
-  io::stdin().read_line(&mut guess)
-    .expect("Failed to read line");
-
-  let guess: u32 = guess.trim().parse()
-    .expect("Please type a number!");
-
-  println!("You guessed: {}", guess);
-
-  match guess.cmp(&secret_number) {
-    Ordering::Less    => println!("Too small!"),
-    Ordering::Greater => println!("Too big!"),
-    Ordering::Equal   => println!("You win!"),
-  }
+    // Destroy the enclave.
+    simple.destroy();
 }
-
-

@@ -1,11 +1,11 @@
 [package]
-name = "token_trusted"
+name = "token"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 build = "build.rs"
 
 [lib]
-name = "token_trusted"
+name = "token"
 crate-type = ["staticlib"]
 
 [features]
