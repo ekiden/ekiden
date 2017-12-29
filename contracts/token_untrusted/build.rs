@@ -65,14 +65,10 @@ fn main () {
     .include(include_path.to_str().unwrap())
     .compile("Enclave_u");
 
-  // ar
   //ar rcsD app/libEnclave_u.a app/Enclave_u.o
-  
   //println!("cargo:rustc-link-search=native=../lib");
   println!("cargo:rustc-link-lib=static=Enclave_u");
   println!("cargo:rustc-link-search=native={}/lib64", intel_sgx_sdk_dir);
   println!("cargo:rustc-link-lib=dylib={}", urts_library_name);
-
-  //assert!(false);
 
 }
