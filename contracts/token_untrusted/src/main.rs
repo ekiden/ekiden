@@ -1,10 +1,12 @@
 extern crate sgx_types;
 extern crate sgx_urts;
+extern crate libcontract_untrusted;
 extern crate protobuf;
 
-mod enclave_rpc;
 mod enclave;
 mod errors;
+
+use libcontract_untrusted::generated::enclave_rpc;
 
 fn main() {
     // Create a new ekiden enclave from the given library.

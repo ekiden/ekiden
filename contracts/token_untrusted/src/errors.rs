@@ -28,7 +28,7 @@ impl StdError for Error {
 }
 
 impl From<protobuf::ProtobufError> for Error {
-    fn from(e_: protobuf::ProtobufError) -> Self {
+    fn from(_e: protobuf::ProtobufError) -> Self {
         Error::ParseError
     }
 }

@@ -456,6 +456,7 @@ dependencies = [
 name = "token_untrusted"
 version = "0.1.0"
 dependencies = [
+ "libcontract_untrusted 0.1.0",
  "protobuf 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sgx_types 0.9.1",
  "sgx_urts 0.9.1",

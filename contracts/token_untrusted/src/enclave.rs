@@ -6,7 +6,7 @@ use std::fs;
 use std::path;
 use std::env;
 
-use enclave_rpc;
+use libcontract_untrusted::generated::enclave_rpc;
 use protobuf;
 use protobuf::Message;
 use errors;
