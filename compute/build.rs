@@ -6,11 +6,6 @@ use std::process::Command;
 
 fn main () {
   // Gather necessary environment variables
-  let rust_sgx_sdk_dir = match env::var("RUST_SGX_SDK") {
-    Ok(val) => val,
-    Err(_) => panic!("Required environment variable RUST_SGX_SDK not defined")
-  };
-
   let intel_sgx_sdk_dir = match env::var("INTEL_SGX_SDK") {
     Ok(val) => val,
     Err(_) => panic!("Required environment variable INTEL_SGX_SDK not defined")
@@ -26,21 +21,6 @@ fn main () {
     _ => "sgx_urts_sim",
   };
 
-  ///////////////////////////
-  // BUILD enclave.signed.so
-  ///////////////////////////
-
-  // Make SGX SDK compiler-rt
-  let path_arg = Path::new(&rust_sgx_sdk_dir).join("compiler-rt/");
-  let output = Command::new("make")
-    .arg("-C")
-    .arg(path_arg.to_str().unwrap())
-    .output()
-    .unwrap();
-  assert!(output.status.success());
-
-  // Build Enclave_t.o
-  
   ///////////////////////////
   // BUILD main.rs
   ///////////////////////////

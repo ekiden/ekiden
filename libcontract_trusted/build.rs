@@ -19,16 +19,6 @@ fn main() {
     Err(_) => panic!("Required environment variable INTEL_SGX_SDK not defined")
   };
 
-  let sgx_mode = match env::var("SGX_MODE") {
-    Ok(val) => val,
-    Err(_) => panic!("Required environment variable SGX_MODE not defined")
-  };
-
-  let urts_library_name = match sgx_mode.as_ref() {
-    "HW" => "sgx_urts",
-    _ => "sgx_urts_sim",
-  };
-
   // Compile .proto files
   protoc_rust::run(protoc_rust::Args {
       out_dir: "src/generated/",
