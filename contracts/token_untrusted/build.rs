@@ -51,6 +51,7 @@ fn main () {
   ///////////////////////////
 
   // Build Enclave_u.o
+  // NOTE: libcontract_trusted must be a build-dependency for Enclave_u.c to exist
   let sgx_include_path = Path::new(&intel_sgx_sdk_dir).join("include");
   let include_path = Path::new(&libcontract_dir).join("src/generated/untrusted/");
   let src_path = Path::new(&libcontract_dir).join("src/generated/untrusted/Enclave_u.c");

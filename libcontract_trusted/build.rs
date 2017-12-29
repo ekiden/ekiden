@@ -57,7 +57,7 @@ fn main() {
   let sgx_edl_path = Path::new(&rust_sgx_sdk_dir).join("edl");
   let output = Command::new(sgx_edger8r_path.to_str().unwrap())
     .arg("--trusted")
-    .arg("enclave_config/Enclave.edl")
+    .arg("src/Enclave.edl")
     .arg("--search-path")
     .arg(sgx_include_path.to_str().unwrap())
     .arg("--search-path")
@@ -69,7 +69,7 @@ fn main() {
   assert!(output.status.success());
   let output = Command::new(sgx_edger8r_path.to_str().unwrap())
     .arg("--untrusted")
-    .arg("enclave_config/Enclave.edl")
+    .arg("src/Enclave.edl")
     .arg("--search-path")
     .arg(sgx_include_path.to_str().unwrap())
     .arg("--search-path")
