@@ -6,11 +6,6 @@ use std::process::Command;
 
 fn main () {
   // Gather necessary environment variables
-  let libcontract_dir = match env::var("LIBCONTRACT") {
-    Ok(val) => val,
-    Err(_) => panic!("Required environment variable LIBCONTRACT not defined")
-  };
-
   let rust_sgx_sdk_dir = match env::var("RUST_SGX_SDK") {
     Ok(val) => val,
     Err(_) => panic!("Required environment variable RUST_SGX_SDK not defined")
@@ -53,8 +48,8 @@ fn main () {
   // Build Enclave_u.o
   // NOTE: libcontract_trusted must be a build-dependency for Enclave_u.c to exist
   let sgx_include_path = Path::new(&intel_sgx_sdk_dir).join("include");
-  let include_path = Path::new(&libcontract_dir).join("src/generated/untrusted/");
-  let src_path = Path::new(&libcontract_dir).join("src/generated/untrusted/Enclave_u.c");
+  let include_path = Path::new("../libcontract_trusted/src/generated/untrusted/");
+  let src_path = Path::new("../libcontract_trusted/src/generated/untrusted/Enclave_u.c");
   cc::Build::new()
     .file(src_path.to_str().unwrap())
     .flag_if_supported("-m64")
