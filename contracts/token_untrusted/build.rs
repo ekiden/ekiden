@@ -18,10 +18,11 @@ fn main () {
         _ => "sgx_urts_sim",
     };
 
-    println!("cargo:rustc-link-search=native=../lib");
-    println!("cargo:rustc-link-lib=static=Enclave_u");
 
-    println!("cargo:rustc-link-search=native={}/lib64", sdk_dir);
-    println!("cargo:rustc-link-lib=dylib={}", urts_library_name);
+    //println!("cargo:rustc-link-search=native=../lib");
+    //println!("cargo:rustc-link-lib=static=Enclave_u");
+
+    //println!("cargo:rustc-link-search=native={}/lib64", sdk_dir);
+    //println!("cargo:rustc-link-lib=dylib={}", urts_library_name);
 
 }

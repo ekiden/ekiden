@@ -15,8 +15,8 @@ extern crate libcontract_trusted;
 use libcontract_trusted::generated::enclave_rpc;
 use protobuf::Message;
 
-//mod token_contract;
-//mod generated;
+mod token_contract;
+mod generated;
 
 #[no_mangle]
 pub extern "C" fn rpc_call(request_data: *const u8,
