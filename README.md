@@ -44,17 +44,23 @@ container with all the included tools.
 To start the SGX development container:
 ```bash
 $ ./scripts/rust-sgx-enter.sh
+$ cargo build
 ```
 
-Set the following in the `make` invocation to build in the SDK's simulation mode:
+By default, enclaves are built for simulation mode.
+Set the following in the `make` invocation to build in the SDK's hardware mode:
 ```bash
-$ make SGX_MODE=SIM
+$ export SGX_MODE=HW
 ```
 
 ## Packages
 - `abci`: Tendermint Application Blockchain Interface
+- `client`: Ekiden client library
 - `compute`: Ekiden compute node
 - `contracts`: Ekiden contracts (e.g. token)
+- `libcontract_common`: source code for `libcontract_*`. Common library for all contracts
+- `libcontract_trusted`: packaging for SGX environment
+- `libcontract_untrusted`: packaging for non-SGX environment
 - `storage`: Ekiden storage node
 - `scripts`: Bash scripts for development
 - `third_party_sgx`: Forks of third-party packages, with modifications that enable their use with the SGX standard library (`sgx_tstd`).
