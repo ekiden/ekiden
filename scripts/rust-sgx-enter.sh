@@ -20,6 +20,9 @@ which docker >/dev/null || {
 docker run --rm -t -i \
     -v ${work_dir}:/code \
     -v ${rust_sgx_sdk_dir}:/sgx \
+    -e "SGX_MODE=SIM" \
+    -e "RUST_SGX_SDK=/sgx" \
+    -e "INTEL_SGX_SDK=/opt/sgxsdk" \
     -w /code \
     baiduxlab/sgx-rust-experimental \
     bash
