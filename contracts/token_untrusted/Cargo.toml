@@ -12,3 +12,4 @@ protobuf = "1.4.2"
 
 [build-dependencies]
 libcontract_trusted = { path = "../../libcontract_trusted" }
+cc = "1.0"

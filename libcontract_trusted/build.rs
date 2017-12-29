@@ -3,7 +3,7 @@ extern crate protoc_rust;
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::path::{ Path, PathBuf };
+use std::path::Path;
 use std::process::Command;
 //use std::fs::OpenOptions;
 
@@ -63,7 +63,7 @@ fn main() {
     .arg("--search-path")
     .arg(sgx_edl_path.to_str().unwrap())
     .arg("--trusted-dir")
-    .arg("src/generated/trusted")
+    .arg("src/generated/trusted/")
     .output()
     .unwrap();
   assert!(output.status.success());
@@ -75,10 +75,9 @@ fn main() {
     .arg("--search-path")
     .arg(sgx_edl_path.to_str().unwrap())
     .arg("--untrusted-dir")
-    .arg("src/generated/untrusted")
+    .arg("src/generated/untrusted/")
     .output()
     .unwrap();
   assert!(output.status.success());
-
 
 }
