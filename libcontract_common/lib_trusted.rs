@@ -12,6 +12,7 @@ pub mod address;
 pub mod contract;
 pub mod contract_error;
 pub mod generated;
+pub mod rpc;
 
 #[cfg(test)]
 mod tests {

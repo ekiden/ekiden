@@ -12,9 +12,7 @@ crate-type = ["staticlib"]
 default = []
 
 [dependencies]
-sgx_types = { path = "/sgx/sgx_types" }
 sgx_tstd = { path = "/sgx/sgx_tstd" }
-sgx_rand = { path = "/sgx/sgx_rand" }
 protobuf = { path = "../../third_party_sgx/protobuf" }
 libcontract_trusted = { path = "../../libcontract_trusted" }
 

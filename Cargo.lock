@@ -350,15 +350,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sgx_rand"
-version = "0.9.1"
-dependencies = [
- "sgx_trts 0.9.1",
- "sgx_tstd 0.9.1",
- "sgx_types 0.9.1",
-]
-
-[[package]]
 name = "sgx_tprotected_fs"
 version = "0.9.1"
 dependencies = [
@@ -456,9 +447,7 @@ dependencies = [
  "libcontract_trusted 0.1.0",
  "protobuf 1.4.1",
  "protoc-rust 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "sgx_rand 0.9.1",
  "sgx_tstd 0.9.1",
- "sgx_types 0.9.1",
 ]
 
 [[package]]

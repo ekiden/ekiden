@@ -66,7 +66,7 @@ $ bash scripts/build-enclave.sh /code/target/debug/libtoken.a
 
 The generic compute binary takes a signed contract enclave as a parameter
 ```bash
-$ [TBD]
+$./target/debug/compute ./target/enclave/enclave.signed.so
 ```
 
 ## Packages
