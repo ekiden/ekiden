@@ -13,6 +13,8 @@ fi
 echo "Creating enclave from $CONTRACT_PATH"
 
 # Set default values if not already set as environment variables
+: ${ENCLAVE_T_DIR:="$CWD/libcontract_trusted/src/generated/trusted"}
+: ${TARGET_DIR:="$CWD/target/enclave"}
 : ${ENCLAVE_LDS:="$CWD/Enclave.lds"}
 : ${ENCLAVE_KEY:="$CWD/Enclave_private.pem"}
 : ${ENCLAVE_CONFIG:="$CWD/Enclave.config.xml"}
@@ -20,9 +22,6 @@ echo "Creating enclave from $CONTRACT_PATH"
 : ${RUST_SGX_SDK:="/sgx"}
 : ${SGX_MODE:="SIM"}
 : ${SGX_ARCH:="x64"}
-
-ENCLAVE_T_DIR="$CWD/libcontract_trusted/src/generated/trusted"
-TARGET_DIR="$CWD/target/enclave"
 
 # Commands
 CC=gcc
@@ -36,18 +35,18 @@ SGX_EDGER8R="$INTEL_SGX_SDK/bin/x64/sgx_edger8r"
 
 if [ "$SGX_DEBUG" == "1" ]
 then
-	SGX_COMMON_CFLAGS="$SGX_COMMON_CFLAGS -O0 -g"
+  SGX_COMMON_CFLAGS="$SGX_COMMON_CFLAGS -O0 -g"
 else
-	SGX_COMMON_CFLAGS="$SGX_COMMON_CFLAGS -O2"
+  SGX_COMMON_CFLAGS="$SGX_COMMON_CFLAGS -O2"
 fi
 
 if [ "$SGX_MODE" == "HW" ]
 then
-	Trts_Library_Name=sgx_trts
-	Service_Library_Name=sgx_tservice
+  Trts_Library_Name=sgx_trts
+  Service_Library_Name=sgx_tservice
 else
-	Trts_Library_Name=sgx_trts_sim
-	Service_Library_Name=sgx_tservice_sim
+  Trts_Library_Name=sgx_trts_sim
+  Service_Library_Name=sgx_tservice_sim
 fi
 Crypto_Library_Name=sgx_tcrypto
 KeyExchange_Library_Name=sgx_tkey_exchange
@@ -59,13 +58,13 @@ RustEnclave_Compile_Flags="$SGX_COMMON_CFLAGS -nostdinc -fvisibility=hidden -fpi
 RustEnclave_Link_Libs="-L$TARGET_DIR -lcompiler-rt-patch -lenclave"
 RustEnclave_Link_Flags="$SGX_COMMON_CFLAGS -Wl,--no-undefined \
   -nostdlib -nodefaultlibs -nostartfiles -L$SGX_LIBRARY_PATH \
-	-Wl,--whole-archive -l$Trts_Library_Name -Wl,--no-whole-archive \
-	-Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -l$Crypto_Library_Name $RustEnclave_Link_Libs -Wl,--end-group \
-	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
-	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
-	-Wl,--defsym,__ImageBase=0 \
-	-Wl,--gc-sections \
-	-Wl,--version-script=$ENCLAVE_LDS"
+  -Wl,--whole-archive -l$Trts_Library_Name -Wl,--no-whole-archive \
+  -Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -l$Crypto_Library_Name $RustEnclave_Link_Libs -Wl,--end-group \
+  -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
+  -Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
+  -Wl,--defsym,__ImageBase=0 \
+  -Wl,--gc-sections \
+  -Wl,--version-script=$ENCLAVE_LDS"
 
 # Create target directory
 echo $CWD

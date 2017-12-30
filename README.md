@@ -36,12 +36,12 @@ $ cargo build -p storage
 $ ./target/debug/storage
 ```
 
-### SGX code
+### To compile and run a contract
 
 The easiest way to build SGX code is to use the provided scripts, which run a Docker
 container with all the included tools.
 
-To start the SGX development container:
+To start the SGX development container and build all Rust code:
 ```bash
 $ ./scripts/rust-sgx-enter.sh
 $ cargo build
@@ -51,6 +51,22 @@ By default, enclaves are built for simulation mode.
 Set the following in the `make` invocation to build in the SDK's hardware mode:
 ```bash
 $ export SGX_MODE=HW
+$ cargo build
+```
+
+In order to run a contract on a compute node, we must bundle and sign the contract into an enclave object. For example, to do this for the token contract:
+```bash
+$ bash scripts/build-enclave.sh /code/target/debug/libtoken.a
+  ...
+  Signed enclave here:
+  /code/target/enclave/enclave.signed.so
+```
+
+### Compute node
+
+The generic compute binary takes a signed contract enclave as a parameter
+```bash
+$ [TBD]
 ```
 
 ## Packages
