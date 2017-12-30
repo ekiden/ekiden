@@ -39,7 +39,7 @@ $ ./target/debug/storage
 ### To compile and run a contract
 
 The easiest way to build SGX code is to use the provided scripts, which run a Docker
-container with all the included tools.
+container with all the included tools. This has been tested on MacOS and Ubuntu with `SGX_MODE=SIM`.
 
 To start the SGX development container and build all Rust code:
 ```bash
