@@ -275,7 +275,7 @@ impl Response {
         }
     }
 
-    // .enclave_rpc.Response.Code code = 1;
+    // .rpc.Response.Code code = 1;
 
     pub fn clear_code(&mut self) {
         self.code = Response_Code::INVALID;
@@ -525,13 +525,12 @@ impl ::protobuf::reflect::ProtobufValue for Response_Code {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x11enclave_rpc.proto\x12\x0benclave_rpc\";\n\x07Request\x12\x16\n\x06\
-    method\x18\x01\x20\x01(\tR\x06method\x12\x18\n\x07payload\x18\x02\x20\
-    \x01(\x0cR\x07payload\"\x83\x01\n\x08Response\x12.\n\x04code\x18\x01\x20\
-    \x01(\x0e2\x1a.enclave_rpc.Response.CodeR\x04code\x12\x18\n\x07payload\
-    \x18\x02\x20\x01(\x0cR\x07payload\"-\n\x04Code\x12\x0b\n\x07INVALID\x10\
-    \0\x12\x0c\n\x07SUCCESS\x10\xc8\x01\x12\n\n\x05ERROR\x10\x90\x03b\x06pro\
-    to3\
+    \n\trpc.proto\x12\x03rpc\";\n\x07Request\x12\x16\n\x06method\x18\x01\x20\
+    \x01(\tR\x06method\x12\x18\n\x07payload\x18\x02\x20\x01(\x0cR\x07payload\
+    \"{\n\x08Response\x12&\n\x04code\x18\x01\x20\x01(\x0e2\x12.rpc.Response.\
+    CodeR\x04code\x12\x18\n\x07payload\x18\x02\x20\x01(\x0cR\x07payload\"-\n\
+    \x04Code\x12\x0b\n\x07INVALID\x10\0\x12\x0c\n\x07SUCCESS\x10\xc8\x01\x12\
+    \n\n\x05ERROR\x10\x90\x03b\x06proto3\
 ";
 
 static mut file_descriptor_proto_lazy: ::protobuf::lazy::Lazy<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::lazy::Lazy {

@@ -1,11 +1,11 @@
 [package]
-name = "rpc_enclave"
+name = "enclave_dummy"
 version = "0.1.0"
-authors = ["w <none>"]
+authors = ["Jernej Kos <jernej@kos.mx>"]
 build = "build.rs"
 
 [lib]
-name = "rpc_enclave"
+name = "enclave_dummy"
 crate-type = ["staticlib"]
 
 [features]
@@ -15,7 +15,8 @@ default = []
 sgx_types = { path = "/sgx/sgx_types" }
 sgx_tstd = { path = "/sgx/sgx_tstd" }
 sgx_rand = { path = "/sgx/sgx_rand" }
-protobuf = { path = "../third_party/protobuf" }
+libenclave-trusted = { path = "../../libenclave/trusted" }
 
 [build-dependencies]
 protoc-rust = "1.4"
+libenclave-utils = { path = "../../libenclave/utils" }

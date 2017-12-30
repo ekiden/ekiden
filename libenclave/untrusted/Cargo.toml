@@ -1,5 +1,5 @@
 [package]
-name = "rpc_untrusted"
+name = "libenclave-untrusted"
 version = "0.1.0"
 authors = ["Jernej Kos <jernej@kos.mx>"]
 build = "build.rs"

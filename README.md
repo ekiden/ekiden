@@ -46,9 +46,20 @@ To start the SGX development container:
 $ ./scripts/rust-sgx-enter.sh
 ```
 
-Set the following in the `make` invocation to build in the SDK's simulation mode:
+To build an enclave (e.g., `dummy` enclave) use the provided script within the container:
 ```bash
-$ make SGX_MODE=SIM
+$ ./scripts/build-enclave.sh enclave_dummy
+```
+
+To build an example application that uses the `dummy` enclave for testing enclave RPC:
+```bash
+$ SGX_MODE=SIM cargo build --release -p enclave_test
+```
+
+To run the example application:
+```bash
+$ cd target/release
+$ ./enclave_test
 ```
 
 ## Packages

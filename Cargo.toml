@@ -6,4 +6,9 @@ members = [
   "libcontract",
   "storage",
   "client",
+  "libenclave/utils",
+  "libenclave/untrusted",
+  "libenclave/trusted",
+  "enclaves/dummy",
+  "examples/enclave_test",
 ]

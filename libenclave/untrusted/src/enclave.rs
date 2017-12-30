@@ -6,9 +6,10 @@ use std::fs;
 use std::path;
 use std::env;
 
-use enclave_rpc;
 use protobuf;
 use protobuf::Message;
+
+use rpc;
 use errors;
 
 static ENCLAVE_TOKEN: &'static str = "enclave.token";
@@ -123,7 +124,7 @@ impl EkidenEnclave {
     }
 
     /// Perform an RPC call against the enclave.
-    pub fn call(&self, request: &enclave_rpc::Request) -> Result<enclave_rpc::Response, errors::Error> {
+    pub fn call(&self, request: &rpc::Request) -> Result<rpc::Response, errors::Error> {
         let request = request.write_to_bytes()?;
 
         // Maximum size of serialized response is 16K.
