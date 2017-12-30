@@ -12,8 +12,6 @@ extern crate sgx_tstd as std;
 extern crate protobuf;
 extern crate libcontract_trusted;
 
-use libcontract_trusted::rpc;
-
 mod token_contract;
 mod generated;
 
@@ -23,6 +21,6 @@ pub extern "C" fn rpc_call(request_data: *const u8,
     response_data: *mut u8,
     response_capacity: usize,
     response_length: *mut usize) {
-  rpc::call(request_data, request_length, response_data, response_capacity, response_length);
+  libcontract_trusted::rpc::call(request_data, request_length, response_data, response_capacity, response_length);
 }
 

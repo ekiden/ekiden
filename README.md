@@ -66,6 +66,7 @@ $ bash scripts/build-enclave.sh /code/target/debug/libtoken.a
 
 The generic compute binary takes a signed contract enclave as a parameter
 ```bash
+$ cargo build -p compute
 $./target/debug/compute ./target/enclave/enclave.signed.so
 ```
 
@@ -74,9 +75,10 @@ $./target/debug/compute ./target/enclave/enclave.signed.so
 - `client`: Ekiden client library
 - `compute`: Ekiden compute node
 - `contracts`: Ekiden contracts (e.g. token)
-- `libcontract_common`: source code for `libcontract_*`. Common library for all contracts
-- `libcontract_trusted`: packaging for SGX environment
-- `libcontract_untrusted`: packaging for non-SGX environment
+- `libcontract_common`: common library for all Ekiden contracts
+  - source code directory for `libcontract_*`. 
+- `libcontract_trusted`: `libcontract` packaging for SGX environment
+- `libcontract_untrusted`: `libcontract` packaging for non-SGX environment
 - `storage`: Ekiden storage node
 - `scripts`: Bash scripts for development
 - `third_party_sgx`: Forks of third-party packages, with modifications that enable their use with the SGX standard library (`sgx_tstd`).
