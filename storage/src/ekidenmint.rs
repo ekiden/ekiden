@@ -32,46 +32,52 @@ impl Application for Ekidenmint {
   }
 
   fn check_tx(&self, p: &types::RequestCheckTx) -> types::ResponseCheckTx {
+    // @todo
     println!("check_tx");
     types::ResponseCheckTx::new()
   }
 
   fn init_chain(&self, p: &types::RequestInitChain) -> types::ResponseInitChain {
-    println!("init_chain");
+    // Plugin support in https://github.com/tendermint/basecoin/blob/master/app/app.go
+    //println!("init_chain");
     types::ResponseInitChain::new()
   }
 
   fn begin_block(&self, p: &types::RequestBeginBlock) -> types::ResponseBeginBlock {
-    println!("begin_block");
+    // Plugin support in https://github.com/tendermint/basecoin/blob/master/app/app.go
+    //println!("begin_block");
     types::ResponseBeginBlock::new()
   }
 
   fn deliver_tx(&self, p: &types::RequestDeliverTx) -> types::ResponseDeliverTx {
+    // @todo
     println!("deliver_tx");
+    println!("{}", String::from_utf8_lossy(p.get_tx()));
     types::ResponseDeliverTx::new()
 
   }
 
   fn end_block(&self, p: &types::RequestEndBlock) -> types::ResponseEndBlock {
-    println!("end_block");
+    // Plugin support in https://github.com/tendermint/basecoin/blob/master/app/app.go
+    //println!("end_block");
     types::ResponseEndBlock::new()
-
   }
 
   fn commit(&self, p: &types::RequestCommit) -> types::ResponseCommit {
+    // @todo
     println!("commit");
     types::ResponseCommit::new()
   }
 
   fn echo(&self, p: &types::RequestEcho) -> types::ResponseEcho {
-    println!("echo");
     let mut response = types::ResponseEcho::new();
     response.set_message(p.get_message().to_owned());
     return response;
   }
 
   fn flush(&self, p: &types::RequestFlush) -> types::ResponseFlush {
-    println!("flush");
+    // Appears to be unused in https://github.com/tendermint/basecoin/blob/master/app/app.go
+    //println!("flush");
     types::ResponseFlush::new()
   }
 
