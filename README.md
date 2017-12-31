@@ -54,22 +54,19 @@ $ export SGX_MODE=HW
 $ cargo build
 ```
 
-In order to run a contract on a compute node, we must bundle and sign the contract into an enclave object. For example, to do this for the token contract:
-TODO(MERGE): To build an enclave (e.g., `dummy` enclave) use the provided script within the container:
+In order to run a contract on a compute node, we must bundle and sign the contract into an enclave object. For example, to do this for the dummy contract:
 ```bash
-$ ./scripts/build-enclave.sh enclave_dummy
-$ bash ./scripts/build-enclave.sh /code/target/debug/libtoken.a
+$ bash ./scripts/build-enclave.sh dummy
   ...
   Signed enclave here:
-  /code/target/enclave/enclave.signed.so
+  /code/target/enclave/dummy.signed.so
 ```
 
 ### Compute node
 
 The generic compute binary takes a signed contract enclave as a parameter
 ```bash
-$ cargo build -p compute
-$./target/debug/compute ./target/enclave/enclave.signed.so
+$ cargo run -p compute ./target/enclave/dummy.signed.so
 ```
 
 ## Packages
