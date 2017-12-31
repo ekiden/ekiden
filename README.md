@@ -55,8 +55,10 @@ $ cargo build
 ```
 
 In order to run a contract on a compute node, we must bundle and sign the contract into an enclave object. For example, to do this for the token contract:
+TODO(MERGE): To build an enclave (e.g., `dummy` enclave) use the provided script within the container:
 ```bash
-$ bash scripts/build-enclave.sh /code/target/debug/libtoken.a
+$ ./scripts/build-enclave.sh enclave_dummy
+$ bash ./scripts/build-enclave.sh /code/target/debug/libtoken.a
   ...
   Signed enclave here:
   /code/target/enclave/enclave.signed.so
@@ -75,10 +77,11 @@ $./target/debug/compute ./target/enclave/enclave.signed.so
 - `client`: Ekiden client library
 - `compute`: Ekiden compute node
 - `contracts`: Ekiden contracts (e.g. token)
-- `libcontract_common`: common library for all Ekiden contracts
+- `libcontract/common`: common library for all Ekiden contracts
   - source code directory for `libcontract_*`. 
-- `libcontract_trusted`: `libcontract` packaging for SGX environment
-- `libcontract_untrusted`: `libcontract` packaging for non-SGX environment
+- `libcontract/trusted`: `libcontract` packaging for SGX environment
+- `libcontract/untrusted`: `libcontract` packaging for non-SGX environment
+- `libcontract/utils`: Utilities for easier builds with SGX enclaves
 - `storage`: Ekiden storage node
 - `scripts`: Bash scripts for development
-- `third_party_sgx`: Forks of third-party packages, with modifications that enable their use with the SGX standard library (`sgx_tstd`).
+- `third_party`: Forks of third-party packages, with modifications that enable their use with the SGX standard library (`sgx_tstd`).

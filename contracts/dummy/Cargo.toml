@@ -1,11 +1,11 @@
 [package]
-name = "token"
+name = "dummy"
 version = "0.1.0"
-authors = ["Raymond Cheng <me@raymondcheng.net>"]
+authors = ["Jernej Kos <jernej@kos.mx>"]
 build = "build.rs"
 
 [lib]
-name = "token"
+name = "dummy"
 crate-type = ["staticlib"]
 
 [features]
@@ -14,9 +14,6 @@ default = []
 [dependencies]
 sgx_tstd = { path = "/sgx/sgx_tstd" }
 libcontract_trusted = { path = "../../libcontract/trusted" }
-protobuf = { path = "../../third_party/protobuf" }
 
 [build-dependencies]
 libcontract_utils = { path = "../../libcontract/utils" }
-protoc-rust = "1.4"
-

@@ -2,10 +2,12 @@
 name = "libcontract_untrusted"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
-
-[lib]
-path = "src/lib_untrusted.rs"
+build = "build.rs"
 
 [dependencies]
+sgx_types = { path = "/sgx/sgx_types" }
+sgx_urts = { path = "/sgx/sgx_urts" }
 protobuf = "1.4.2"
 
+[build-dependencies]
+protoc-rust = "1.4"

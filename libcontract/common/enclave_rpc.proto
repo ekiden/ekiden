@@ -5,7 +5,7 @@ package enclave_rpc;
 message Request {
     // Request method.
     string method = 1;
-    // Payload.
+    // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
 }
 
@@ -21,6 +21,6 @@ message Response {
     }
     // Response code.
     Code code = 1;
-    // Payload.
+    // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
 }

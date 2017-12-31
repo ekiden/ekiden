@@ -1,12 +1,7 @@
-extern crate sgx_types;
-extern crate sgx_urts;
 extern crate libcontract_untrusted;
-extern crate protobuf;
-
-mod enclave;
-mod errors;
 
 use std::env;
+use libcontract_untrusted::enclave;
 use libcontract_untrusted::generated::enclave_rpc;
 
 fn main() {
@@ -23,3 +18,4 @@ fn main() {
   // Destroy the enclave.
   e.destroy();
 }
+

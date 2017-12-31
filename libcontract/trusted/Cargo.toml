@@ -4,10 +4,6 @@ version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 build = "build.rs"
 
-[lib]
-name = "libcontract_trusted"
-path = "src/lib_trusted.rs"
-
 [features]
 stats = []
 datasets = []
@@ -15,7 +11,7 @@ datasets = []
 [dependencies]
 sgx_types = { path = "/sgx/sgx_types" }
 sgx_tstd = { path = "/sgx/sgx_tstd" }
-protobuf = { path = "../third_party_sgx/protobuf" }
+protobuf = { path = "../../third_party/protobuf" }
 
 [build-dependencies]
 protoc-rust = "1.4"

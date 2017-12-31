@@ -5,11 +5,7 @@ authors = ["Raymond Cheng <me@raymondcheng.net>"]
 build = "build.rs"
 
 [dependencies]
-sgx_types = { path = "/sgx/sgx_types" }
-sgx_urts = { path = "/sgx/sgx_urts" }
-libcontract_untrusted = { path = "../libcontract_untrusted" }
-protobuf = "1.4.2"
+libcontract_untrusted = { path = "../libcontract/untrusted" }
 
 [build-dependencies]
-libcontract_trusted = { path = "../libcontract_trusted" }
-cc = "1.0"
+libcontract_utils = { path = "../libcontract/utils" }

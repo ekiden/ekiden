@@ -3,8 +3,10 @@ members = [
   "abci",
   "client",
   "compute",
+  "contracts/dummy",
   "contracts/token",
-  "libcontract_trusted",
-  "libcontract_untrusted",
+  "libcontract/trusted",
+  "libcontract/untrusted",
+  "libcontract/utils",
   "storage",
 ]

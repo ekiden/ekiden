@@ -6,9 +6,10 @@ use std::fs;
 use std::path;
 use std::env;
 
-use libcontract_untrusted::generated::enclave_rpc;
 use protobuf;
 use protobuf::Message;
+
+use generated::enclave_rpc;
 use errors;
 
 static ENCLAVE_TOKEN: &'static str = "enclave.token";

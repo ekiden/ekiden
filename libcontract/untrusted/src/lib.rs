@@ -1,10 +1,11 @@
+extern crate sgx_types;
+extern crate sgx_urts;
 extern crate protobuf;
 
-pub mod address;
-pub mod contract;
-pub mod contract_error;
+pub mod common;
+pub mod enclave;
+pub mod errors;
 pub mod generated;
-pub mod rpc;
 
 #[cfg(test)]
 mod tests {
