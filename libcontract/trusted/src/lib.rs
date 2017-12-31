@@ -1,5 +1,6 @@
 #![feature(prelude_import)]
 #![no_std]
+
 #[macro_use]
 extern crate sgx_tstd as std;
 extern crate protobuf;
@@ -44,15 +45,14 @@ macro_rules! create_enclave {
                                    response_data: *mut u8,
                                    response_capacity: usize,
                                    response_length: *mut usize) {
-            libcontract_trusted::common::rpc::call(request_data, request_length, response_data, response_capacity, response_length);
+            // Forward to RPC dispatcher running inside an enclave.
+            libcontract_trusted::common::rpc::call(
+                request_data,
+                request_length,
+                response_data,
+                response_capacity,
+                response_length
+            );
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
     }
 }
