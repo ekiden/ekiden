@@ -2,6 +2,7 @@
 
 CWD=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 rust_sgx_sdk_dir=${1:-${CWD}/../rust-sgx-sdk}
+TENDERMINT_PORT=8880
 
 which docker >/dev/null || {
   echo "ERROR: Please install Docker first."
@@ -24,6 +25,7 @@ docker run --rm -t -i \
   -e "SGX_MODE=SIM" \
   -e "RUST_SGX_SDK=/sgx" \
   -e "INTEL_SGX_SDK=/opt/sgxsdk" \
+  -p "${TENDERMINT_PORT}:46657" \
   -w /code \
   baiduxlab/sgx-rust-experimental \
   bash

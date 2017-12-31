@@ -3,7 +3,6 @@
 CWD=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 DATA_PATH="/tmp/tendermint"
 GENESIS_PATH=${DATA_PATH}/genesis.json
-TENDERMINT_PORT=8880
 
 # Check to see if docker is on the path
 if [ ! $(which docker) ]; then
@@ -23,7 +22,7 @@ docker run -it --rm \
   --name "tendermint" \
   --network container:storage \
   -v "${DATA_PATH}:/tendermint" \
-  tendermint/tendermint node
-  #--net=host -p "${TENDERMINT_PORT}:46657" \
+  tendermint/tendermint node --consensus.create_empty_blocks=false
+  #--net=host 
   #--proxy_app=dummy
 
