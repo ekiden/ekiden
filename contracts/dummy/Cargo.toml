@@ -13,7 +13,7 @@ default = []
 
 [dependencies]
 sgx_tstd = { path = "/sgx/sgx_tstd" }
-libcontract_trusted = { path = "../../libcontract/trusted" }
+libcontract-trusted = { path = "../../libcontract/trusted" }
 
 [build-dependencies]
-libcontract_utils = { path = "../../libcontract/utils" }
+libcontract-utils = { path = "../../libcontract/utils" }

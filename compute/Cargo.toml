@@ -5,7 +5,7 @@ authors = ["Raymond Cheng <me@raymondcheng.net>"]
 build = "build.rs"
 
 [dependencies]
-libcontract_untrusted = { path = "../libcontract/untrusted" }
+libcontract-untrusted = { path = "../libcontract/untrusted" }
 
 [build-dependencies]
-libcontract_utils = { path = "../libcontract/utils" }
+libcontract-utils = { path = "../libcontract/utils" }

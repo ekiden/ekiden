@@ -70,16 +70,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "compute"
 version = "0.1.0"
 dependencies = [
- "libcontract_untrusted 0.1.0",
- "libcontract_utils 0.1.0",
+ "libcontract-untrusted 0.1.0",
+ "libcontract-utils 0.1.0",
 ]
 
 [[package]]
 name = "dummy"
 version = "0.1.0"
 dependencies = [
- "libcontract_trusted 0.1.0",
- "libcontract_utils 0.1.0",
+ "libcontract-trusted 0.1.0",
+ "libcontract-utils 0.1.0",
  "sgx_tstd 0.9.1",
 ]
 
@@ -225,7 +225,7 @@ version = "0.2.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "libcontract_trusted"
+name = "libcontract-trusted"
 version = "0.1.0"
 dependencies = [
  "protobuf 1.4.1",
@@ -235,7 +235,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "libcontract_untrusted"
+name = "libcontract-untrusted"
 version = "0.1.0"
 dependencies = [
  "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -245,7 +245,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "libcontract_utils"
+name = "libcontract-utils"
 version = "0.1.0"
 dependencies = [
  "cc 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -503,8 +503,8 @@ dependencies = [
 name = "token"
 version = "0.1.0"
 dependencies = [
- "libcontract_trusted 0.1.0",
- "libcontract_utils 0.1.0",
+ "libcontract-trusted 0.1.0",
+ "libcontract-utils 0.1.0",
  "protobuf 1.4.1",
  "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "sgx_tstd 0.9.1",
