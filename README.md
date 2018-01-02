@@ -6,51 +6,62 @@ Here is a brief list of system dependencies currently used for development:
 - [rustc](https://www.rust-lang.org/en-US/)
 - [cargo](http://doc.crates.io/)
 - [docker](https://www.docker.com/)
-- [tendermint](https://www.tendermint.com/)
-  - Install with [golang](https://golang.org/) `go get github.com/tendermint/tendermint/cmd/tendermint`
-- [protoc](https://github.com/google/protobuf/releases)
 - [rust-sgx-sdk](https://github.com/baidu/rust-sgx-sdk)
+  - Clone it to a local directory
+- [protoc](https://github.com/google/protobuf/releases)
 
 ## Running
 
-### Tendermint
+The easiest way to run Ekiden is through the provided scripts,
+which set up the Docker containers for you.
 
-The easiest way to run Tendermint is to use the provided scripts, which run the Docker
-containers for you.
+### Build environment
 
-To start a Tendermint node:
+Currently, the project can only be built in an environment with
+the Intel SGX SDK and the Rust SGX SDK.
+
+The easiest way to build SGX code is to use the provided scripts, which run a Docker
+container with all the included tools. This has been tested on MacOS and Ubuntu with `SGX_MODE=SIM`.
+To enter a Docker environment:
 ```bash
-$ ./scripts/tendermint_start
-```
-
-To clear all data:
-```bash
-$ ./scripts/tendermint_clear
+$ bash scripts/sgx-enter.sh RUST_SGX_SDK_PATH
 ```
 
 ### Storage node
 
 To build and run a storage node:
 ```bash
-$ cargo build -p storage
-$ ./target/debug/storage
+$ bash scripts/sgx-enter.sh RUST_SGX_SDK_PATH
+$ cargo run -p storage
 ```
 
-### To compile and run a contract
-
-The easiest way to build SGX code is to use the provided scripts, which run a Docker
-container with all the included tools. This has been tested on MacOS and Ubuntu with `SGX_MODE=SIM`.
-
-To start the SGX development container and build all Rust code:
+The storage node depends on a local instance of Tendermint
+To start a Tendermint docker container that is linked to the container above:
 ```bash
-$ ./scripts/rust-sgx-enter.sh
-$ cargo build
+$ bash ./scripts/tendermint-start.sh
 ```
+
+Occasionally, you'll need to clear all persistent data. To clear all data:
+```bash
+$ bash ./scripts/tendermint-clear.sh
+```
+
+### Compute node
+
+#### Attaching to an existing container
+
+Currently, the 3 processes (compute, storage, tendermint) look for each other on `localhost`.
+In order to attach secondary shells to an existing container, use this helper script:
+```bash
+$ bash scripts/sgx-attach.sh
+```
+
+#### Compiling a contract
 
 By default, enclaves are built for simulation mode.
 Set the following in the `make` invocation to build in the SDK's hardware mode:
 ```bash
-$ export SGX_MODE=HW
+$ export SGX_MODE=HW  # default is SGX_MODE=SIM
 $ cargo build
 ```
 
@@ -62,8 +73,7 @@ $ bash ./scripts/build-enclave.sh dummy
   /code/target/enclave/dummy.signed.so
 ```
 
-### Compute node
-
+#### Running a contract
 The generic compute binary takes a signed contract enclave as a parameter
 ```bash
 $ cargo run -p compute ./target/enclave/dummy.signed.so

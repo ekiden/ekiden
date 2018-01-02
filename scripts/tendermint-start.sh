@@ -20,7 +20,7 @@ fi
 # Start
 docker run -it --rm \
   --name "tendermint" \
-  --network container:storage \
+  --network container:ekiden \
   -v "${DATA_PATH}:/tendermint" \
   tendermint/tendermint node --consensus.create_empty_blocks=false
   #--net=host 

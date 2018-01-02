@@ -19,7 +19,7 @@ which docker >/dev/null || {
 
 # Start SGX Rust Docker container.
 docker run --rm -t -i \
-  --name "storage" \
+  --name "ekiden" \
   -v ${CWD}:/code \
   -v ${rust_sgx_sdk_dir}:/sgx \
   -e "SGX_MODE=SIM" \
