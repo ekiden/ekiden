@@ -1,6 +1,9 @@
 #![feature(prelude_import)]
 #![no_std]
+
+#[macro_use]
 extern crate sgx_tstd as std;
+
 #[macro_use]
 extern crate libcontract_trusted;
 extern crate protobuf;
@@ -12,5 +15,6 @@ use std::prelude::v1::*;
 mod token_contract;
 mod generated;
 
-// Create enclave glue.
-create_enclave!();
+// Create enclave.
+create_enclave! {
+}

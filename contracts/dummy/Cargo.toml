@@ -14,6 +14,8 @@ default = []
 [dependencies]
 sgx_tstd = { path = "/sgx/sgx_tstd" }
 libcontract-trusted = { path = "../../libcontract/trusted" }
+protobuf = { path = "../../third_party/protobuf" }
 
 [build-dependencies]
 libcontract-utils = { path = "../../libcontract/utils" }
+protoc-rust = "1.4"

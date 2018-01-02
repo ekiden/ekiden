@@ -80,6 +80,8 @@ version = "0.1.0"
 dependencies = [
  "libcontract-trusted 0.1.0",
  "libcontract-utils 0.1.0",
+ "protobuf 1.4.1",
+ "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "sgx_tstd 0.9.1",
 ]
 

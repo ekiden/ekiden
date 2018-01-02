@@ -18,6 +18,8 @@ message Response {
 
         // 4xx indicates errors.
         ERROR = 400;
+        ERROR_BAD_REQUEST = 401;
+        ERROR_METHOD_NOT_FOUND = 402;
     }
     // Response code.
     Code code = 1;
