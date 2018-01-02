@@ -72,6 +72,8 @@ version = "0.1.0"
 dependencies = [
  "libcontract-untrusted 0.1.0",
  "libcontract-utils 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

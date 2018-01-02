@@ -25,7 +25,7 @@ fn hello_world(request: HelloWorldRequest) -> Result<HelloWorldResponse, ()> {
     println!("hello world called");
 
     let mut response = HelloWorldResponse::new();
-    response.set_world(request.hello);
+    response.set_world(format!("enclave says {}", request.hello));
 
     Ok(response)
 }
