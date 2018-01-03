@@ -21,7 +21,7 @@ impl TokenContract {
       token_name: String,
       token_symbol: String) -> TokenContract {
     let decimals = 18;
-    let total_supply = initial_supply * 10 ^ decimals;
+    let total_supply = initial_supply * 10u64.pow(decimals);
     TokenContract {
       name: token_name.clone(),
       symbol: token_symbol.clone(),

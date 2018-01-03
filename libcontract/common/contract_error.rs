@@ -1,7 +1,7 @@
 
 #[derive(Debug)]
 pub struct ContractError {
-  message: String
+  pub message: String
 }
 
 impl ContractError {

@@ -46,6 +46,7 @@ macro_rules! create_enclave {
                 _ => {
                     $crate::dispatcher::return_error(
                         $crate::generated::enclave_rpc::Response_Code::ERROR_BAD_REQUEST,
+                        "Unable to parse request",
                         &raw_response
                     );
                     return;
@@ -62,6 +63,7 @@ macro_rules! create_enclave {
             // If we are still here, the method could not be found.
             $crate::dispatcher::return_error(
                 $crate::generated::enclave_rpc::Response_Code::ERROR_METHOD_NOT_FOUND,
+                "Method not found",
                 &raw_response
             );
         }
@@ -80,14 +82,13 @@ macro_rules! create_enclave_methods {
         $method_name: ident, $request_type: ty, $response_type: ty
     ) => {
         if $request.method == stringify!($method_name) {
-            println!("Invoking method: {}", $request.method);
-
-            // Parse request.
+            // Parse request payload.
             let payload: $request_type = match protobuf::parse_from_bytes(&$request.get_payload()) {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
                         $crate::generated::enclave_rpc::Response_Code::ERROR_BAD_REQUEST,
+                        "Unable to parse request payload",
                         &$response
                     );
                     return;
@@ -97,9 +98,10 @@ macro_rules! create_enclave_methods {
             // Invoke method implementation.
             let response: $response_type = match $method_name(payload) {
                 Ok(value) => value,
-                _ => {
+                Err($crate::common::contract_error::ContractError { message }) => {
                     $crate::dispatcher::return_error(
                         $crate::generated::enclave_rpc::Response_Code::ERROR,
+                        message.as_str(),
                         &$response
                     );
                     return;

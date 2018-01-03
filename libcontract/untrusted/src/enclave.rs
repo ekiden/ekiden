@@ -132,6 +132,20 @@ impl EkidenEnclave {
 
         let raw_response = self.call_raw(&raw_request)?;
 
+        // Validate response code.
+        match raw_response.get_code() {
+            enclave_rpc::Response_Code::SUCCESS => {}
+            code => {
+                // Deserialize error.
+                let error: enclave_rpc::Error = match protobuf::parse_from_bytes(raw_response.get_payload()) {
+                    Ok(error) => error,
+                    _ => return Err(errors::Error::ResponseError(code, "<Unable to parse error payload>".to_string()))
+                };
+
+                return Err(errors::Error::ResponseError(code, error.get_message().to_string()))
+            }
+        };
+
         // Deserialize response.
         match protobuf::parse_from_bytes(raw_response.get_payload()) {
             Ok(response) => Ok(response),

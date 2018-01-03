@@ -9,13 +9,13 @@ fn main () {
     protoc_rust::run(protoc_rust::Args {
         out_dir: "src/generated/",
         // TODO: This should be in a common place?
-        input: &["../contracts/dummy/src/dummy.proto"],
-        includes: &["../contracts/dummy/src"],
+        input: &["../contracts/token/src/token_state.proto"],
+        includes: &["../contracts/token/src"],
     }).expect("protoc");
 
     let mut file = File::create("./src/generated/mod.rs").unwrap();
     file.write_all(b"
-        pub mod dummy;
+        pub mod token_state;
     ").unwrap();
 
     libcontract_utils::build_untrusted();

@@ -58,10 +58,17 @@ pub fn return_success<M: Message>(payload: M,
 
 /// Serialize and return an RPC error response.
 pub fn return_error(error: enclave_rpc::Response_Code,
+                    message: &str,
                     raw_response: &RawResponse) {
     // Prepare response.
     let mut response = enclave_rpc::Response::new();
     response.set_code(error);
+
+    let mut error = enclave_rpc::Error::new();
+    error.set_message(message.to_string());
+
+    let payload = error.write_to_bytes().expect("Failed to serialize error");
+    response.set_payload(payload);
 
     return_response(
         response,

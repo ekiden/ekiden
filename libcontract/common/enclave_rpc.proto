@@ -9,6 +9,11 @@ message Request {
     bytes payload = 2;
 }
 
+message Error {
+    // Error message.
+    string message = 1;
+}
+
 message Response {
     enum Code {
         INVALID = 0;

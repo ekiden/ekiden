@@ -19,3 +19,14 @@ message TransferRequest {
 message TransferResponse {
     TokenState state = 1;
 }
+
+message CreateRequest {
+    string sender = 1;
+    uint64 initial_supply = 2;
+    string token_name = 3;
+    string token_symbol = 4;
+}
+
+message CreateResponse {
+    TokenState state = 1;
+}
