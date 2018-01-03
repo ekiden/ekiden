@@ -4,9 +4,19 @@ version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 build = "build.rs"
 
+[lib]
+name = "token"
+crate-type = ["staticlib"]
+
+[features]
+default = []
+
 [dependencies]
-libcontract = { path = "../../libcontract" }
-protobuf = "1.4.2"
+sgx_tstd = { path = "/sgx/sgx_tstd" }
+libcontract-trusted = { path = "../../libcontract/trusted" }
+protobuf = { path = "../../third_party/protobuf" }
 
 [build-dependencies]
+libcontract-utils = { path = "../../libcontract/utils" }
 protoc-rust = "1.4"
+

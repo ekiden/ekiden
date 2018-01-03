@@ -1,30 +1,41 @@
-extern crate rand;
+extern crate libcontract_untrusted;
+extern crate protobuf;
 
-use std::io;
-use std::cmp::Ordering;
-use rand::Rng;
+use std::env;
+use libcontract_untrusted::enclave;
+
+mod generated;
+
+use generated::token_state::{CreateRequest, CreateResponse, TransferRequest, TransferResponse};
 
 fn main() {
-  println!("Guess the number!");
-  let secret_number = rand::thread_rng().gen_range(1, 101);
+    let enclave_filename = env::args().nth(1).expect("Usage: compute enclave_filename");
 
-  println!("The secret number is: {}", secret_number);
-  println!("Please input your guess.");
-  let mut guess = String::new();
+    // Create a new ekiden enclave from the given library.
+    let e = enclave::EkidenEnclave::new(&enclave_filename).unwrap();
 
-  io::stdin().read_line(&mut guess)
-    .expect("Failed to read line");
+    // Create new token contract.
+    let mut request = CreateRequest::new();
+    request.set_sender("testaddr".to_string());
+    request.set_token_name("Ekiden Token".to_string());
+    request.set_token_symbol("EKI".to_string());
+    request.set_initial_supply(8);
 
-  let guess: u32 = guess.trim().parse()
-    .expect("Please type a number!");
+    let response: CreateResponse = e.call("create", &request).unwrap();
 
-  println!("You guessed: {}", guess);
+    println!("State after create:\n{:?}", response.get_state());
 
-  match guess.cmp(&secret_number) {
-    Ordering::Less    => println!("Too small!"),
-    Ordering::Greater => println!("Too big!"),
-    Ordering::Equal   => println!("You win!"),
-  }
+    // Transfer some tokens.
+    let mut request = TransferRequest::new();
+    request.set_state(response.get_state().clone());
+    request.set_sender("testaddr".to_string());
+    request.set_destination("anotheraddr".to_string());
+    request.set_value(1000);
+
+    let response: TransferResponse = e.call("transfer", &request).unwrap();
+
+    println!("State after transfer:\n{:?}", response.get_state());
+
+    // Destroy the enclave.
+    e.destroy();
 }
-
-

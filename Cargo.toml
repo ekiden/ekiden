@@ -1,9 +1,12 @@
 [workspace]
 members = [
   "abci",
-  "compute",
-  "contracts/token",
-  "libcontract",
-  "storage",
   "client",
+  "compute",
+  "contracts/dummy",
+  "contracts/token",
+  "libcontract/trusted",
+  "libcontract/untrusted",
+  "libcontract/utils",
+  "storage",
 ]

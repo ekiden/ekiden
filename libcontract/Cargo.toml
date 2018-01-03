@@ -1,6 +1,0 @@
-[package]
-name = "libcontract"
-version = "0.1.0"
-authors = ["Raymond Cheng <me@raymondcheng.net>"]
-
-[dependencies]

@@ -1,6 +1,16 @@
-
-# Build
+# Build.
 /target/
 **/*.rs.bk
+*.a
+*.o
+*.so
 
+# Enclave compilation
+Enclave_t.c
+Enclave_t.h
+
+# IDE.
 .idea/*
+
+# Temporay files.
+*.swp

@@ -1,0 +1,74 @@
+extend = "../Makefile.toml"
+
+[env]
+BUILT_DIR = "../../target/debug"
+TARGET_DIR = "../../target/enclave"
+ENCLAVE_LDS = "../../libcontract/utils/config/enclave.lds"
+ENCLAVE_KEY = "../../libcontract/keys/private.pem"
+ENCLAVE_CONFIG = "../../libcontract/utils/config/enclave.xml"
+SGX_COMMON_CFLAGS = "-m64"
+SGX_LIBRARY_PATH = "${INTEL_SGX_SDK}/lib64"
+SGX_ENCLAVE_SIGNER = "${INTEL_SGX_SDK}/bin/x64/sgx_sign"
+
+[tasks.post-build]
+alias = "contract-post-build"
+
+[tasks.compiler-rt]
+description = "Build the compiler-rt-patch in Rust SGX SDK"
+script = [
+    "make -C ${RUST_SGX_SDK}/compiler-rt"
+]
+
+[tasks.contract-post-build]
+dependencies = [
+    "contract-link",
+    "contract-sign",
+]
+
+[tasks.contract-link]
+dependencies = ["compiler-rt"]
+script_runner = "bash"
+script = ['''
+    if [ "${SGX_DEBUG}" == "1" ]; then
+      SGX_COMMON_CFLAGS="${SGX_COMMON_CFLAGS} -O0 -g"
+    else
+      SGX_COMMON_CFLAGS="${SGX_COMMON_CFLAGS} -O2"
+    fi
+
+    if [ "${SGX_MODE}" == "HW" ]; then
+      Trts_Library_Name=sgx_trts
+      Service_Library_Name=sgx_tservice
+    else
+      Trts_Library_Name=sgx_trts_sim
+      Service_Library_Name=sgx_tservice_sim
+    fi
+
+    Crypto_Library_Name=sgx_tcrypto
+    KeyExchange_Library_Name=sgx_tkey_exchange
+    ProtectedFs_Library_Name=sgx_tprotected_fs
+
+    mkdir -p ${TARGET_DIR}
+
+    g++ ${SGX_COMMON_CFLAGS} \
+      -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles \
+      -L${SGX_LIBRARY_PATH} \
+      -L${BUILT_DIR} \
+      -L${RUST_SGX_SDK}/compiler-rt \
+      -Wl,--whole-archive -l${Trts_Library_Name} -Wl,--no-whole-archive \
+      -Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -l${Crypto_Library_Name} -lcompiler-rt-patch -l${CARGO_MAKE_CRATE_NAME} -Wl,--end-group \
+      -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
+      -Wl,-pie,-eenclave_entry -Wl,--export-dynamic \
+      -Wl,--defsym,__ImageBase=0 \
+      -Wl,--gc-sections \
+      -Wl,--version-script=${ENCLAVE_LDS} \
+      -o ${TARGET_DIR}/${CARGO_MAKE_CRATE_NAME}.so
+''']
+
+[tasks.contract-sign]
+script = ['''
+    ${SGX_ENCLAVE_SIGNER} sign \
+      -key ${ENCLAVE_KEY} \
+      -enclave ${TARGET_DIR}/${CARGO_MAKE_CRATE_NAME}.so \
+      -out ${TARGET_DIR}/${CARGO_MAKE_CRATE_NAME}.signed.so \
+      -config ${ENCLAVE_CONFIG}
+''']

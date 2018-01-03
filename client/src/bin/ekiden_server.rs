@@ -1,12 +1,11 @@
 extern crate futures;
 extern crate grpc;
-
 extern crate ekiden_web3;
 
 use std::thread;
 
-use ekiden_web3::ekiden_web3::*;
-use ekiden_web3::ekiden_web3_grpc::*;
+use ekiden_web3::generated::ekiden_web3::*;
+use ekiden_web3::generated::ekiden_web3_grpc::*;
 
 struct EkidenServerImpl;
 

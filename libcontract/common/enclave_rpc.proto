@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package enclave_rpc;
+
+message Request {
+    // Request method.
+    string method = 1;
+    // Payload (must be valid Protocol Buffers, based on given method).
+    bytes payload = 2;
+}
+
+message Error {
+    // Error message.
+    string message = 1;
+}
+
+message Response {
+    enum Code {
+        INVALID = 0;
+
+        // 2xx indicades success.
+        SUCCESS = 200;
+
+        // 4xx indicates errors.
+        ERROR = 400;
+        ERROR_BAD_REQUEST = 401;
+        ERROR_METHOD_NOT_FOUND = 402;
+    }
+    // Response code.
+    Code code = 1;
+    // Payload (must be valid Protocol Buffers, based on given method).
+    bytes payload = 2;
+}
