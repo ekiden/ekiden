@@ -1,4 +1,5 @@
 syntax = "proto3";
+
 package token;
 
 message TokenState {
@@ -6,4 +7,15 @@ message TokenState {
   string symbol = 2;
   uint64 total_supply = 3;
   map<string, uint64> balance_of = 4;
+}
+
+message TransferRequest {
+    TokenState state = 1;
+    string sender = 2;
+    string destination = 3;
+    uint64 value = 4;
+}
+
+message TransferResponse {
+    TokenState state = 1;
 }

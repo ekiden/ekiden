@@ -2,7 +2,10 @@
 
 use std::collections::HashMap;
 use libcontract_trusted::common::address::Address;
+use libcontract_trusted::common::contract::Contract;
 use libcontract_trusted::common::contract_error::ContractError;
+
+use generated::token_state::TokenState;
 
 pub struct TokenContract {
   name: String,
@@ -14,7 +17,7 @@ pub struct TokenContract {
 impl TokenContract {
   pub fn new(
       msg_sender: &Address,
-      initial_supply: u64, 
+      initial_supply: u64,
       token_name: String,
       token_symbol: String) -> TokenContract {
     let decimals = 18;
@@ -30,7 +33,7 @@ impl TokenContract {
       },
     }
   }
-  
+
   // PRIVATE METHODS
   fn get_from_balance(&self, addr: &Address, value: u64) -> Result<u64, ContractError> {
     match self.balance_of.get(addr.as_str()) {
@@ -46,7 +49,7 @@ impl TokenContract {
       None => Ok(0),
     }
   }
-  
+
   fn do_transfer(&mut self, from: &Address, to: &Address, value: u64) -> Result<(), ContractError> {
     let from_balance = self.get_from_balance(from, value)?;
     let to_balance = self.get_to_balance(to)?;
@@ -60,7 +63,7 @@ impl TokenContract {
     let to_balance = to_balance + value;
     self.balance_of.insert(from.to_string(), from_balance);
     self.balance_of.insert(to.to_string(), to_balance);
-    
+
     //Emit Transfer(_from, _to, _value) event;
     assert_eq!(
       previous_balances,
@@ -95,6 +98,29 @@ impl TokenContract {
     self.total_supply -= value;
     // Emit Burn(msg_sender, value) event;
     Ok(())
+  }
+}
+
+impl Contract<TokenState> for TokenContract {
+  /// Get serializable contract state.
+  fn get_state(&self) -> TokenState {
+    let mut state = TokenState::new();
+    state.set_name(self.name.clone());
+    state.set_symbol(self.symbol.clone());
+    state.set_total_supply(self.total_supply);
+    state.set_balance_of(self.balance_of.clone());
+
+    state
+  }
+
+  /// Create contract instance from serialized state.
+  fn from_state(state: &TokenState) -> TokenContract {
+    TokenContract {
+      name: state.get_name().to_string(),
+      symbol: state.get_symbol().to_string(),
+      total_supply: state.get_total_supply(),
+      balance_of: state.get_balance_of().clone(),
+    }
   }
 }
 
