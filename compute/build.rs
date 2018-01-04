@@ -1,21 +1,21 @@
-extern crate protoc_rust;
+extern crate protoc_rust_grpc;
 extern crate libcontract_utils;
 
 use std::fs::File;
 use std::io::Write;
 
 fn main () {
-    // TODO: Create a build helper in _utils.
-    protoc_rust::run(protoc_rust::Args {
+    protoc_rust_grpc::run(protoc_rust_grpc::Args {
         out_dir: "src/generated/",
-        // TODO: This should be in a common place?
-        input: &["../contracts/token/src/token_state.proto"],
-        includes: &["../contracts/token/src"],
-    }).expect("protoc");
+        includes: &[],
+        input: &["src/compute_web3.proto"],
+        rust_protobuf: true,
+    }).expect("protoc-rust-grpc");
 
     let mut file = File::create("./src/generated/mod.rs").unwrap();
     file.write_all(b"
-        pub mod token_state;
+        pub mod compute_web3;
+        pub mod compute_web3_grpc;
     ").unwrap();
 
     libcontract_utils::build_untrusted();

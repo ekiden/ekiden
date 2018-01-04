@@ -16,13 +16,18 @@ mod token_contract;
 mod generated;
 
 use token_contract::TokenContract;
-use generated::token_state::{TransferRequest, TransferResponse, CreateRequest, CreateResponse};
+use generated::api::{TransferRequest, TransferResponse, CreateRequest, CreateResponse};
 use libcontract_trusted::common::address::Address;
 use libcontract_trusted::common::contract::{Contract, with_contract_state};
 use libcontract_trusted::common::contract_error::ContractError;
 
 // Create enclave.
 create_enclave! {
+    metadata {
+        name = "token";
+        version = "0.1.0";
+    }
+
     rpc create(CreateRequest) -> CreateResponse;
 
     rpc transfer(TransferRequest) -> TransferResponse;

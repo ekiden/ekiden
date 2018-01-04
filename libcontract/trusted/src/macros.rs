@@ -24,6 +24,11 @@
 #[macro_export]
 macro_rules! create_enclave {
     (
+        metadata {
+            name = $metadata_name: expr ;
+            version = $metadata_version: expr ;
+        }
+
         $(
             rpc $method_name: ident ( $request_type: ty ) -> $response_type: ty ;
         )*
@@ -57,6 +62,10 @@ macro_rules! create_enclave {
             create_enclave_methods!(
                 request,
                 raw_response,
+                // Meta methods.
+                _metadata, $crate::generated::enclave_rpc::MetadataRequest,
+                           $crate::generated::enclave_rpc::MetadataResponse,
+                // User-defined methods.
                 $( $method_name, $request_type, $response_type ),*
             );
 
@@ -66,6 +75,17 @@ macro_rules! create_enclave {
                 "Method not found",
                 &raw_response
             );
+        }
+
+        // Meta method implementations.
+        fn _metadata(_request: $crate::generated::enclave_rpc::MetadataRequest)
+            -> Result<$crate::generated::enclave_rpc::MetadataResponse, ContractError> {
+
+            let mut response = $crate::generated::enclave_rpc::MetadataResponse::new();
+            response.set_name(String::from($metadata_name));
+            response.set_version(String::from($metadata_version));
+
+            Ok(response)
         }
     };
 }

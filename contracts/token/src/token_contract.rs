@@ -5,7 +5,7 @@ use libcontract_trusted::common::address::Address;
 use libcontract_trusted::common::contract::Contract;
 use libcontract_trusted::common::contract_error::ContractError;
 
-use generated::token_state::TokenState;
+use generated::api::TokenState;
 
 pub struct TokenContract {
     name: String,
