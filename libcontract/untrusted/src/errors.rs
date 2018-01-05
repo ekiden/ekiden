@@ -3,7 +3,7 @@ use std::error::Error as StdError;
 
 use protobuf;
 
-use generated::enclave_rpc::Response_Code;
+use libcontract_common::api::Response_Code;
 
 #[derive(Debug)]
 pub enum Error {

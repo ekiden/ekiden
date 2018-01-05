@@ -7,7 +7,7 @@ use std::path::Path;
 use std::process::Command;
 use std::io;
 use std::io::prelude::*;
-use std::fs::{File, create_dir_all};
+use std::fs::File;
 
 /// SGX build mode.
 pub enum SgxMode {
@@ -150,37 +150,6 @@ pub fn build_api() {
         input: &["src/api.proto"],
         includes: &["src/"],
     }).expect("Failed to run protoc");
-}
-
-/// Import and build the contract API files.
-pub fn import_apis(contracts_dir: &str, contracts: &[&str], output_dir: &str) {
-    let output_dir = Path::new(&output_dir);
-    let output_contracts_dir = output_dir.join("contracts");
-    let contracts_dir = Path::new(&contracts_dir);
-
-    for contract in contracts {
-        // Create module for each contract.
-        let source_dir = contracts_dir.join(contract);
-        let contract_dir = output_contracts_dir.join(contract);
-        create_dir_all(&contract_dir).expect("Failed to create contract directory");
-
-        let mut file = File::create(contract_dir.join("mod.rs")).expect("Failed to create contract mod file");
-        writeln!(&mut file, "pub use self::api::*;").unwrap();
-        writeln!(&mut file, "mod api;").unwrap();
-
-        // Compile protocol files.
-        let api_source_path = source_dir.join("src/api.proto");
-        let api_source_filename = api_source_path.to_str().unwrap();
-        protoc_rust::run(protoc_rust::Args {
-            out_dir: contract_dir.to_str().unwrap(),
-            input: &[api_source_filename],
-            includes: &[source_dir.join("src").to_str().unwrap()],
-        }).expect("Failed to run protoc");
-
-        println!("rerun-if-changed={}", api_source_filename);
-    }
-
-    generate_mod(&output_contracts_dir.to_str().unwrap(), &contracts);
 }
 
 /// Generates a module file with specified exported submodules.

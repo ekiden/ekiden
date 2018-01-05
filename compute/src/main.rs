@@ -5,6 +5,7 @@ extern crate protobuf;
 extern crate tls_api;
 
 extern crate libcontract_untrusted;
+extern crate libcontract_common;
 
 mod generated;
 mod server;

@@ -12,16 +12,12 @@ fn main() {
 
     println!("rerun-if-changed=../compute/src/compute_web3.proto");
 
-    // Contract APIs.
-    libcontract_utils::import_apis("../contracts", &["token"], "src/generated");
-
     // Generate module file.
     libcontract_utils::generate_mod(
         "src/generated",
         &[
             "compute_web3",
-            "compute_web3_grpc",
-            "contracts"
+            "compute_web3_grpc"
         ]
     );
 }

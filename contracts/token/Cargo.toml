@@ -12,9 +12,11 @@ crate-type = ["staticlib"]
 default = []
 
 [dependencies]
+token-api = { path = "./api", features = ["sgx"], default-features = false }
 sgx_tstd = { path = "/sgx/sgx_tstd" }
+libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
 libcontract-trusted = { path = "../../libcontract/trusted" }
-protobuf = { path = "../../third_party/protobuf" }
+protobuf-sgx = { path = "../../third_party/protobuf" }
 
 [build-dependencies]
 libcontract-utils = { path = "../../libcontract/utils" }

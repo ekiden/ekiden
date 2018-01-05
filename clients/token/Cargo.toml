@@ -1,0 +1,11 @@
+[package]
+name = "token-client"
+version = "0.1.0"
+authors = [
+    "Jernej Kos <jernej@kos.mx>"
+]
+
+[dependencies]
+libcontract-common = { path = "../../libcontract/common" }
+compute-client = { path = "../../compute-client" }
+token-api = { path = "../../contracts/token/api" }

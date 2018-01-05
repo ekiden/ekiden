@@ -4,34 +4,27 @@
 #[macro_use]
 extern crate sgx_tstd as std;
 
+extern crate protobuf;
+
 #[macro_use]
 extern crate libcontract_trusted;
-extern crate protobuf;
+extern crate libcontract_common;
+
+#[macro_use]
+extern crate token_api;
 
 #[allow(unused)]
 #[prelude_import]
 use std::prelude::v1::*;
 
 mod token_contract;
-mod generated;
 
 use token_contract::TokenContract;
-use generated::api::{TransferRequest, TransferResponse, CreateRequest, CreateResponse};
-use libcontract_trusted::common::address::Address;
-use libcontract_trusted::common::contract::{Contract, with_contract_state};
-use libcontract_trusted::common::contract_error::ContractError;
+use token_api::{TransferRequest, TransferResponse, CreateRequest, CreateResponse};
 
-// Create enclave.
-create_enclave! {
-    metadata {
-        name = "token";
-        version = "0.1.0";
-    }
+use libcontract_common::{Address, Contract, ContractError, with_contract_state};
 
-    rpc create(CreateRequest) -> CreateResponse;
-
-    rpc transfer(TransferRequest) -> TransferResponse;
-}
+create_enclave_api!();
 
 fn create(request: CreateRequest) -> Result<CreateResponse, ContractError> {
     let contract = TokenContract::new(
