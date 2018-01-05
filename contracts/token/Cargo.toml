@@ -18,5 +18,3 @@ protobuf = { path = "../../third_party/protobuf" }
 
 [build-dependencies]
 libcontract-utils = { path = "../../libcontract/utils" }
-protoc-rust = "1.4"
-

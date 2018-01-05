@@ -1,41 +1,39 @@
-extern crate libcontract_untrusted;
+extern crate futures;
+extern crate futures_cpupool;
+extern crate grpc;
 extern crate protobuf;
+extern crate tls_api;
 
-use std::env;
-use libcontract_untrusted::enclave;
+extern crate libcontract_untrusted;
 
 mod generated;
+mod server;
 
-use generated::token_state::{CreateRequest, CreateResponse, TransferRequest, TransferResponse};
+use std::env;
+use std::thread;
+
+use libcontract_untrusted::enclave;
+
+use generated::compute_web3_grpc::ComputeServer;
+use server::ComputeServerImpl;
 
 fn main() {
-    let enclave_filename = env::args().nth(1).expect("Usage: compute enclave_filename");
+    let contract_filename = env::args().nth(1).expect("Usage: compute <contract-filename>");
 
     // Create a new ekiden enclave from the given library.
-    let e = enclave::EkidenEnclave::new(&enclave_filename).unwrap();
+    let contract = enclave::EkidenEnclave::new(&contract_filename).unwrap();
 
-    // Create new token contract.
-    let mut request = CreateRequest::new();
-    request.set_sender("testaddr".to_string());
-    request.set_token_name("Ekiden Token".to_string());
-    request.set_token_symbol("EKI".to_string());
-    request.set_initial_supply(8);
+    // Start the gRPC server.
+    let mut server = grpc::ServerBuilder::new_plain();
+    let port = 9001;
+    server.http.set_port(port);
+    server.add_service(ComputeServer::new_service_def(ComputeServerImpl::new(contract)));
+    server.http.set_cpu_pool_threads(1);
+    let _server = server.build().expect("server");
 
-    let response: CreateResponse = e.call("create", &request).unwrap();
+    println!("Compute node listening at {}", port);
 
-    println!("State after create:\n{:?}", response.get_state());
-
-    // Transfer some tokens.
-    let mut request = TransferRequest::new();
-    request.set_state(response.get_state().clone());
-    request.set_sender("testaddr".to_string());
-    request.set_destination("anotheraddr".to_string());
-    request.set_value(1000);
-
-    let response: TransferResponse = e.call("transfer", &request).unwrap();
-
-    println!("State after transfer:\n{:?}", response.get_state());
-
-    // Destroy the enclave.
-    e.destroy();
+    loop {
+        thread::park();
+    }
 }

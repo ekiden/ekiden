@@ -24,6 +24,7 @@ extern {
                 response_length: *mut usize) -> sgx_status_t;
 }
 
+#[derive(Debug)]
 pub struct EkidenEnclave {
     /// Enclave instance.
     enclave: SgxEnclave,
@@ -118,11 +119,6 @@ impl EkidenEnclave {
         )
     }
 
-    /// Destroy the enclave.
-    pub fn destroy(self) {
-        self.enclave.destroy();
-    }
-
     /// Perform an RPC call against the enclave.
     pub fn call<R: Message, S: Message + MessageStatic>(&self, method: &str, request: &R) -> Result<S, errors::Error> {
         // Prepare request.
@@ -134,7 +130,7 @@ impl EkidenEnclave {
 
         // Validate response code.
         match raw_response.get_code() {
-            enclave_rpc::Response_Code::SUCCESS => {}
+            enclave_rpc::Response_Code::SUCCESS => {},
             code => {
                 // Deserialize error.
                 let error: enclave_rpc::Error = match protobuf::parse_from_bytes(raw_response.get_payload()) {
@@ -188,5 +184,13 @@ impl EkidenEnclave {
             Ok(response) => Ok(response),
             _ => Err(errors::Error::ParseError)
         }
+    }
+
+    /// Returns enclave metadata.
+    pub fn get_metadata(&self) -> Result<enclave_rpc::MetadataResponse, errors::Error> {
+        let request = enclave_rpc::MetadataRequest::new();
+        let response: enclave_rpc::MetadataResponse = self.call("_metadata", &request)?;
+
+        Ok(response)
     }
 }

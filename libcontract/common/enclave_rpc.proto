@@ -31,3 +31,14 @@ message Response {
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
 }
+
+// Meta methods.
+message MetadataRequest {
+}
+
+message MetadataResponse {
+    // Contract name.
+    string name = 1;
+    // Contract version.
+    string version = 2;
+}
