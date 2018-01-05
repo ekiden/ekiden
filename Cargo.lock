@@ -67,13 +67,33 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "client"
+version = "0.1.0"
+dependencies = [
+ "futures 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-cpupool 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "httpbis 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libcontract-utils 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc-rust-grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tls-api 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "compute"
 version = "0.1.0"
 dependencies = [
+ "futures 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-cpupool 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "httpbis 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcontract-untrusted 0.1.0",
  "libcontract-utils 0.1.0",
  "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc-rust-grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tls-api 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -83,21 +103,7 @@ dependencies = [
  "libcontract-trusted 0.1.0",
  "libcontract-utils 0.1.0",
  "protobuf 1.4.1",
- "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "sgx_tstd 0.9.1",
-]
-
-[[package]]
-name = "ekiden_web3"
-version = "0.1.0"
-dependencies = [
- "futures 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-cpupool 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "httpbis 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "protoc-rust-grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "tls-api 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -254,6 +260,7 @@ version = "0.1.0"
 dependencies = [
  "cc 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "mktemp 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -510,7 +517,6 @@ dependencies = [
  "libcontract-trusted 0.1.0",
  "libcontract-utils 0.1.0",
  "protobuf 1.4.1",
- "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "sgx_tstd 0.9.1",
 ]
 
