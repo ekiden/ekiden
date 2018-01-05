@@ -18,6 +18,7 @@ fn main() {
   server.http.set_cpu_pool_threads(1);
   //server.add_service(ComputeServer::new_service_def(ComputeServerImpl::new(contract)));
   let _server = server.build().expect("server");
+  println!("Storage node listening at {}", port);
 
   // Start the ABCI listener
   let abci_listen_addr = "127.0.0.1:46658".parse().unwrap();

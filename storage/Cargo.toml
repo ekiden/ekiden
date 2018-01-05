@@ -2,8 +2,14 @@
 name = "storage"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
+build = "build.rs"
 
 [dependencies]
 abci = { path = "../abci" }
 grpc = "0.*"
 tokio-proto = "0.1"
+
+[build-dependencies]
+libcontract-utils = { path = "../libcontract/utils" }
+protoc-rust = "1.4"
+protoc-rust-grpc = "0.*"
