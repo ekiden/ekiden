@@ -5,4 +5,5 @@ authors = ["Raymond Cheng <me@raymondcheng.net>"]
 
 [dependencies]
 abci = { path = "../abci" }
+grpc = "0.*"
 tokio-proto = "0.1"
