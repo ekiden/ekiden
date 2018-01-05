@@ -7,7 +7,7 @@ use std::path;
 use std::env;
 
 use protobuf;
-use protobuf::Message;
+use protobuf::{Message, MessageStatic};
 
 use generated::enclave_rpc;
 use errors;
@@ -24,6 +24,7 @@ extern {
                 response_length: *mut usize) -> sgx_status_t;
 }
 
+#[derive(Debug)]
 pub struct EkidenEnclave {
     /// Enclave instance.
     enclave: SgxEnclave,
@@ -118,13 +119,38 @@ impl EkidenEnclave {
         )
     }
 
-    /// Destroy the enclave.
-    pub fn destroy(self) {
-        self.enclave.destroy();
+    /// Perform an RPC call against the enclave.
+    pub fn call<R: Message, S: Message + MessageStatic>(&self, method: &str, request: &R) -> Result<S, errors::Error> {
+        // Prepare request.
+        let mut raw_request = enclave_rpc::Request::new();
+        raw_request.set_method(String::from(method));
+        raw_request.set_payload(request.write_to_bytes()?);
+
+        let raw_response = self.call_raw(&raw_request)?;
+
+        // Validate response code.
+        match raw_response.get_code() {
+            enclave_rpc::Response_Code::SUCCESS => {},
+            code => {
+                // Deserialize error.
+                let error: enclave_rpc::Error = match protobuf::parse_from_bytes(raw_response.get_payload()) {
+                    Ok(error) => error,
+                    _ => return Err(errors::Error::ResponseError(code, "<Unable to parse error payload>".to_string()))
+                };
+
+                return Err(errors::Error::ResponseError(code, error.get_message().to_string()))
+            }
+        };
+
+        // Deserialize response.
+        match protobuf::parse_from_bytes(raw_response.get_payload()) {
+            Ok(response) => Ok(response),
+            _ => Err(errors::Error::ParseError)
+        }
     }
 
-    /// Perform an RPC call against the enclave.
-    pub fn call(&self, request: &enclave_rpc::Request) -> Result<enclave_rpc::Response, errors::Error> {
+    /// Perform a raw RPC call against the enclave.
+    pub fn call_raw(&self, request: &enclave_rpc::Request) -> Result<enclave_rpc::Response, errors::Error> {
         let request = request.write_to_bytes()?;
 
         // Maximum size of serialized response is 16K.
@@ -158,5 +184,13 @@ impl EkidenEnclave {
             Ok(response) => Ok(response),
             _ => Err(errors::Error::ParseError)
         }
+    }
+
+    /// Returns enclave metadata.
+    pub fn get_metadata(&self) -> Result<enclave_rpc::MetadataResponse, errors::Error> {
+        let request = enclave_rpc::MetadataRequest::new();
+        let response: enclave_rpc::MetadataResponse = self.call("_metadata", &request)?;
+
+        Ok(response)
     }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "libcontract_utils"
+name = "libcontract-utils"
 version = "0.1.0"
 authors = ["Jernej Kos <jernej@kos.mx>"]
 include = [
@@ -10,3 +10,4 @@ include = [
 [dependencies]
 mktemp = "0.3.1"
 cc = "1.0"
+protoc-rust = "1.4"

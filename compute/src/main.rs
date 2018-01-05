@@ -1,21 +1,39 @@
+extern crate futures;
+extern crate futures_cpupool;
+extern crate grpc;
+extern crate protobuf;
+extern crate tls_api;
+
 extern crate libcontract_untrusted;
 
+mod generated;
+mod server;
+
 use std::env;
+use std::thread;
+
 use libcontract_untrusted::enclave;
-use libcontract_untrusted::generated::enclave_rpc;
+
+use generated::compute_web3_grpc::ComputeServer;
+use server::ComputeServerImpl;
 
 fn main() {
-  let enclave_filename = env::args().nth(1).expect("Usage: compute enclave_filename");
-  // Create a new ekiden enclave from the given library.
-  let e = enclave::EkidenEnclave::new(&enclave_filename).unwrap();
+    let contract_filename = env::args().nth(1).expect("Usage: compute <contract-filename>");
 
-  // Fire off an RPC.
-  let mut request = enclave_rpc::Request::new();
-  request.set_method(String::from("hello_world"));
-  let response = e.call(&request).unwrap();
-  println!("Response status={:?}", response.code);
+    // Create a new ekiden enclave from the given library.
+    let contract = enclave::EkidenEnclave::new(&contract_filename).unwrap();
 
-  // Destroy the enclave.
-  e.destroy();
+    // Start the gRPC server.
+    let mut server = grpc::ServerBuilder::new_plain();
+    let port = 9001;
+    server.http.set_port(port);
+    server.add_service(ComputeServer::new_service_def(ComputeServerImpl::new(contract)));
+    server.http.set_cpu_pool_threads(1);
+    let _server = server.build().expect("server");
+
+    println!("Compute node listening at {}", port);
+
+    loop {
+        thread::park();
+    }
 }
-

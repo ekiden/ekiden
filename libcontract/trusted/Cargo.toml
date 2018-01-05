@@ -1,5 +1,5 @@
 [package]
-name = "libcontract_trusted"
+name = "libcontract-trusted"
 version = "0.1.0"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 build = "build.rs"

@@ -1,13 +1,13 @@
 
 #[derive(Debug)]
 pub struct ContractError {
-  message: String
+    pub message: String
 }
 
 impl ContractError {
-  pub fn new(msg: String) -> ContractError {
-    ContractError {
-      message: msg,
+    pub fn new(msg: String) -> ContractError {
+        ContractError {
+            message: msg,
+        }
     }
-  }
 }

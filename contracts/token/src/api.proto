@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package token;
+
+message TokenState {
+  string name = 1;
+  string symbol = 2;
+  uint64 total_supply = 3;
+  map<string, uint64> balance_of = 4;
+}
+
+message TransferRequest {
+    TokenState state = 1;
+    string sender = 2;
+    string destination = 3;
+    uint64 value = 4;
+}
+
+message TransferResponse {
+    TokenState state = 1;
+}
+
+message CreateRequest {
+    string sender = 1;
+    uint64 initial_supply = 2;
+    string token_name = 3;
+    string token_symbol = 4;
+}
+
+message CreateResponse {
+    TokenState state = 1;
+}

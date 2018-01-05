@@ -1,6 +1,9 @@
 #![feature(prelude_import)]
 #![no_std]
+
+#[macro_use]
 extern crate sgx_tstd as std;
+
 #[macro_use]
 extern crate libcontract_trusted;
 extern crate protobuf;
@@ -12,5 +15,51 @@ use std::prelude::v1::*;
 mod token_contract;
 mod generated;
 
-// Create enclave glue.
-create_enclave!();
+use token_contract::TokenContract;
+use generated::api::{TransferRequest, TransferResponse, CreateRequest, CreateResponse};
+use libcontract_trusted::common::address::Address;
+use libcontract_trusted::common::contract::{Contract, with_contract_state};
+use libcontract_trusted::common::contract_error::ContractError;
+
+// Create enclave.
+create_enclave! {
+    metadata {
+        name = "token";
+        version = "0.1.0";
+    }
+
+    rpc create(CreateRequest) -> CreateResponse;
+
+    rpc transfer(TransferRequest) -> TransferResponse;
+}
+
+fn create(request: CreateRequest) -> Result<CreateResponse, ContractError> {
+    let contract = TokenContract::new(
+        &Address::from(request.get_sender().to_string()),
+        request.get_initial_supply(),
+        request.get_token_name().to_string(),
+        request.get_token_symbol().to_string()
+    );
+
+    let mut response = CreateResponse::new();
+    response.set_state(contract.get_state());
+
+    Ok(response)
+}
+
+fn transfer(request: TransferRequest) -> Result<TransferResponse, ContractError> {
+    let state = with_contract_state(request.get_state(), |contract: &mut TokenContract| {
+        contract.transfer(
+            &Address::from(request.get_sender().to_string()),
+            &Address::from(request.get_destination().to_string()),
+            request.get_value()
+        )?;
+
+        Ok(())
+    })?;
+
+    let mut response = TransferResponse::new();
+    response.set_state(state);
+
+    Ok(response)
+}
