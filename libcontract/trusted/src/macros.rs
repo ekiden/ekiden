@@ -25,7 +25,7 @@
 macro_rules! create_enclave {
     (
         metadata {
-            name = $metadata_name: expr ;
+            name = $metadata_name: ident ;
             version = $metadata_version: expr ;
         }
 
@@ -50,7 +50,7 @@ macro_rules! create_enclave {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
-                        $crate::generated::enclave_rpc::Response_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
                         "Unable to parse request",
                         &raw_response
                     );
@@ -63,26 +63,26 @@ macro_rules! create_enclave {
                 request,
                 raw_response,
                 // Meta methods.
-                _metadata, $crate::generated::enclave_rpc::MetadataRequest,
-                           $crate::generated::enclave_rpc::MetadataResponse,
+                _metadata, libcontract_common::api::MetadataRequest,
+                           libcontract_common::api::MetadataResponse,
                 // User-defined methods.
                 $( $method_name, $request_type, $response_type ),*
             );
 
             // If we are still here, the method could not be found.
             $crate::dispatcher::return_error(
-                $crate::generated::enclave_rpc::Response_Code::ERROR_METHOD_NOT_FOUND,
+                libcontract_common::api::Response_Code::ERROR_METHOD_NOT_FOUND,
                 "Method not found",
                 &raw_response
             );
         }
 
         // Meta method implementations.
-        fn _metadata(_request: $crate::generated::enclave_rpc::MetadataRequest)
-            -> Result<$crate::generated::enclave_rpc::MetadataResponse, ContractError> {
+        fn _metadata(_request: libcontract_common::api::MetadataRequest)
+            -> Result<libcontract_common::api::MetadataResponse, libcontract_common::ContractError> {
 
-            let mut response = $crate::generated::enclave_rpc::MetadataResponse::new();
-            response.set_name(String::from($metadata_name));
+            let mut response = libcontract_common::api::MetadataResponse::new();
+            response.set_name(String::from(stringify!($metadata_name)));
             response.set_version(String::from($metadata_version));
 
             Ok(response)
@@ -107,7 +107,7 @@ macro_rules! create_enclave_methods {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
-                        $crate::generated::enclave_rpc::Response_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
                         "Unable to parse request payload",
                         &$response
                     );
@@ -118,9 +118,9 @@ macro_rules! create_enclave_methods {
             // Invoke method implementation.
             let response: $response_type = match $method_name(payload) {
                 Ok(value) => value,
-                Err($crate::common::contract_error::ContractError { message }) => {
+                Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
-                        $crate::generated::enclave_rpc::Response_Code::ERROR,
+                        libcontract_common::api::Response_Code::ERROR,
                         message.as_str(),
                         &$response
                     );

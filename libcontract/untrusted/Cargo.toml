@@ -1,13 +1,13 @@
 [package]
 name = "libcontract-untrusted"
 version = "0.1.0"
-authors = ["Raymond Cheng <me@raymondcheng.net>"]
-build = "build.rs"
+authors = [
+    "Raymond Cheng <me@raymondcheng.net>",
+    "Jernej Kos <jernej@kos.mx>"
+]
 
 [dependencies]
 sgx_types = { path = "/sgx/sgx_types" }
 sgx_urts = { path = "/sgx/sgx_urts" }
 protobuf = "1.4.2"
-
-[build-dependencies]
-protoc-rust = "1.4"
+libcontract-common = { path = "../common", features = ["no-sgx"], default-features = false }

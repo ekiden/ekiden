@@ -8,6 +8,7 @@ authors = [
 build = "build.rs"
 
 [dependencies]
+libcontract-common = { path = "../libcontract/common", features = ["no-sgx"], default-features = false }
 libcontract-untrusted = { path = "../libcontract/untrusted" }
 protobuf = "1.4.2"
 grpc = "0.*"
