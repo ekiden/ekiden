@@ -1,13 +1,19 @@
 extern crate abci;
 extern crate grpc;
+extern crate protobuf;
+extern crate tls_api;
 extern crate tokio_proto;
 
 mod ekidenmint;
+mod generated;
+mod server;
 
 //use std::env;
+use abci::server::{ AbciProto, AbciService };
 use tokio_proto::TcpServer;
 
-use abci::server::{ AbciProto, AbciService };
+use generated::storage_grpc::StorageServer;
+use server::StorageServerImpl;
 
 fn main() {
   println!("Ekiden Storage starting... ");
@@ -16,7 +22,7 @@ fn main() {
   let mut server = grpc::ServerBuilder::new_plain();
   server.http.set_port(port);
   server.http.set_cpu_pool_threads(1);
-  //server.add_service(ComputeServer::new_service_def(ComputeServerImpl::new(contract)));
+  server.add_service(StorageServer::new_service_def(StorageServerImpl::new()));
   let _server = server.build().expect("server");
   println!("Storage node listening at {}", port);
 

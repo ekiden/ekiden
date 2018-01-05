@@ -11,10 +11,8 @@ message GetRequest {
 }
 
 message GetResponse {
-  // True if success, false otherwise
-  bool ok = 1;
   // Bytes of latest state
-  bytes payload = 2;
+  bytes payload = 1;
 }
 
 message SetRequest {
@@ -23,6 +21,4 @@ message SetRequest {
 }
 
 message SetResponse {
-  // True if success, false otherwise
-  bool ok = 1;
 }

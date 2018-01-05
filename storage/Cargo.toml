@@ -7,6 +7,8 @@ build = "build.rs"
 [dependencies]
 abci = { path = "../abci" }
 grpc = "0.*"
+protobuf = "1.4.2"
+tls-api = "0.*"
 tokio-proto = "0.1"
 
 [build-dependencies]

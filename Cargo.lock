@@ -479,8 +479,10 @@ dependencies = [
  "abci 0.2.3",
  "grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcontract-utils 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "protoc-rust-grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tls-api 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-proto 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
