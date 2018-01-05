@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package storage;
 
-service Storage {
+service StorageRpc {
     rpc Get (GetRequest) returns (GetResponse) {}
     rpc Set (SetRequest) returns (SetResponse) {}
 }

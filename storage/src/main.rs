@@ -6,24 +6,25 @@ extern crate tokio_proto;
 
 mod ekidenmint;
 mod generated;
+mod rpc;
 mod server;
 
 //use std::env;
 use abci::server::{ AbciProto, AbciService };
 use tokio_proto::TcpServer;
 
-use generated::storage_grpc::StorageServer;
-use server::StorageServerImpl;
+use generated::storage_grpc::StorageRpcServer;
+use rpc::StorageRpcServerImpl;
 
 fn main() {
   println!("Ekiden Storage starting... ");
   // Start the gRPC server.
   let port = 9002;
-  let mut server = grpc::ServerBuilder::new_plain();
-  server.http.set_port(port);
-  server.http.set_cpu_pool_threads(1);
-  server.add_service(StorageServer::new_service_def(StorageServerImpl::new()));
-  let _server = server.build().expect("server");
+  let mut rpc_server = grpc::ServerBuilder::new_plain();
+  rpc_server.http.set_port(port);
+  rpc_server.http.set_cpu_pool_threads(1);
+  rpc_server.add_service(StorageRpcServer::new_service_def(StorageRpcServerImpl::new()));
+  let _server = rpc_server.build().expect("rpc_server");
   println!("Storage node listening at {}", port);
 
   // Start the ABCI listener
