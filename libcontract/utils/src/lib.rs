@@ -7,7 +7,7 @@ use std::path::Path;
 use std::process::Command;
 use std::io;
 use std::io::prelude::*;
-use std::fs::File;
+use std::fs;
 
 /// SGX build mode.
 pub enum SgxMode {
@@ -58,7 +58,7 @@ fn edger8r(config: &BuildConfiguration, part: BuildPart, output: &str) -> io::Re
 
     // Create temporary file with enclave EDL.
     let edl_filename = Path::new(&output).join("enclave.edl");
-    let mut edl_file = File::create(&edl_filename)?;
+    let mut edl_file = fs::File::create(&edl_filename)?;
     edl_file.write_all(CONFIG_EKIDEN_EDL.as_bytes())?;
 
     Command::new(edger8r_bin.to_str().unwrap())
@@ -154,10 +154,19 @@ pub fn build_api() {
 
 /// Generates a module file with specified exported submodules.
 pub fn generate_mod(output_dir: &str, modules: &[&str]) {
+    // Create directory if not exist
+    fs::create_dir_all(output_dir).unwrap();
+
+    // Create mod.rs
     let output_mod_file = Path::new(&output_dir).join("mod.rs");
-    let mut file = File::create(output_mod_file).expect("Failed to create module file");
+    let mut file = fs::File::create(output_mod_file).expect("Failed to create module file");
 
     for module in modules {
         writeln!(&mut file, "pub mod {};", module).unwrap();
     }
+
+    // Create .gitignore
+    let output_gitignore_file = Path::new(&output_dir).join(".gitignore");
+    let mut file = fs::File::create(output_gitignore_file).expect("Failed to create .gitignore file");
+    writeln!(&mut file, "*").unwrap();
 }
