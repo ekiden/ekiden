@@ -3,6 +3,16 @@ extern crate protoc_rust_grpc;
 extern crate libcontract_utils;
 
 fn main() {
+    // Generate module file.
+    // Must be done first to create src/generated directory
+    libcontract_utils::generate_mod(
+        "src/generated",
+        &[
+            "compute_web3",
+            "compute_web3_grpc"
+        ]
+    );
+
     protoc_rust_grpc::run(protoc_rust_grpc::Args {
         out_dir: "src/generated/",
         includes: &["../compute/src/"],
@@ -12,16 +22,4 @@ fn main() {
 
     println!("rerun-if-changed=../compute/src/compute_web3.proto");
 
-    // Contract APIs.
-    libcontract_utils::import_apis("../contracts", &["token"], "src/generated");
-
-    // Generate module file.
-    libcontract_utils::generate_mod(
-        "src/generated",
-        &[
-            "compute_web3",
-            "compute_web3_grpc",
-            "contracts"
-        ]
-    );
 }

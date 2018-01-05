@@ -2,7 +2,7 @@ use grpc;
 use protobuf;
 
 use libcontract_untrusted::enclave;
-use libcontract_untrusted::generated::enclave_rpc;
+use libcontract_common::api;
 
 use generated::compute_web3::{StatusRequest, StatusResponse, CallContractRequest, CallContractResponse};
 use generated::compute_web3_grpc::Compute;
@@ -41,7 +41,7 @@ impl Compute for ComputeServerImpl {
     fn call_contract(&self, _options: grpc::RequestOptions, request: CallContractRequest)
         -> grpc::SingleResponse<CallContractResponse> {
 
-        let mut enclave_request = enclave_rpc::Request::new();
+        let mut enclave_request = api::Request::new();
         enclave_request.set_method(request.get_method().to_string());
         enclave_request.set_payload(request.get_payload().to_vec());
 
@@ -52,10 +52,10 @@ impl Compute for ComputeServerImpl {
 
         // Validate response code.
         match raw_response.get_code() {
-            enclave_rpc::Response_Code::SUCCESS => {},
+            api::Response_Code::SUCCESS => {},
             _ => {
                 // Deserialize error.
-                let mut error: enclave_rpc::Error = match protobuf::parse_from_bytes(&raw_response.take_payload()) {
+                let mut error: api::Error = match protobuf::parse_from_bytes(&raw_response.take_payload()) {
                     Ok(error) => error,
                     _ => return grpc::SingleResponse::err(grpc::Error::Other("Unknown error"))
                 };

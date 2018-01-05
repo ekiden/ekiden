@@ -7,7 +7,7 @@ use std::path::Path;
 use std::process::Command;
 use std::io;
 use std::io::prelude::*;
-use std::fs::{File, create_dir_all};
+use std::fs;
 
 /// SGX build mode.
 pub enum SgxMode {
@@ -58,7 +58,7 @@ fn edger8r(config: &BuildConfiguration, part: BuildPart, output: &str) -> io::Re
 
     // Create temporary file with enclave EDL.
     let edl_filename = Path::new(&output).join("enclave.edl");
-    let mut edl_file = File::create(&edl_filename)?;
+    let mut edl_file = fs::File::create(&edl_filename)?;
     edl_file.write_all(CONFIG_EKIDEN_EDL.as_bytes())?;
 
     Command::new(edger8r_bin.to_str().unwrap())
@@ -152,43 +152,21 @@ pub fn build_api() {
     }).expect("Failed to run protoc");
 }
 
-/// Import and build the contract API files.
-pub fn import_apis(contracts_dir: &str, contracts: &[&str], output_dir: &str) {
-    let output_dir = Path::new(&output_dir);
-    let output_contracts_dir = output_dir.join("contracts");
-    let contracts_dir = Path::new(&contracts_dir);
-
-    for contract in contracts {
-        // Create module for each contract.
-        let source_dir = contracts_dir.join(contract);
-        let contract_dir = output_contracts_dir.join(contract);
-        create_dir_all(&contract_dir).expect("Failed to create contract directory");
-
-        let mut file = File::create(contract_dir.join("mod.rs")).expect("Failed to create contract mod file");
-        writeln!(&mut file, "pub use self::api::*;").unwrap();
-        writeln!(&mut file, "mod api;").unwrap();
-
-        // Compile protocol files.
-        let api_source_path = source_dir.join("src/api.proto");
-        let api_source_filename = api_source_path.to_str().unwrap();
-        protoc_rust::run(protoc_rust::Args {
-            out_dir: contract_dir.to_str().unwrap(),
-            input: &[api_source_filename],
-            includes: &[source_dir.join("src").to_str().unwrap()],
-        }).expect("Failed to run protoc");
-
-        println!("rerun-if-changed={}", api_source_filename);
-    }
-
-    generate_mod(&output_contracts_dir.to_str().unwrap(), &contracts);
-}
-
 /// Generates a module file with specified exported submodules.
 pub fn generate_mod(output_dir: &str, modules: &[&str]) {
+    // Create directory if not exist
+    fs::create_dir_all(output_dir).unwrap();
+
+    // Create mod.rs
     let output_mod_file = Path::new(&output_dir).join("mod.rs");
-    let mut file = File::create(output_mod_file).expect("Failed to create module file");
+    let mut file = fs::File::create(output_mod_file).expect("Failed to create module file");
 
     for module in modules {
         writeln!(&mut file, "pub mod {};", module).unwrap();
     }
+
+    // Create .gitignore
+    let output_gitignore_file = Path::new(&output_dir).join(".gitignore");
+    let mut file = fs::File::create(output_gitignore_file).expect("Failed to create .gitignore file");
+    writeln!(&mut file, "*").unwrap();
 }

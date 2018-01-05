@@ -1,6 +1,5 @@
 [package]
-
-name = "protobuf"
+name = "protobuf-sgx"
 version = "1.4.1"
 authors = ["Stepan Koltsov <stepan.koltsov@gmail.com>"]
 license = "MIT/Apache-2.0"
@@ -12,6 +11,7 @@ Rust implementation of Google protocol buffers
 """
 
 [lib]
+name = "protobuf"
 doctest = false
 
 [features]

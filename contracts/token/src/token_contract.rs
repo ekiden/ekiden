@@ -1,11 +1,10 @@
 // Inspired by https://www.ethereum.org/token
 
 use std::collections::HashMap;
-use libcontract_trusted::common::address::Address;
-use libcontract_trusted::common::contract::Contract;
-use libcontract_trusted::common::contract_error::ContractError;
 
-use generated::api::TokenState;
+use libcontract_common::{Address, Contract, ContractError};
+
+use token_api::TokenState;
 
 pub struct TokenContract {
     name: String,

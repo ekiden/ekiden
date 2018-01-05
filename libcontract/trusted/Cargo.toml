@@ -1,17 +1,13 @@
 [package]
 name = "libcontract-trusted"
 version = "0.1.0"
-authors = ["Raymond Cheng <me@raymondcheng.net>"]
-build = "build.rs"
-
-[features]
-stats = []
-datasets = []
+authors = [
+    "Raymond Cheng <me@raymondcheng.net>",
+    "Jernej Kos <jernej@kos.mx>"
+]
 
 [dependencies]
 sgx_types = { path = "/sgx/sgx_types" }
 sgx_tstd = { path = "/sgx/sgx_tstd" }
-protobuf = { path = "../../third_party/protobuf" }
-
-[build-dependencies]
-protoc-rust = "1.4"
+protobuf-sgx = { path = "../../third_party/protobuf" }
+libcontract-common = { path = "../common", features = ["sgx"], default-features = false }

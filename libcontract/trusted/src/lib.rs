@@ -5,13 +5,12 @@
 extern crate sgx_tstd as std;
 extern crate protobuf;
 
+extern crate libcontract_common;
+
 #[allow(unused)]
 #[prelude_import]
 use std::prelude::v1::*;
-use protobuf::Message;
 
-pub mod common;
-pub mod generated;
 pub mod dispatcher;
 pub mod errors;
 
