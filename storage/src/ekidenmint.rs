@@ -1,16 +1,21 @@
+use std::sync::{Arc, Mutex};
 use abci::application::Application;
 use abci::types;
+
+use server::StorageServer;
 
 //#[derive(Copy, Clone)]
 #[derive(Clone)]
 pub struct Ekidenmint {
   name: String,
+  server: Arc<Mutex<StorageServer>>,
 }
 
 impl Ekidenmint {
-  pub fn new() -> Ekidenmint {
+  pub fn new(server: Arc<Mutex<StorageServer>>) -> Ekidenmint {
     Ekidenmint{
       name: String::from("test"),
+      server: server,
     }
   }
 }

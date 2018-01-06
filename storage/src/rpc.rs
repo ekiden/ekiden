@@ -1,17 +1,21 @@
+use std::sync::{Arc, Mutex};
 use grpc;
 //use protobuf;
 
 use generated::storage::{GetRequest, GetResponse, SetRequest, SetResponse};
 use generated::storage_grpc::StorageRpc;
+use server::StorageServer;
 
 pub struct StorageRpcServerImpl {
+    server: Arc<Mutex<StorageServer>>,
 }
 
 impl StorageRpcServerImpl {
-  pub fn new() -> Self {
-    StorageRpcServerImpl {
+    pub fn new(server: Arc<Mutex<StorageServer>>) -> StorageRpcServerImpl {
+	StorageRpcServerImpl {
+	  server: server,
+	}
     }
-  }
 }
 
 impl StorageRpc for StorageRpcServerImpl {
