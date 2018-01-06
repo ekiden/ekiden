@@ -10,8 +10,9 @@ impl StorageServer {
     }
   }
 
-  pub fn check_tx(tx: &[u8]) -> bool {
-    true
+  pub fn check_tx(tx: &[u8]) -> Result<(), String> {
+    // @todo - check attestations
+    Ok(())
   }
 }
 

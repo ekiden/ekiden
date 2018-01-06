@@ -1,3 +1,5 @@
+// For reference on how to use the ABCI
+// https://github.com/tendermint/basecoin/
 use std::sync::{Arc, Mutex};
 use abci::application::Application;
 use abci::types;
@@ -42,9 +44,20 @@ impl Application for Ekidenmint {
   fn check_tx(&self, p: &types::RequestCheckTx) -> types::ResponseCheckTx {
     //println!("check_tx");
     let tx = p.get_tx();
-    let ok = StorageServer::check_tx(&tx);
+    match StorageServer::check_tx(&tx) {
+      Ok(_) => {
+	let resp = types::ResponseCheckTx::new()
+	resp.set_code(types::CodeType::OK);
+	resp
+      },
+      Err(error) => {
+	types::ResponseCheckTx::new()
+	resp.set_code(types::CodeType::BaseEncodingError);
+	resp.set_log(error);
+	resp
+      },
+    }
 
-    types::ResponseCheckTx::new()
   }
 
   fn init_chain(&self, _p: &types::RequestInitChain) -> types::ResponseInitChain {
