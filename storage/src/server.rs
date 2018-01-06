@@ -1,7 +1,6 @@
-use std::sync::Arc;
 
 pub struct StorageServer {
-  latest: Option<Arc<Vec<u8>>>,
+  latest: Option<Vec<u8>>,
 }
 
 impl StorageServer {
@@ -16,16 +15,18 @@ impl StorageServer {
     Ok(())
   }
 
-  pub fn get_latest(&self) -> Option<Arc<Vec<u8>>> {
+  pub fn get_latest(&self) -> Option<Vec<u8>> {
     match self.latest {
-      Some(ref val) => Some(Arc::clone(&val)),
+      // storage_grpc requires moving the Vec.
+      // @todo replace with Arc?
+      Some(ref val) => Some(val.clone()),
       _ => None,
     }
   }
 
   pub fn set_latest(&mut self, latest: Vec<u8>) {
     println!("new state: {}", String::from_utf8_lossy(&latest));
-    self.latest = Some(Arc::new(latest));
+    self.latest = Some(latest);
   }
 
 }

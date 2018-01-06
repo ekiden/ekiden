@@ -20,14 +20,17 @@ impl StorageRpcServerImpl {
 
 impl StorageRpc for StorageRpcServerImpl {
   fn get(&self, _options: grpc::RequestOptions, req: GetRequest) -> grpc::SingleResponse<GetResponse> {
-    let mut response = GetResponse::new();
     let s = self.server.lock().unwrap();
     match s.get_latest() {
       Some(val) => {
+	let mut response = GetResponse::new();
+      	response.set_payload(val);
+	grpc::SingleResponse::completed(response)
       }
-      None => {}
+      None => {
+	grpc::SingleResponse::err(grpc::Error::Other(""))
+      }
     }
-    return grpc::SingleResponse::completed(response);
   }
 
   fn set(&self, _options: grpc::RequestOptions, req: SetRequest) -> grpc::SingleResponse<SetResponse> {
