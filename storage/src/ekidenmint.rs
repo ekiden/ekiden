@@ -43,8 +43,7 @@ impl Application for Ekidenmint {
 
   fn check_tx(&self, p: &types::RequestCheckTx) -> types::ResponseCheckTx {
     //println!("check_tx");
-    let tx = p.get_tx();
-    match StorageServer::check_tx(&tx) {
+    match StorageServer::check_tx(p.get_tx()) {
       Ok(_) => {
 	let mut resp = types::ResponseCheckTx::new();
 	resp.set_code(types::CodeType::OK);
