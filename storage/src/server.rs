@@ -24,6 +24,7 @@ impl StorageServer {
   }
 
   pub fn set_latest(&mut self, latest: Vec<u8>) {
+    println!("new state: {}", String::from_utf8_lossy(&latest));
     self.latest = Some(Arc::new(latest));
   }
 

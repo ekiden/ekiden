@@ -72,10 +72,25 @@ impl Application for Ekidenmint {
   }
 
   fn deliver_tx(&self, p: &types::RequestDeliverTx) -> types::ResponseDeliverTx {
-    // @todo
-    println!("deliver_tx");
-    println!("{}", String::from_utf8_lossy(p.get_tx()));
-    types::ResponseDeliverTx::new()
+    //println!("deliver_tx");
+    let tx = p.get_tx();
+    match StorageServer::check_tx(tx) {
+      Ok(_) => {
+      	// Set the state
+	let mut s = self.server.lock().unwrap();
+	s.set_latest(tx.to_vec());
+	// Respond
+	let mut resp = types::ResponseDeliverTx::new();
+	resp.set_code(types::CodeType::OK);
+	resp
+      },
+      Err(error) => {
+	let mut resp = types::ResponseDeliverTx::new();
+	resp.set_code(types::CodeType::BaseEncodingError);
+	resp.set_log(error);
+	resp
+      },
+    }
 
   }
 
