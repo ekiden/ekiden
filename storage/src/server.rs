@@ -9,5 +9,9 @@ impl StorageServer {
       latest: None
     }
   }
+
+  pub fn check_tx(tx: &[u8]) -> bool {
+    true
+  }
 }
 
