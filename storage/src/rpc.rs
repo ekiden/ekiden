@@ -11,11 +11,11 @@ pub struct StorageRpcServerImpl {
 }
 
 impl StorageRpcServerImpl {
-    pub fn new(server: Arc<Mutex<StorageServer>>) -> StorageRpcServerImpl {
-	StorageRpcServerImpl {
-	  server: server,
-	}
+  pub fn new(server: Arc<Mutex<StorageServer>>) -> StorageRpcServerImpl {
+    StorageRpcServerImpl {
+      server: server,
     }
+  }
 }
 
 impl StorageRpc for StorageRpcServerImpl {
@@ -34,8 +34,9 @@ impl StorageRpc for StorageRpcServerImpl {
   }
 
   fn set(&self, _options: grpc::RequestOptions, req: SetRequest) -> grpc::SingleResponse<SetResponse> {
-    let mut response = SetResponse::new();
-    return grpc::SingleResponse::completed(response);
+    let payload = req.get_payload();
+
+    return grpc::SingleResponse::completed(SetResponse::new());
   }
 }
 

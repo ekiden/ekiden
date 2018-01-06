@@ -1,7 +1,10 @@
 extern crate abci;
+extern crate futures;
 extern crate grpc;
+extern crate hyper;
 extern crate protobuf;
 extern crate tls_api;
+extern crate tokio_core;
 extern crate tokio_proto;
 
 mod ekidenmint;

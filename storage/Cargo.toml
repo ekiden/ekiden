@@ -6,9 +6,12 @@ build = "build.rs"
 
 [dependencies]
 abci = { path = "../abci" }
+futures = "0.1"
 grpc = "0.*"
+hyper = "0.11"
 protobuf = "1.4.2"
 tls-api = "0.*"
+tokio-core = "0.1"
 tokio-proto = "0.1"
 
 [build-dependencies]
