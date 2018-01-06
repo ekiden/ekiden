@@ -5,17 +5,17 @@ use std::sync::{Arc, Mutex};
 use abci::application::Application;
 use abci::types;
 
-use server::StorageServer;
+use state::State;
 
 //#[derive(Copy, Clone)]
 #[derive(Clone)]
 pub struct Ekidenmint {
   name: String,
-  server: Arc<Mutex<StorageServer>>,
+  server: Arc<Mutex<State>>,
 }
 
 impl Ekidenmint {
-  pub fn new(server: Arc<Mutex<StorageServer>>) -> Ekidenmint {
+  pub fn new(server: Arc<Mutex<State>>) -> Ekidenmint {
     Ekidenmint{
       name: String::from("test"),
       server: server,
@@ -45,7 +45,7 @@ impl Application for Ekidenmint {
   fn check_tx(&self, p: &types::RequestCheckTx) -> types::ResponseCheckTx {
     //println!("check_tx");
     let mut resp = types::ResponseCheckTx::new();
-    match StorageServer::check_tx(p.get_tx()) {
+    match State::check_tx(p.get_tx()) {
       Ok(_) => {
 	resp.set_code(types::CodeType::OK);
       },
@@ -73,7 +73,7 @@ impl Application for Ekidenmint {
     //println!("deliver_tx");
     let mut resp = types::ResponseDeliverTx::new();
     let tx = p.get_tx();
-    match StorageServer::check_tx(tx) {
+    match State::check_tx(tx) {
       Ok(_) => {
       	// Set the state
 	let mut s = self.server.lock().unwrap();

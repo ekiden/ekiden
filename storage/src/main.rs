@@ -10,7 +10,7 @@ extern crate tokio_proto;
 mod ekidenmint;
 mod generated;
 mod rpc;
-mod server;
+mod state;
 
 //use std::env;
 use std::sync::{Arc, Mutex};
@@ -19,12 +19,12 @@ use tokio_proto::TcpServer;
 
 use generated::storage_grpc::StorageRpcServer;
 use rpc::StorageRpcServerImpl;
-use server::StorageServer;
+use state::State;
 
 fn main() {
   println!("Ekiden Storage starting... ");
-  // Create a shared StorageServer object
-  let s = Arc::new(Mutex::new(StorageServer::new()));
+  // Create a shared State object
+  let s = Arc::new(Mutex::new(State::new()));
 
   let abci_listen_addr = "127.0.0.1:46658".parse().unwrap();
   let app = ekidenmint::Ekidenmint::new(Arc::clone(&s));

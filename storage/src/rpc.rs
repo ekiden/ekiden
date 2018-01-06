@@ -4,14 +4,14 @@ use grpc;
 
 use generated::storage::{GetRequest, GetResponse, SetRequest, SetResponse};
 use generated::storage_grpc::StorageRpc;
-use server::StorageServer;
+use state::State;
 
 pub struct StorageRpcServerImpl {
-    server: Arc<Mutex<StorageServer>>,
+    server: Arc<Mutex<State>>,
 }
 
 impl StorageRpcServerImpl {
-  pub fn new(server: Arc<Mutex<StorageServer>>) -> StorageRpcServerImpl {
+  pub fn new(server: Arc<Mutex<State>>) -> StorageRpcServerImpl {
     StorageRpcServerImpl {
       server: server,
     }
@@ -19,7 +19,7 @@ impl StorageRpcServerImpl {
 }
 
 impl StorageRpc for StorageRpcServerImpl {
-  fn get(&self, _options: grpc::RequestOptions, req: GetRequest) -> grpc::SingleResponse<GetResponse> {
+  fn get(&self, _options: grpc::RequestOptions, _req: GetRequest) -> grpc::SingleResponse<GetResponse> {
     let s = self.server.lock().unwrap();
     match s.get_latest() {
       Some(val) => {

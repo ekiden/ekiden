@@ -1,11 +1,11 @@
 
-pub struct StorageServer {
+pub struct State {
   latest: Option<Vec<u8>>,
 }
 
-impl StorageServer {
+impl State {
   pub fn new() -> Self {
-    StorageServer {
+    State {
       latest: None
     }
   }
