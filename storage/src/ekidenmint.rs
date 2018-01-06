@@ -1,4 +1,5 @@
 // For reference on how to use the ABCI
+// https://github.com/tendermint/abci
 // https://github.com/tendermint/basecoin/
 use std::sync::{Arc, Mutex};
 use abci::application::Application;
@@ -31,7 +32,7 @@ impl Application for Ekidenmint {
 
   fn set_option(&self, req: &types::RequestSetOption) -> types::ResponseSetOption {
     // @todo
-    println!("set_option");
+    println!("set_option {}:{}", req.get_key(), req.get_value());
     types::ResponseSetOption::new()
   }
 
@@ -43,20 +44,17 @@ impl Application for Ekidenmint {
 
   fn check_tx(&self, p: &types::RequestCheckTx) -> types::ResponseCheckTx {
     //println!("check_tx");
+    let mut resp = types::ResponseCheckTx::new();
     match StorageServer::check_tx(p.get_tx()) {
       Ok(_) => {
-	let mut resp = types::ResponseCheckTx::new();
 	resp.set_code(types::CodeType::OK);
-	resp
       },
       Err(error) => {
-	let mut resp = types::ResponseCheckTx::new();
 	resp.set_code(types::CodeType::BaseEncodingError);
 	resp.set_log(error);
-	resp
       },
     }
-
+    return resp;
   }
 
   fn init_chain(&self, _p: &types::RequestInitChain) -> types::ResponseInitChain {
@@ -73,6 +71,7 @@ impl Application for Ekidenmint {
 
   fn deliver_tx(&self, p: &types::RequestDeliverTx) -> types::ResponseDeliverTx {
     //println!("deliver_tx");
+    let mut resp = types::ResponseDeliverTx::new();
     let tx = p.get_tx();
     match StorageServer::check_tx(tx) {
       Ok(_) => {
@@ -80,18 +79,14 @@ impl Application for Ekidenmint {
 	let mut s = self.server.lock().unwrap();
 	s.set_latest(tx.to_vec());
 	// Respond
-	let mut resp = types::ResponseDeliverTx::new();
 	resp.set_code(types::CodeType::OK);
-	resp
       },
       Err(error) => {
-	let mut resp = types::ResponseDeliverTx::new();
 	resp.set_code(types::CodeType::BaseEncodingError);
 	resp.set_log(error);
-	resp
       },
     }
-
+    return resp;
   }
 
   fn end_block(&self, _p: &types::RequestEndBlock) -> types::ResponseEndBlock {
