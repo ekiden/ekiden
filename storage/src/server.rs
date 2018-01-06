@@ -14,5 +14,9 @@ impl StorageServer {
     // @todo - check attestations
     Ok(())
   }
+
+  pub fn set_latest(&mut self, latest: Vec<u8>) {
+    self.latest = Some(latest);
+  }
 }
 

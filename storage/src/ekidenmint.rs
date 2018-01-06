@@ -46,12 +46,12 @@ impl Application for Ekidenmint {
     let tx = p.get_tx();
     match StorageServer::check_tx(&tx) {
       Ok(_) => {
-	let resp = types::ResponseCheckTx::new()
+	let mut resp = types::ResponseCheckTx::new();
 	resp.set_code(types::CodeType::OK);
 	resp
       },
       Err(error) => {
-	types::ResponseCheckTx::new()
+	let mut resp = types::ResponseCheckTx::new();
 	resp.set_code(types::CodeType::BaseEncodingError);
 	resp.set_log(error);
 	resp
