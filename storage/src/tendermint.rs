@@ -47,6 +47,61 @@ pub struct DeliverTx {
   pub tags: Vec<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Commit {
+  pub canonical: bool,
+  pub commit: CommitContent,
+  pub header: CommitHeader,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CommitContent {
+  pub blockID: BlockId,
+  pub precommits: Vec<PreCommit>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PreCommit {
+  pub block_id: BlockId,
+  pub height: u64,
+  pub round: u64,
+  pub signature: Signature,
+  //pub type: i32, // `type` is a keyword
+  pub validator_address: String,
+  pub validator_index: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Signature {
+  pub data: String,
+  //pub type: String, //`type` is a keyword
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CommitHeader {
+  pub app_hash: String,
+  pub chain_id: String,
+  pub data_hash: String,
+  pub height: u64,
+  pub last_block_id: BlockId,
+  pub last_commit_hash: String,
+  pub num_txs: u64,
+  pub time: String,
+  pub validators_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BlockId {
+  pub hash: String,
+  pub parts: BlockIdParts,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BlockIdParts {
+  pub hash: String,
+  pub total: u64,
+}
+
 pub struct Tendermint {
   uri_prefix: String,
   core: tokio_core::reactor::Core,
@@ -116,7 +171,6 @@ impl Tendermint {
     let uri = String::new() + &self.uri_prefix +
       "/commit?height=" + &height_str;
     let resp_str = self.helper(uri)?;
-    println!("{}", resp_str);
     let result: serde_json::Value = serde_json::from_str(&resp_str)?;
     Ok(result)
   }
