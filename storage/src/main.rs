@@ -15,6 +15,8 @@ mod state;
 
 //use std::env;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
 
@@ -28,10 +30,12 @@ fn main() {
   let s = Arc::new(Mutex::new(State::new()));
 
   // Create Tendermint client
-  let mut tendermint_client = tendermint::Tendermint::new();
-  tendermint_client.broadcast_tx_commit(vec![0]);
-
-
+  let tendermint_uri = String::from("http://localhost:46657");
+  thread::spawn(move || {
+    thread::sleep(Duration::from_secs(5));
+    let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
+    tendermint_client.broadcast_tx_commit(vec![0]).unwrap();
+  });
 
   // Start the gRPC server.
   let port = 9002;
