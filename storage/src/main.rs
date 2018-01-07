@@ -3,6 +3,9 @@ extern crate futures;
 extern crate grpc;
 extern crate hyper;
 extern crate protobuf;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate tls_api;
 extern crate tokio_core;
@@ -38,9 +41,10 @@ fn main() {
     let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
     let arg = String::from("helloworld").into_bytes();
     let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
-    println!("\nbroadcast output: {}", output);
+    let height = output.result.height;
+    println!("\nbroadcast output: {:?}", output);
     thread::sleep(Duration::from_secs(3));
-    let output = tendermint_client.commit(1).unwrap();
+    let output = tendermint_client.commit(height).unwrap();
     println!("\ncommit output: {}", output);
   });
 

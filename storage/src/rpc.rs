@@ -7,20 +7,20 @@ use generated::storage_grpc::Storage;
 use state::State;
 
 pub struct StorageServerImpl {
-    server: Arc<Mutex<State>>,
+  state: Arc<Mutex<State>>,
 }
 
 impl StorageServerImpl {
-  pub fn new(server: Arc<Mutex<State>>) -> StorageServerImpl {
+  pub fn new(state: Arc<Mutex<State>>) -> StorageServerImpl {
     StorageServerImpl {
-      server: server,
+      state: state,
     }
   }
 }
 
 impl Storage for StorageServerImpl {
   fn get(&self, _options: grpc::RequestOptions, _req: GetRequest) -> grpc::SingleResponse<GetResponse> {
-    let s = self.server.lock().unwrap();
+    let s = self.state.lock().unwrap();
     match s.get_latest() {
       Some(val) => {
 	let mut response = GetResponse::new();

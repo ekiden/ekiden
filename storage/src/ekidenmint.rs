@@ -11,14 +11,14 @@ use state::State;
 #[derive(Clone)]
 pub struct Ekidenmint {
   name: String,
-  server: Arc<Mutex<State>>,
+  state: Arc<Mutex<State>>,
 }
 
 impl Ekidenmint {
-  pub fn new(server: Arc<Mutex<State>>) -> Ekidenmint {
+  pub fn new(state: Arc<Mutex<State>>) -> Ekidenmint {
     Ekidenmint{
       name: String::from("test"),
-      server: server,
+      state: state,
     }
   }
 }
@@ -76,7 +76,7 @@ impl Application for Ekidenmint {
     match State::check_tx(tx) {
       Ok(_) => {
       	// Set the state
-	let mut s = self.server.lock().unwrap();
+	let mut s = self.state.lock().unwrap();
 	s.set_latest(tx.to_vec());
 	// Respond
 	resp.set_code(types::CodeType::OK);
