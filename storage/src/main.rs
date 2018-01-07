@@ -34,7 +34,8 @@ fn main() {
   thread::spawn(move || {
     thread::sleep(Duration::from_secs(3));
     let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
-    let output = tendermint_client.broadcast_tx_commit(vec![0]).unwrap();
+    let arg = String::from("helloworld").into_bytes();
+    let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
     println!("\nMain output: {}", output);
   });
 

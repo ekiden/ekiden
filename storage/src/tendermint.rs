@@ -40,7 +40,9 @@ impl Tendermint {
   }
 
   pub fn broadcast_tx_commit(&mut self, payload: Vec<u8>) -> Result<String, Error> {
-    let uri = String::new() + &self.uri_prefix;
+    let payload_str = String::from_utf8(payload).unwrap();
+    let uri = String::new() + &self.uri_prefix + 
+      "/broadcast_tx_commit?tx=\"" + &payload_str + "\"";
     self.helper(uri)
   }
 
