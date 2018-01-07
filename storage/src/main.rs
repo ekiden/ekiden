@@ -39,19 +39,27 @@ fn main() {
   // We'll use a channel to funnel transactions to Tendermint client
   let tendermint_uri = String::from("http://localhost:46657");
   let (tx, rx) = mpsc::channel();
+  let tx = Arc::new(Mutex::new(tx));
+  thread::spawn(move || {
+    let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
+    tendermint::proxy_broadcasts(&mut tendermint_client, rx);
+  });
+
+  // @todo Remove
+  let (temp_tx, temp_rx) = mpsc::channel();
+  let broadcast_tx = Arc::clone(&tx);
   thread::spawn(move || {
     thread::sleep(Duration::from_secs(3));
-    let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
-    let mut broadcast_proxy = tendermint::BroadcastProxy::new(tendermint_client, rx);
-
-    //let arg = String::from("helloworld3").into_bytes();
-    //let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
-    //println!("broadcast output: {:?}", output);
+    broadcast_tx.lock().unwrap().send(tendermint::BroadcastRequest {
+      chan: temp_tx,
+      payload: String::from("helloworld").into_bytes(),
+    });
+    let result = temp_rx.recv().unwrap();
+    println!("broadcast output: {:?}", result);
   });
 
   // Start the gRPC server.
   let port = 9002;
-  let tx = Arc::new(Mutex::new(tx));
   let mut rpc_server = grpc::ServerBuilder::new_plain();
   rpc_server.http.set_port(port);
   rpc_server.http.set_cpu_pool_threads(1);

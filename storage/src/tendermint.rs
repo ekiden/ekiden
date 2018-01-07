@@ -102,19 +102,16 @@ pub struct BlockIdParts {
   pub total: u64,
 }
 
-pub struct BroadcastProxy {
-  client: Tendermint,
-  rx: mpsc::Receiver<Vec<u8>>,
+pub struct BroadcastRequest {
+  pub chan: mpsc::Sender<Result<JsonRpcResult<BroadcastTxCommit>, Error>>,
+  pub payload: Vec<u8>,
 }
 
-impl BroadcastProxy {
-  pub fn new(client: Tendermint, rx: mpsc::Receiver<Vec<u8>>) -> BroadcastProxy {
-    BroadcastProxy {
-      client: client,
-      rx: rx
-    }
+pub fn proxy_broadcasts(client: &mut Tendermint, rx: mpsc::Receiver<BroadcastRequest>) {
+  for req in rx {
+    let result = client.broadcast_tx_commit(req.payload);
+    req.chan.send(result).unwrap();
   }
-
 }
 
 pub struct Tendermint {
