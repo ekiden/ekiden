@@ -41,8 +41,8 @@ fn main() {
     let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
     let arg = String::from("helloworld").into_bytes();
     let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
-    let height = output.result.height;
     println!("broadcast output: {:?}", output);
+    let height = output.result.height;
     thread::sleep(Duration::from_secs(3));
     let output = tendermint_client.commit(height).unwrap();
     println!("commit output: {}", output);

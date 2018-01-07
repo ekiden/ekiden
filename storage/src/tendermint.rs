@@ -23,6 +23,14 @@ pub struct BroadcastTxCommit {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct BroadcastTx {
+  pub code: i32,
+  pub data: String,
+  pub log: String,
+  pub hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CheckTx {
   pub code: i32,
   pub data: String,
@@ -85,11 +93,30 @@ impl Tendermint {
     Ok(result)
   }
 
+  pub fn broadcast_tx_async(&mut self, payload: Vec<u8>) -> Result<JsonRpcResult<BroadcastTx>, Error> {
+    let payload_str = String::from_utf8(payload)?;
+    let uri = String::new() + &self.uri_prefix +
+      "/broadcast_tx_async?tx=\"" + &payload_str + "\"";
+    let resp_str = self.helper(uri)?;
+    let result: JsonRpcResult<BroadcastTx> = serde_json::from_str(&resp_str)?;
+    Ok(result)
+  }
+
+  pub fn broadcast_tx_sync(&mut self, payload: Vec<u8>) -> Result<JsonRpcResult<BroadcastTx>, Error> {
+    let payload_str = String::from_utf8(payload)?;
+    let uri = String::new() + &self.uri_prefix +
+      "/broadcast_tx_sync?tx=\"" + &payload_str + "\"";
+    let resp_str = self.helper(uri)?;
+    let result: JsonRpcResult<BroadcastTx> = serde_json::from_str(&resp_str)?;
+    Ok(result)
+  }
+
   pub fn commit(&mut self, height: u64) -> Result<serde_json::Value, Error> {
     let height_str = height.to_string();
     let uri = String::new() + &self.uri_prefix +
       "/commit?height=" + &height_str;
     let resp_str = self.helper(uri)?;
+    println!("{}", resp_str);
     let result: serde_json::Value = serde_json::from_str(&resp_str)?;
     Ok(result)
   }
