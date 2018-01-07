@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use grpc;
 //use protobuf;
 
@@ -8,12 +8,14 @@ use state::State;
 
 pub struct StorageServerImpl {
   state: Arc<Mutex<State>>,
+  tx: Arc<Mutex<mpsc::Sender<Vec<u8>>>>,
 }
 
 impl StorageServerImpl {
-  pub fn new(state: Arc<Mutex<State>>) -> StorageServerImpl {
+  pub fn new(state: Arc<Mutex<State>>, tx: Arc<Mutex<mpsc::Sender<Vec<u8>>>>) -> StorageServerImpl {
     StorageServerImpl {
       state: state,
+      tx: tx,
     }
   }
 }

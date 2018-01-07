@@ -96,7 +96,7 @@ impl Application for Ekidenmint {
   }
 
   fn commit(&self, p: &types::RequestCommit) -> types::ResponseCommit {
-    // @todo
+    // RequestCommit is empty
     println!("commit");
     types::ResponseCommit::new()
   }

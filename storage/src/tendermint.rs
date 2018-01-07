@@ -102,6 +102,21 @@ pub struct BlockIdParts {
   pub total: u64,
 }
 
+pub struct BroadcastProxy {
+  client: Tendermint,
+  rx: mpsc::Receiver<Vec<u8>>,
+}
+
+impl BroadcastProxy {
+  pub fn new(client: Tendermint, rx: mpsc::Receiver<Vec<u8>>) -> BroadcastProxy {
+    BroadcastProxy {
+      client: client,
+      rx: rx
+    }
+  }
+
+}
+
 pub struct Tendermint {
   uri_prefix: String,
   core: tokio_core::reactor::Core,

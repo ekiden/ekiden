@@ -21,6 +21,7 @@ mod state;
 //use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::sync::mpsc;
 use std::time::Duration;
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
@@ -34,22 +35,27 @@ fn main() {
   // Create a shared State object
   let s = Arc::new(Mutex::new(State::new()));
 
-  // Create Tendermint client
+  // Create Tendermint client.
+  // We'll use a channel to funnel transactions to Tendermint client
   let tendermint_uri = String::from("http://localhost:46657");
+  let (tx, rx) = mpsc::channel();
   thread::spawn(move || {
     thread::sleep(Duration::from_secs(3));
     let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
-    let arg = String::from("helloworld3").into_bytes();
-    let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
-    println!("broadcast output: {:?}", output);
+    let mut broadcast_proxy = tendermint::BroadcastProxy::new(tendermint_client, rx);
+
+    //let arg = String::from("helloworld3").into_bytes();
+    //let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
+    //println!("broadcast output: {:?}", output);
   });
 
   // Start the gRPC server.
   let port = 9002;
+  let tx = Arc::new(Mutex::new(tx));
   let mut rpc_server = grpc::ServerBuilder::new_plain();
   rpc_server.http.set_port(port);
   rpc_server.http.set_cpu_pool_threads(1);
-  rpc_server.add_service(StorageServer::new_service_def(StorageServerImpl::new(Arc::clone(&s))));
+  rpc_server.add_service(StorageServer::new_service_def(StorageServerImpl::new(Arc::clone(&s), Arc::clone(&tx))));
   let _server = rpc_server.build().expect("rpc_server");
   println!("Storage node listening at {}", port);
 
