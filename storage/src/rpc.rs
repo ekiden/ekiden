@@ -3,22 +3,22 @@ use grpc;
 //use protobuf;
 
 use generated::storage::{GetRequest, GetResponse, SetRequest, SetResponse};
-use generated::storage_grpc::StorageRpc;
+use generated::storage_grpc::Storage;
 use state::State;
 
-pub struct StorageRpcServerImpl {
+pub struct StorageServerImpl {
     server: Arc<Mutex<State>>,
 }
 
-impl StorageRpcServerImpl {
-  pub fn new(server: Arc<Mutex<State>>) -> StorageRpcServerImpl {
-    StorageRpcServerImpl {
+impl StorageServerImpl {
+  pub fn new(server: Arc<Mutex<State>>) -> StorageServerImpl {
+    StorageServerImpl {
       server: server,
     }
   }
 }
 
-impl StorageRpc for StorageRpcServerImpl {
+impl Storage for StorageServerImpl {
   fn get(&self, _options: grpc::RequestOptions, _req: GetRequest) -> grpc::SingleResponse<GetResponse> {
     let s = self.server.lock().unwrap();
     match s.get_latest() {

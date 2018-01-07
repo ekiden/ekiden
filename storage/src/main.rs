@@ -17,8 +17,8 @@ use std::sync::{Arc, Mutex};
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
 
-use generated::storage_grpc::StorageRpcServer;
-use rpc::StorageRpcServerImpl;
+use generated::storage_grpc::StorageServer;
+use rpc::StorageServerImpl;
 use state::State;
 
 fn main() {
@@ -35,7 +35,7 @@ fn main() {
   let mut rpc_server = grpc::ServerBuilder::new_plain();
   rpc_server.http.set_port(port);
   rpc_server.http.set_cpu_pool_threads(1);
-  rpc_server.add_service(StorageRpcServer::new_service_def(StorageRpcServerImpl::new(Arc::clone(&s))));
+  rpc_server.add_service(StorageServer::new_service_def(StorageServerImpl::new(Arc::clone(&s))));
   let _server = rpc_server.build().expect("rpc_server");
   println!("Storage node listening at {}", port);
 
