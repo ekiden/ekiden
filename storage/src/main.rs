@@ -35,8 +35,11 @@ fn main() {
     thread::sleep(Duration::from_secs(3));
     let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
     let arg = String::from("helloworld").into_bytes();
-    let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
-    println!("\nMain output: {}", output);
+    //let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
+    //println!("\nbroadcast output: {}", output);
+    thread::sleep(Duration::from_secs(3));
+    //let output = tendermint_client.commit(1).unwrap();
+    //println!("\ncommit output: {}", output);
   });
 
   // Start the gRPC server.

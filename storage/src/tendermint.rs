@@ -23,6 +23,7 @@ impl Tendermint {
   }
 
   fn helper(&mut self, path: String) -> Result<String, Error> {
+    println!("{}", path);
     let uri = path.parse()?;
     let work = self.client.get(uri).and_then(|res| {
       //println!("Response: {}", res.status());
@@ -41,8 +42,15 @@ impl Tendermint {
 
   pub fn broadcast_tx_commit(&mut self, payload: Vec<u8>) -> Result<String, Error> {
     let payload_str = String::from_utf8(payload).unwrap();
-    let uri = String::new() + &self.uri_prefix + 
+    let uri = String::new() + &self.uri_prefix +
       "/broadcast_tx_commit?tx=\"" + &payload_str + "\"";
+    self.helper(uri)
+  }
+
+  pub fn commit(&mut self, height: u64) -> Result<String, Error> {
+    let height_str = height.to_string();
+    let uri = String::new() + &self.uri_prefix +
+      "/commit?height=" + &height_str;
     self.helper(uri)
   }
 
