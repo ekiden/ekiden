@@ -12,6 +12,7 @@ impl State {
 
   pub fn check_tx(tx: &[u8]) -> Result<(), String> {
     // @todo - check attestations
+    // @todo - check that this was based off latest
     Ok(())
   }
 

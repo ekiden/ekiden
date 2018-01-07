@@ -70,7 +70,7 @@ impl Application for Ekidenmint {
   }
 
   fn deliver_tx(&self, p: &types::RequestDeliverTx) -> types::ResponseDeliverTx {
-    //println!("deliver_tx");
+    println!("deliver_tx");
     let mut resp = types::ResponseDeliverTx::new();
     let tx = p.get_tx();
     match State::check_tx(tx) {
@@ -98,7 +98,12 @@ impl Application for Ekidenmint {
   fn commit(&self, p: &types::RequestCommit) -> types::ResponseCommit {
     // RequestCommit is empty
     println!("commit");
-    types::ResponseCommit::new()
+    let mut resp = types::ResponseCommit::new();
+    // @todo - respond with Merkle root hash of the application state in `data`
+    //resp.set_code(types::CodeType::OK);
+    //resp.set_data(String::from("test data").into_bytes());
+    //resp.set_log(String::from("test log"));
+    return resp;
   }
 
   fn echo(&self, p: &types::RequestEcho) -> types::ResponseEcho {

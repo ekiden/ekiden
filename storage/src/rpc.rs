@@ -50,13 +50,12 @@ impl Storage for StorageServerImpl {
 	};
 	let broadcast_channel = self.tx.lock().unwrap();
 	broadcast_channel.send(req);
-	let result = rx.recv().unwrap();
-	println!("{:?}", result);
-
-	// Success response
-	grpc::SingleResponse::completed(SetResponse::new())
+	match rx.recv().unwrap() {
+	  Ok(result) => grpc::SingleResponse::completed(SetResponse::new()),
+	  Err(error) => grpc::SingleResponse::err(grpc::Error::Other("Error forwarding to Tendermint")),
+	}
       },
-      Err(error) => grpc::SingleResponse::err(grpc::Error::Other("Invalid payload fails check_tx"))
+      Err(error) => grpc::SingleResponse::err(grpc::Error::Other("Invalid payload fails check_tx")),
     }
   }
 }
