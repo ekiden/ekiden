@@ -42,10 +42,10 @@ fn main() {
     let arg = String::from("helloworld").into_bytes();
     let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
     let height = output.result.height;
-    println!("\nbroadcast output: {:?}", output);
+    println!("broadcast output: {:?}", output);
     thread::sleep(Duration::from_secs(3));
     let output = tendermint_client.commit(height).unwrap();
-    println!("\ncommit output: {}", output);
+    println!("commit output: {}", output);
   });
 
   // Start the gRPC server.

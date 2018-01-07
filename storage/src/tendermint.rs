@@ -14,13 +14,29 @@ pub struct JsonRpcResult<T> {
   pub result: T
 }
 
-pub struct CheckTx {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BroadcastTxCommit {
+  pub check_tx: CheckTx,
+  pub deliver_tx: DeliverTx,
+  pub hash: String,
+  pub height: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct BroadcastTxCommit {
-  pub hash: String,
-  pub height: u64,
+pub struct CheckTx {
+  pub code: i32,
+  pub data: String,
+  pub log: String,
+  pub gas: String,
+  pub fee: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeliverTx {
+  pub code: i32,
+  pub data: String,
+  pub log: String,
+  pub tags: Vec<String>,
 }
 
 pub struct Tendermint {
@@ -65,7 +81,6 @@ impl Tendermint {
     let uri = String::new() + &self.uri_prefix +
       "/broadcast_tx_commit?tx=\"" + &payload_str + "\"";
     let resp_str = self.helper(uri)?;
-    println!("{}", resp_str);
     let result: JsonRpcResult<BroadcastTxCommit> = serde_json::from_str(&resp_str)?;
     Ok(result)
   }
