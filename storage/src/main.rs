@@ -28,7 +28,7 @@ fn main() {
   let s = Arc::new(Mutex::new(State::new()));
 
   // Create Tendermint client
-  let tendermint_client = tendermint::Tendermint::new();
+  let mut tendermint_client = tendermint::Tendermint::new();
   tendermint_client.broadcast_tx_commit(vec![0]);
 
 
