@@ -5,18 +5,15 @@ use grpc;
 use generated::storage::{GetRequest, GetResponse, SetRequest, SetResponse};
 use generated::storage_grpc::Storage;
 use state::State;
-use tendermint::Tendermint;
 
 pub struct StorageServerImpl {
     server: Arc<Mutex<State>>,
-    tendermint: Tendermint,
 }
 
 impl StorageServerImpl {
   pub fn new(server: Arc<Mutex<State>>) -> StorageServerImpl {
     StorageServerImpl {
       server: server,
-      tendermint: Tendermint::new(),
     }
   }
 }

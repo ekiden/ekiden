@@ -27,9 +27,11 @@ fn main() {
   // Create a shared State object
   let s = Arc::new(Mutex::new(State::new()));
 
-  let abci_listen_addr = "127.0.0.1:46658".parse().unwrap();
-  let app = ekidenmint::Ekidenmint::new(Arc::clone(&s));
-  let app_server = TcpServer::new(AbciProto, abci_listen_addr);
+  // Create Tendermint client
+  let tendermint_client = tendermint::Tendermint::new();
+  tendermint_client.broadcast_tx_commit(vec![0]);
+
+
 
   // Start the gRPC server.
   let port = 9002;
@@ -41,6 +43,9 @@ fn main() {
   println!("Storage node listening at {}", port);
 
   // Start the Tendermint ABCI listener
+  let abci_listen_addr = "127.0.0.1:46658".parse().unwrap();
+  let app = ekidenmint::Ekidenmint::new(Arc::clone(&s));
+  let app_server = TcpServer::new(AbciProto, abci_listen_addr);
   app_server.serve(move || {
     Ok(AbciService {
       app: Box::new(app.clone()),
