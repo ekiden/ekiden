@@ -8,6 +8,7 @@ extern crate tokio_core;
 extern crate tokio_proto;
 
 mod ekidenmint;
+mod tendermint;
 mod generated;
 mod rpc;
 mod state;
