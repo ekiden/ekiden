@@ -3,11 +3,13 @@ extern crate futures;
 extern crate grpc;
 extern crate hyper;
 extern crate protobuf;
+extern crate serde_json;
 extern crate tls_api;
 extern crate tokio_core;
 extern crate tokio_proto;
 
 mod ekidenmint;
+mod errors;
 mod tendermint;
 mod generated;
 mod rpc;
@@ -35,11 +37,11 @@ fn main() {
     thread::sleep(Duration::from_secs(3));
     let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
     let arg = String::from("helloworld").into_bytes();
-    //let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
-    //println!("\nbroadcast output: {}", output);
+    let output = tendermint_client.broadcast_tx_commit(arg).unwrap();
+    println!("\nbroadcast output: {}", output);
     thread::sleep(Duration::from_secs(3));
-    //let output = tendermint_client.commit(1).unwrap();
-    //println!("\ncommit output: {}", output);
+    let output = tendermint_client.commit(1).unwrap();
+    println!("\ncommit output: {}", output);
   });
 
   // Start the gRPC server.
