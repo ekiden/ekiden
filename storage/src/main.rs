@@ -32,9 +32,10 @@ fn main() {
   // Create Tendermint client
   let tendermint_uri = String::from("http://localhost:46657");
   thread::spawn(move || {
-    thread::sleep(Duration::from_secs(5));
+    thread::sleep(Duration::from_secs(3));
     let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
-    tendermint_client.broadcast_tx_commit(vec![0]).unwrap();
+    let output = tendermint_client.broadcast_tx_commit(vec![0]).unwrap();
+    println!("\nMain output: {}", output);
   });
 
   // Start the gRPC server.

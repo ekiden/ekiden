@@ -1,5 +1,6 @@
 use hyper::Error;
 use std::io::{self, Write};
+use std::sync::mpsc;
 use futures::{Future, Stream};
 use hyper;
 use tokio_core::reactor::Core;
@@ -21,18 +22,26 @@ impl Tendermint {
     }
   }
 
-  pub fn broadcast_tx_commit(&mut self, payload: Vec<u8>) -> Result<(), Error> {
-    let uri = self.uri_prefix.parse()?;
+  fn helper(&mut self, path: String) -> Result<String, Error> {
+    let uri = path.parse()?;
     let work = self.client.get(uri).and_then(|res| {
-      println!("Response: {}", res.status());
-      res.body().for_each(|chunk| {
-	io::stdout()
-	  .write_all(&chunk)
-	  .map_err(From::from)
-      })
+      //println!("Response: {}", res.status());
+      res.body().concat2()
     });
-    self.core.run(work)?;
-    Ok(())
+    let body = self.core.run(work)?; // Returns error if not reachable
+    let body_vec = body.to_vec(); 
+    let body_str = String::from_utf8(body_vec)?;
+    Ok(body_str)
+  }
+
+  pub fn help(&mut self) -> Result<String, Error> {
+    let uri = String::new() + &self.uri_prefix;
+    self.helper(uri)
+  }
+
+  pub fn broadcast_tx_commit(&mut self, payload: Vec<u8>) -> Result<String, Error> {
+    let uri = String::new() + &self.uri_prefix;
+    self.helper(uri)
   }
 
 }
