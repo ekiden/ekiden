@@ -41,6 +41,11 @@ impl Compute for ComputeServerImpl {
     fn call_contract(&self, _options: grpc::RequestOptions, request: CallContractRequest)
         -> grpc::SingleResponse<CallContractResponse> {
 
+        // Prevent calling internal contract methods.
+        if request.get_method().starts_with('_') {
+            return grpc::SingleResponse::err(grpc::Error::Other("Cannot call internal contract method"));
+        }
+
         let mut enclave_request = api::Request::new();
         enclave_request.set_method(request.get_method().to_string());
         enclave_request.set_payload(request.get_payload().to_vec());

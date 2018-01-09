@@ -9,5 +9,13 @@ authors = [
 [dependencies]
 sgx_types = { path = "/sgx/sgx_types" }
 sgx_tstd = { path = "/sgx/sgx_tstd" }
+sgx_tdh = { path = "/sgx/sgx_tdh" }
+sgx_tcrypto = { path = "/sgx/sgx_tcrypto" }
+sgx_tservice = { path = "/sgx/sgx_tservice" }
+sgx_tkey_exchange = { path = "/sgx/sgx_tkey_exchange" }
+sgx_trts = { path = "/sgx/sgx_trts" }
+sgx_tseal = { path = "/sgx/sgx_tseal" }
 protobuf-sgx = { path = "../../third_party/protobuf" }
+sodalite = "0.3.0"
+lazy_static = { version = "1.0", features = ["spin_no_std"] }
 libcontract-common = { path = "../common", features = ["sgx"], default-features = false }

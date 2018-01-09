@@ -5,9 +5,9 @@ pub struct ContractError {
 }
 
 impl ContractError {
-    pub fn new(msg: String) -> ContractError {
+    pub fn new(msg: &str) -> ContractError {
         ContractError {
-            message: msg,
+            message: msg.to_string(),
         }
     }
 }

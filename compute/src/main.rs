@@ -3,6 +3,7 @@ extern crate futures_cpupool;
 extern crate grpc;
 extern crate protobuf;
 extern crate tls_api;
+extern crate base64;
 
 extern crate libcontract_untrusted;
 extern crate libcontract_common;
@@ -23,6 +24,12 @@ fn main() {
 
     // Create a new ekiden enclave from the given library.
     let contract = enclave::EkidenEnclave::new(&contract_filename).unwrap();
+
+    // Initialize the contract.
+    let response = contract.initialize(vec![]).expect("Failed to initialize contract");
+    println!("Contract initialized.");
+    println!("Public key: {}", base64::encode(response.get_public_key()));
+    println!("Sealed keys: {}", base64::encode(response.get_sealed_keys()));
 
     // Start the gRPC server.
     let mut server = grpc::ServerBuilder::new_plain();

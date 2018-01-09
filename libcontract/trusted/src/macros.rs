@@ -59,12 +59,14 @@ macro_rules! create_enclave {
             };
 
             // Invoke given method.
+            use libcontract_common::api;
+
             create_enclave_methods!(
                 request,
                 raw_response,
                 // Meta methods.
-                _metadata, libcontract_common::api::MetadataRequest,
-                           libcontract_common::api::MetadataResponse,
+                _metadata, api::MetadataRequest, api::MetadataResponse,
+                _contract_init, api::ContractInitRequest, api::ContractInitResponse,
                 // User-defined methods.
                 $( $method_name, $request_type, $response_type ),*
             );
@@ -86,6 +88,12 @@ macro_rules! create_enclave {
             response.set_version(String::from($metadata_version));
 
             Ok(response)
+        }
+
+        fn _contract_init(request: libcontract_common::api::ContractInitRequest)
+            -> Result<libcontract_common::api::ContractInitResponse, libcontract_common::ContractError> {
+
+            $crate::secure_channel::contract_init(request)
         }
     };
 }

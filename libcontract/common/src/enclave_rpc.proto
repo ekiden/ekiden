@@ -42,3 +42,23 @@ message MetadataResponse {
     // Contract version.
     string version = 2;
 }
+
+message ContractInitRequest {
+    // Sealed keys if this enclave has previously been initialized.
+    bytes sealed_keys = 1;
+}
+
+message ContractInitResponse {
+    // Public key used to establish a secure channel with the enclave. This
+    // key is generated as part of the contract initialization process
+    bytes public_key = 1;
+    // Sealed keys that should be persisted to the filesystem and used in
+    // next enclave invocation.
+    bytes sealed_keys = 2;
+}
+
+message AttestationInitRequest {
+}
+
+message AttestationInitResponse {
+}
