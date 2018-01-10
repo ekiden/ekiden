@@ -10,14 +10,12 @@ message TokenState {
 }
 
 message TransferRequest {
-    TokenState state = 1;
     string sender = 2;
     string destination = 3;
     uint64 value = 4;
 }
 
 message TransferResponse {
-    TokenState state = 1;
 }
 
 message CreateRequest {
@@ -28,5 +26,4 @@ message CreateRequest {
 }
 
 message CreateResponse {
-    TokenState state = 1;
 }

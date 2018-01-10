@@ -7,6 +7,10 @@ message Request {
     string method = 1;
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
+    // Starting state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
+    bytes encrypted_state = 3;
+    // %%% Starting state  (must be valid Protocol Buffers, based on contract).
+    bytes state = 103;
 }
 
 message Error {
@@ -30,6 +34,14 @@ message Response {
     Code code = 1;
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
+    // New state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
+    bytes encrypted_state = 3;
+    // %%% New state (must be valid Protocol Buffers, based on contract).
+    bytes state = 103;
+}
+
+message Void {
+    // Empty message for void methods and stateless contracts.
 }
 
 // Meta methods.

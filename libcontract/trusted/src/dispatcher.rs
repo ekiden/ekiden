@@ -41,11 +41,16 @@ pub fn return_response(response: api::Response,
 }
 
 /// Serialize and return an RPC success response.
-pub fn return_success<M: Message>(payload: M,
-                                  raw_response: &RawResponse) {
+pub fn return_success<S: Message, P: Message>(state: S,
+                                              payload: P,
+                                              raw_response: &RawResponse) {
     // Prepare response.
     let mut response = api::Response::new();
     response.set_code(api::Response_Code::SUCCESS);
+
+    let state = state.write_to_bytes().expect("Failed to serialize state");
+    // TODO: encrypt state
+    response.set_state(state);
 
     let payload = payload.write_to_bytes().expect("Failed to serialize payload");
     response.set_payload(payload);

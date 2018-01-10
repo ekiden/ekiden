@@ -6,6 +6,7 @@ macro_rules! create_client {
         metadata {
             name = $metadata_name: ident ;
             version = $metadata_version: expr ;
+            state_type = $_: ty ;
         }
 
         $(

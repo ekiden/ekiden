@@ -27,6 +27,7 @@ macro_rules! create_enclave {
         metadata {
             name = $metadata_name: ident ;
             version = $metadata_version: expr ;
+            state_type = $metadata_state_type: ty ;
         }
 
         $(
@@ -59,12 +60,21 @@ macro_rules! create_enclave {
             };
 
             // Invoke given method.
+
+            // Meta methods.
+            if request.method == "_metadata" {
+                let mut response = libcontract_common::api::MetadataResponse::new();
+                response.set_name(String::from(stringify!($metadata_name)));
+                response.set_version(String::from($metadata_version));
+
+                $crate::dispatcher::return_success(response, &raw_response);
+                return;
+            }
+
             create_enclave_methods!(
                 request,
                 raw_response,
-                // Meta methods.
-                _metadata, libcontract_common::api::MetadataRequest,
-                           libcontract_common::api::MetadataResponse,
+                $metadata_state_type,
                 // User-defined methods.
                 $( $method_name, $request_type, $response_type ),*
             );
@@ -76,17 +86,6 @@ macro_rules! create_enclave {
                 &raw_response
             );
         }
-
-        // Meta method implementations.
-        fn _metadata(_request: libcontract_common::api::MetadataRequest)
-            -> Result<libcontract_common::api::MetadataResponse, libcontract_common::ContractError> {
-
-            let mut response = libcontract_common::api::MetadataResponse::new();
-            response.set_name(String::from(stringify!($metadata_name)));
-            response.set_version(String::from($metadata_version));
-
-            Ok(response)
-        }
     };
 }
 
@@ -94,11 +93,11 @@ macro_rules! create_enclave {
 #[macro_export]
 macro_rules! create_enclave_methods {
     // Match when no methods are defined.
-    ($request: ident, $response: ident, ) => {};
+    ($request: ident, $response: ident, $state_type: ty, ) => {};
 
     // Match each defined method.
     (
-        $request: ident, $response: ident,
+        $request: ident, $response: ident, $state_type: ty,
         $method_name: ident, $request_type: ty, $response_type: ty
     ) => {
         if $request.method == stringify!($method_name) {
@@ -115,8 +114,22 @@ macro_rules! create_enclave_methods {
                 }
             };
 
+            // Parse starting state.
+            // TODO: decrypt state
+            let state: $state_type = match protobuf::parse_from_bytes(&$request.get_state()) {
+                Ok(value) => value,
+                _ => {
+                    $crate::dispatcher::return_error(
+                        libcontract_common::api::Response_code::ERROR_BAD_REQUEST,
+                        "Unable to parse request state",
+                        &$response
+                    );
+                    return;
+                }
+            };
+
             // Invoke method implementation.
-            let response: $response_type = match $method_name(payload) {
+            let (new_state: $state_type, response: $response_type) = match $method_name(state, payload) {
                 Ok(value) => value,
                 Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
