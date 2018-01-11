@@ -9,5 +9,3 @@ authors = [
 libcontract-common = { path = "../../libcontract/common" }
 compute-client = { path = "../../compute-client" }
 token-api = { path = "../../contracts/token/api" }
-# TODO: remove this when the client doesn't have to deal with state
-protobuf = { version = "1.4.2" }

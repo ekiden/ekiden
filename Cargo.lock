@@ -565,7 +565,6 @@ version = "0.1.0"
 dependencies = [
  "compute-client 0.1.0",
  "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "token-api 0.1.0",
 ]
 

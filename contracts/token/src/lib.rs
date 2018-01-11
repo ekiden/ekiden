@@ -26,7 +26,9 @@ use libcontract_common::{Address, Contract, ContractError, with_contract_state};
 
 create_enclave_api!();
 
-fn create(_: TokenState, request: CreateRequest) -> Result<(TokenState, CreateResponse), ContractError> {
+fn create(state: Option<TokenState>, request: CreateRequest) -> Result<(Option<TokenState>, CreateResponse), ContractError> {
+    assert!(state.is_none());
+
     let contract = TokenContract::new(
         &Address::from(request.get_sender().to_string()),
         request.get_initial_supply(),
@@ -34,12 +36,13 @@ fn create(_: TokenState, request: CreateRequest) -> Result<(TokenState, CreateRe
         request.get_token_symbol().to_string()
     );
 
-    let mut response = CreateResponse::new();
+    let response = CreateResponse::new();
 
-    Ok((contract.get_state(), response))
+    Ok((Some(contract.get_state()), response))
 }
 
-fn transfer(state: TokenState, request: TransferRequest) -> Result<(TokenState, TransferResponse), ContractError> {
+fn transfer(state: Option<TokenState>, request: TransferRequest) -> Result<(Option<TokenState>, TransferResponse), ContractError> {
+    let state = state.unwrap();
     let state = with_contract_state(&state, |contract: &mut TokenContract| {
         contract.transfer(
             &Address::from(request.get_sender().to_string()),
@@ -50,7 +53,7 @@ fn transfer(state: TokenState, request: TransferRequest) -> Result<(TokenState, 
         Ok(())
     })?;
 
-    let mut response = TransferResponse::new();
+    let response = TransferResponse::new();
 
-    Ok((state, response))
+    Ok((Some(state), response))
 }

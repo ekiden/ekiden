@@ -67,7 +67,7 @@ macro_rules! create_enclave {
                 response.set_name(String::from(stringify!($metadata_name)));
                 response.set_version(String::from($metadata_version));
 
-                $crate::dispatcher::return_success(response, &raw_response);
+                $crate::dispatcher::return_success(None::<$metadata_state_type>, response, &raw_response);
                 return;
             }
 
@@ -115,23 +115,29 @@ macro_rules! create_enclave_methods {
             };
 
             // Parse starting state.
-            // TODO: decrypt state
             // TODO: move this up. no need to be per-method
-            let state: $state_type = match protobuf::parse_from_bytes(&$request.get_state()) {
-                Ok(value) => value,
-                _ => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
-                        "Unable to parse request state",
-                        &$response
-                    );
-                    return;
+            let state: Option<$state_type> = {
+                let raw_state = $request.get_state();
+                if raw_state.len() == 0 {
+                    None
+                } else {
+                    // TODO: decrypt state
+                    match protobuf::parse_from_bytes(raw_state) {
+                        Ok(value) => Some(value),
+                        _ => {
+                            $crate::dispatcher::return_error(
+                                libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
+                                "Unable to parse request state",
+                                &$response
+                            );
+                            return;
+                        }
+                    }
                 }
             };
 
             // Invoke method implementation.
-            // let (new_state: $state_type, response: $response_type) = match $method_name(state, payload) {
-            let (new_state, response): ($state_type, $response_type) = match $method_name(state, payload) {
+            let (new_state, response): (Option<$state_type>, $response_type) = match $method_name(state, payload) {
                 Ok(value) => value,
                 Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
@@ -143,7 +149,7 @@ macro_rules! create_enclave_methods {
                 }
             };
 
-            $crate::dispatcher::return_success_with_state(new_state, response, &$response);
+            $crate::dispatcher::return_success(new_state, response, &$response);
             return;
         }
     };

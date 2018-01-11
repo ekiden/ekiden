@@ -44,10 +44,10 @@ impl ContractClient {
             raw_request
         ).wait().unwrap();
 
-        let state = response.get_state().to_vec();
+        let new_state = response.get_state().to_vec();
         let response: Rs = protobuf::parse_from_bytes(response.get_payload()).unwrap();
 
-        Ok((state, response))
+        Ok((new_state, response))
     }
 
     /// Get compute node status.

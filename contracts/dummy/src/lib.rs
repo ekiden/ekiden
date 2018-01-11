@@ -24,11 +24,13 @@ use libcontract_common::ContractError;
 
 create_enclave_api!();
 
-fn hello_world(_state: Empty, request: HelloWorldRequest) -> Result<(Empty, HelloWorldResponse), ContractError> {
+fn hello_world(state: Option<Empty>, request: HelloWorldRequest) -> Result<(Option<Empty>, HelloWorldResponse), ContractError> {
+    state.unwrap();
+
     println!("hello world called");
 
     let mut response = HelloWorldResponse::new();
     response.set_world(format!("enclave says {}", request.hello));
 
-    Ok((Empty::new(), response))
+    Ok((Some(Empty::new()), response))
 }
