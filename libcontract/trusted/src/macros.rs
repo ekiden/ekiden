@@ -116,11 +116,12 @@ macro_rules! create_enclave_methods {
 
             // Parse starting state.
             // TODO: decrypt state
+            // TODO: move this up. no need to be per-method
             let state: $state_type = match protobuf::parse_from_bytes(&$request.get_state()) {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::Response_code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
                         "Unable to parse request state",
                         &$response
                     );
@@ -129,7 +130,8 @@ macro_rules! create_enclave_methods {
             };
 
             // Invoke method implementation.
-            let (new_state: $state_type, response: $response_type) = match $method_name(state, payload) {
+            // let (new_state: $state_type, response: $response_type) = match $method_name(state, payload) {
+            let (new_state, response): ($state_type, $response_type) = match $method_name(state, payload) {
                 Ok(value) => value,
                 Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
@@ -141,18 +143,18 @@ macro_rules! create_enclave_methods {
                 }
             };
 
-            $crate::dispatcher::return_success(response, &$response);
+            $crate::dispatcher::return_success_with_state(new_state, response, &$response);
             return;
         }
     };
 
     // Match list of defined methods.
     (
-        $request: ident, $response: ident,
+        $request: ident, $response: ident, $state_type: ty,
         $method_name: ident, $request_type: ty, $response_type: ty,
         $($x: ident, $y: ty, $z: ty),+
     ) => {
-        create_enclave_methods!($request, $response, $method_name, $request_type, $response_type);
-        create_enclave_methods!($request, $response, $($x, $y, $z),+);
+        create_enclave_methods!($request, $response, $state_type, $method_name, $request_type, $response_type);
+        create_enclave_methods!($request, $response, $state_type, $($x, $y, $z),+);
     };
 }

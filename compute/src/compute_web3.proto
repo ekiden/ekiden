@@ -25,11 +25,15 @@ message StatusResponse {
 message CallContractRequest {
     // Contract method.
     string method = 1;
-    // Contract and method dependent payload (Protocol Buffers serialized).
+    // Method dependent payload (Protocol Buffers serialized).
     bytes payload = 2;
+    // %%% Contract starting state (Protocol Buffers serialized).
+    bytes state = 103;
 }
 
 message CallContractResponse {
-    // Contract dependent payload (Protocol Buffers serialized).
+    // Method dependent payload (Protocol Buffers serialized).
     bytes payload = 1;
+    // %%% New contract state (Protocol Buffers serialized).
+    bytes state = 102;
 }

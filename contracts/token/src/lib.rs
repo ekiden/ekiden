@@ -40,7 +40,7 @@ fn create(_: TokenState, request: CreateRequest) -> Result<(TokenState, CreateRe
 }
 
 fn transfer(state: TokenState, request: TransferRequest) -> Result<(TokenState, TransferResponse), ContractError> {
-    let state = with_contract_state(state, |contract: &mut TokenContract| {
+    let state = with_contract_state(&state, |contract: &mut TokenContract| {
         contract.transfer(
             &Address::from(request.get_sender().to_string()),
             &Address::from(request.get_destination().to_string()),

@@ -20,14 +20,15 @@ use std::prelude::v1::*;
 use dummy_api::{HelloWorldRequest, HelloWorldResponse};
 
 use libcontract_common::ContractError;
+use libcontract_common::api::Void;
 
 create_enclave_api!();
 
-fn hello_world(request: HelloWorldRequest) -> Result<HelloWorldResponse, ContractError> {
+fn hello_world(_state: Void, request: HelloWorldRequest) -> Result<(Void, HelloWorldResponse), ContractError> {
     println!("hello world called");
 
     let mut response = HelloWorldResponse::new();
     response.set_world(format!("enclave says {}", request.hello));
 
-    Ok(response)
+    Ok((Void::new(), response))
 }

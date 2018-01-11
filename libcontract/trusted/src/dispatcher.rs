@@ -40,10 +40,26 @@ pub fn return_response(response: api::Response,
     }
 }
 
-/// Serialize and return an RPC success response.
-pub fn return_success<S: Message, P: Message>(state: S,
-                                              payload: P,
-                                              raw_response: &RawResponse) {
+/// Serialize and return an RPC success response without state.
+pub fn return_success<P: Message>(payload: P,
+                                  raw_response: &RawResponse) {
+    // Prepare response.
+    let mut response = api::Response::new();
+    response.set_code(api::Response_Code::SUCCESS);
+
+    let payload = payload.write_to_bytes().expect("Failed to serialize payload");
+    response.set_payload(payload);
+
+    return_response(
+        response,
+        raw_response
+    );
+}
+
+/// Serialize and return an RPC success response with state.
+pub fn return_success_with_state<S: Message, P: Message>(state: S,
+                                                         payload: P,
+                                                         raw_response: &RawResponse) {
     // Prepare response.
     let mut response = api::Response::new();
     response.set_code(api::Response_Code::SUCCESS);

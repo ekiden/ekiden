@@ -6,7 +6,7 @@ macro_rules! create_client {
         metadata {
             name = $metadata_name: ident ;
             version = $metadata_version: expr ;
-            state_type = $_: ty ;
+            state_type = $metadata_state_type: ty ;
         }
 
         $(
@@ -58,8 +58,8 @@ macro_rules! create_client_methods {
     (
         $method_name: ident, $request_type: ty, $response_type: ty
     ) => {
-        pub fn $method_name(&self, request: $request_type) -> Result<$response_type, Error> {
-            self.client.call(stringify!($method_name), request)
+        pub fn $method_name(&self, state: Vec<u8>, request: $request_type) -> Result<(Vec<u8>, $response_type), Error> {
+            self.client.call(stringify!($method_name), state, request)
         }
     };
 

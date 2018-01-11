@@ -29,22 +29,25 @@ impl ContractClient {
     }
 
     /// Calls a contract method.
-    pub fn call<Rq, Rs>(&self, method: &str, request: Rq) -> Result<Rs, Error>
+    // TODO: have the compute node fetch and store the state
+    pub fn call<Rq, Rs>(&self, method: &str, state: Vec<u8>, request: Rq) -> Result<(Vec<u8>, Rs), Error>
         where Rq: Message,
               Rs: Message + MessageStatic {
 
         let mut raw_request = CallContractRequest::new();
         raw_request.set_method(method.to_string());
         raw_request.set_payload(request.write_to_bytes().unwrap());
+        raw_request.set_state(state);
 
         let (_, response, _) = self.client.call_contract(
             grpc::RequestOptions::new(),
             raw_request
         ).wait().unwrap();
 
+        let state = response.get_state().to_vec();
         let response: Rs = protobuf::parse_from_bytes(response.get_payload()).unwrap();
 
-        Ok(response)
+        Ok((state, response))
     }
 
     /// Get compute node status.
