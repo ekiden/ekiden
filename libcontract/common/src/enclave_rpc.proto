@@ -40,10 +40,6 @@ message Response {
     bytes state = 103;
 }
 
-message Void {
-    // Empty message for void methods and stateless contracts.
-}
-
 // Meta methods.
 message MetadataRequest {
 }
