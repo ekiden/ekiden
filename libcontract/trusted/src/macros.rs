@@ -60,21 +60,13 @@ macro_rules! create_enclave {
             };
 
             // Invoke given method.
-
-            // Meta methods.
-            if request.method == "_metadata" {
-                let mut response = libcontract_common::api::MetadataResponse::new();
-                response.set_name(String::from(stringify!($metadata_name)));
-                response.set_version(String::from($metadata_version));
-
-                $crate::dispatcher::return_success(None::<$metadata_state_type>, response, &raw_response);
-                return;
-            }
-
             create_enclave_methods!(
                 request,
                 raw_response,
                 $metadata_state_type,
+                // Meta methods.
+                _metadata, libcontract_common::api::MetadataRequest,
+                           libcontract_common::api::MetadataResponse,
                 // User-defined methods.
                 $( $method_name, $request_type, $response_type ),*
             );
@@ -85,6 +77,18 @@ macro_rules! create_enclave {
                 "Method not found",
                 &raw_response
             );
+        }
+
+        // Meta method implementations.
+        fn _metadata(state: Option<$metadata_state_type>, _request: libcontract_common::api::MetadataRequest)
+            -> Result<(Option<$metadata_state_type>, libcontract_common::api::MetadataResponse), libcontract_common::ContractError> {
+            assert!(state.is_none());
+
+            let mut response = libcontract_common::api::MetadataResponse::new();
+            response.set_name(String::from(stringify!($metadata_name)));
+            response.set_version(String::from($metadata_version));
+
+            Ok((None, response))
         }
     };
 }
