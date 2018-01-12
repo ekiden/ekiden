@@ -47,6 +47,7 @@ message PlainResponse {
         ERROR_BAD_REQUEST = 401;
         ERROR_METHOD_NOT_FOUND = 402;
         ERROR_SECURE_CHANNEL = 403;
+        ERROR_METHOD_SECURE = 404;
     }
     // Response code.
     Code code = 1;
@@ -103,4 +104,10 @@ message ChannelInitResponse {
     bytes quote = 1;
     // Encrypted server short-term public key.
     CryptoBox short_term_public_key = 2;
+}
+
+message ChannelCloseRequest {
+}
+
+message ChannelCloseResponse {
 }

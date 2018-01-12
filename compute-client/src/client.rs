@@ -7,7 +7,8 @@ use protobuf;
 use protobuf::{Message, MessageStatic};
 
 use libcontract_common::api::{Request, PlainRequest, Response, PlainResponse, PlainResponse_Code,
-                              Error as ResponseError, ChannelInitRequest, ChannelInitResponse, CryptoBox};
+                              Error as ResponseError, ChannelInitRequest, ChannelInitResponse, CryptoBox,
+                              ChannelCloseRequest, ChannelCloseResponse};
 use libcontract_common::secure_channel::{create_box, open_box, RandomNonceGenerator, MonotonicNonceGenerator,
                                          NONCE_CONTEXT_INIT, NONCE_CONTEXT_REQUEST, NONCE_CONTEXT_RESPONSE};
 
@@ -171,6 +172,19 @@ impl ContractClient {
             &quote.get_public_key(),
             &response.get_short_term_public_key(),
         )?;
+
+        Ok(())
+    }
+
+    /// Close secure channel.
+    pub fn close_secure_channel(&mut self) -> Result<(), Error> {
+        // Send request to close channel.
+        let request = ChannelCloseRequest::new();
+
+        let _response: ChannelCloseResponse = self.call("_channel_close", request)?;
+
+        // Reset local part of the secure channel.
+        self.secure_channel.reset()?;
 
         Ok(())
     }

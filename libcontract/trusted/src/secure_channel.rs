@@ -154,6 +154,18 @@ impl SecureChannelContext {
         Ok(raw_data)
     }
 
+    /// Convert client short-term public key into session hash map key.
+    fn get_session_key(public_key: &[u8]) -> Result<sodalite::BoxPublicKey, ContractError> {
+        if public_key.len() != sodalite::BOX_PUBLIC_KEY_LEN {
+            return Err(ContractError::new("Bad short-term client key"));
+        }
+
+        let mut key: sodalite::BoxPublicKey = [0; sodalite::BOX_PUBLIC_KEY_LEN];
+        key.copy_from_slice(&public_key);
+
+        Ok(key)
+    }
+
     /// Create a new client session.
     ///
     /// Returns a cryptographic box, encrypted to the client short-term key and
@@ -161,12 +173,7 @@ impl SecureChannelContext {
     pub fn create_session(&mut self, public_key: &[u8]) -> Result<api::CryptoBox, ContractError> {
         self.ensure_ready()?;
 
-        if public_key.len() != sodalite::BOX_PUBLIC_KEY_LEN {
-            return Err(ContractError::new("Bad short-term client key"));
-        }
-
-        let mut key: sodalite::BoxPublicKey = [0; sodalite::BOX_PUBLIC_KEY_LEN];
-        key.copy_from_slice(&public_key);
+        let key = SecureChannelContext::get_session_key(&public_key)?;
 
         if self.sessions.contains_key(&key) {
             return Err(ContractError::new("Session already exists"));
@@ -192,17 +199,21 @@ impl SecureChannelContext {
     pub fn get_session(&mut self, public_key: &[u8]) -> Result<&mut ClientSession, ContractError> {
         self.ensure_ready()?;
 
-        if public_key.len() != sodalite::BOX_PUBLIC_KEY_LEN {
-            return Err(ContractError::new("Bad short-term client key"));
-        }
-
-        let mut key: sodalite::BoxPublicKey = [0; sodalite::BOX_PUBLIC_KEY_LEN];
-        key.copy_from_slice(&public_key);
+        let key = SecureChannelContext::get_session_key(&public_key)?;
 
         match self.sessions.get_mut(&key) {
             Some(session) => Ok(session),
             None => Err(ContractError::new("Client session not found"))
         }
+    }
+
+    /// Close an existing session.
+    pub fn close_session(&mut self, public_key: &[u8]) -> Result<(), ContractError> {
+        let key = SecureChannelContext::get_session_key(&public_key)?;
+
+        self.sessions.remove(&key);
+
+        Ok(())
     }
 }
 
@@ -394,6 +405,15 @@ pub fn channel_init(request: api::ChannelInitRequest) -> Result<api::ChannelInit
     response.set_short_term_public_key(crypto_box);
 
     Ok(response)
+}
+
+/// Close secure channel.
+pub fn channel_close(public_key: &[u8]) -> Result<(), ContractError> {
+    let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
+
+    channel.close_session(&public_key)?;
+
+    Ok(())
 }
 
 /// Open cryptographic box with RPC request.

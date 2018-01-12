@@ -19,6 +19,14 @@ pub struct RawResponse {
     pub public_key: Vec<u8>,
 }
 
+/// List of methods that allow plain requests. All other requests must be done over
+/// a secure channel.
+const PLAIN_METHODS: &'static [&'static str] = &[
+    "_metadata",
+    "_contract_init",
+    "_channel_init",
+];
+
 /// Parse an RPC request message.
 pub fn parse_request(request_data: *const u8,
                      request_length: usize,
@@ -53,7 +61,21 @@ pub fn parse_request(request_data: *const u8,
         }
     } else {
         // Plain request.
-        Ok(request.take_plain_request())
+        let plain_request = request.take_plain_request();
+        match PLAIN_METHODS.iter().find(|&method| method == &plain_request.get_method()) {
+            Some(_) => {},
+            None => {
+                // Method requires a secure channel.
+                return_error(
+                    api::PlainResponse_Code::ERROR_METHOD_SECURE,
+                    "Method call must be made over a secure channel",
+                    &raw_response
+                );
+                return Err(());
+            }
+        };
+
+        Ok(plain_request)
     }
 }
 

@@ -60,6 +60,26 @@ macro_rules! create_enclave {
                 }
             };
 
+            // Special handling methods.
+            match request.get_method() {
+                // Special handling for channel close as it requires to know the caller
+                // channel identity and to generate the response before closing the channel.
+                "_channel_close" => {
+                    // Prepare response before closing the channel.
+                    let response = api::ChannelCloseResponse::new();
+                    $crate::dispatcher::return_success(response, &raw_response);
+
+                    match $crate::secure_channel::channel_close(&raw_response.public_key) {
+                        Ok(_) => {},
+                        _ => {
+                            // Errors are ignored.
+                        }
+                    };
+                    return;
+                },
+                _ => {},
+            }
+
             // Invoke given method.
             use libcontract_common::api;
 

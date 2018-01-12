@@ -46,6 +46,13 @@ macro_rules! create_client {
                 // Generate methods.
                 create_client_methods!( $( $method_name, $request_type, $response_type ),* );
             }
+
+            impl Drop for Client {
+                fn drop(&mut self) {
+                    // Close secure channel when going out of scope.
+                    self.client.close_secure_channel().unwrap();
+                }
+            }
         }
     };
 }
