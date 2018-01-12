@@ -17,8 +17,19 @@ fn main() {
     request.set_initial_supply(8);
 
     let dummy_state = Vec::new();
-    let (new_state, response) = client.create(dummy_state, request).unwrap();
+    let (state, response) = client.create(dummy_state, request).unwrap();
 
-    println!("New state from contract: {:?}", new_state);
+    println!("New state from contract: {:?}", state);
+    println!("Response from contract: {:?}", response);
+
+    let (state, response) = client.transfer(state, {
+        let mut request = token::TransferRequest::new();
+        request.set_sender("testaddr".to_string());
+        request.set_destination("b".to_string());
+        request.set_value(3);
+        request
+    }).unwrap();
+
+    println!("New state from contract: {:?}", state);
     println!("Response from contract: {:?}", response);
 }
