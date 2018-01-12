@@ -6,8 +6,14 @@ authors = [
     "Jernej Kos <jernej@kos.mx>"
 ]
 
+[features]
+sgx-simulation = []
+
 [dependencies]
 sgx_types = { path = "/sgx/sgx_types" }
 sgx_urts = { path = "/sgx/sgx_urts" }
 protobuf = "1.4.2"
 libcontract-common = { path = "../common", features = ["no-sgx"], default-features = false }
+
+[build-dependencies]
+libcontract-utils = { path = "../utils" }

@@ -1,13 +1,16 @@
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 
+use std::ptr;
+
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
 use libcontract_common;
-use libcontract_common::api::{MetadataRequest, MetadataResponse, ContractInitRequest, ContractInitResponse};
+use libcontract_common::api::{Request, PlainRequest, Response, MetadataRequest, MetadataResponse,
+                              ContractInitRequest, ContractInitResponse};
 
-use errors;
+use super::errors;
 
 extern {
     /// Enclave RPC call API.
@@ -62,18 +65,31 @@ impl EkidenEnclave {
         )
     }
 
-    /// Perform an RPC call against the enclave.
+    /// Perform a plain-text RPC call against the enclave.
     pub fn call<R: Message, S: Message + MessageStatic>(&self, method: &str, request: &R) -> Result<S, errors::Error> {
-        // Prepare request.
-        let mut raw_request = libcontract_common::api::Request::new();
-        raw_request.set_method(String::from(method));
-        raw_request.set_payload(request.write_to_bytes()?);
+        // Prepare plain request.
+        let mut plain_request = PlainRequest::new();
+        plain_request.set_method(String::from(method));
+        plain_request.set_payload(request.write_to_bytes()?);
 
+        let mut raw_request = Request::new();
+        raw_request.set_plain_request(plain_request);
+
+        let raw_request = raw_request.write_to_bytes()?;
         let raw_response = self.call_raw(&raw_request)?;
+
+        let raw_response: Response = match protobuf::parse_from_bytes(raw_response.as_slice()) {
+            Ok(response) => response,
+            _ => return Err(errors::Error::ParseError)
+        };
+
+        // Plain request requires a plain response.
+        assert!(raw_response.has_plain_response());
+        let raw_response = raw_response.get_plain_response();
 
         // Validate response code.
         match raw_response.get_code() {
-            libcontract_common::api::Response_Code::SUCCESS => {},
+            libcontract_common::api::PlainResponse_Code::SUCCESS => {},
             code => {
                 // Deserialize error.
                 let error: libcontract_common::api::Error = match protobuf::parse_from_bytes(raw_response.get_payload()) {
@@ -93,11 +109,7 @@ impl EkidenEnclave {
     }
 
     /// Perform a raw RPC call against the enclave.
-    pub fn call_raw(&self, request: &libcontract_common::api::Request)
-            -> Result<libcontract_common::api::Response, errors::Error> {
-
-        let request = request.write_to_bytes()?;
-
+    pub fn call_raw(&self, request: &Vec<u8>) -> Result<Vec<u8>, errors::Error> {
         // Maximum size of serialized response is 16K.
         let mut response: Vec<u8> = Vec::with_capacity(16 * 1024);
 
@@ -107,7 +119,7 @@ impl EkidenEnclave {
                 self.enclave.geteid(),
                 request.as_ptr() as * const u8,
                 request.len(),
-                response.as_ptr() as * const u8,
+                response.as_mut_ptr() as * mut u8,
                 response.capacity(),
                 &mut response_length,
             )
@@ -120,15 +132,11 @@ impl EkidenEnclave {
             }
         }
 
-        // Parse response.
         unsafe {
             response.set_len(response_length);
         }
 
-        match protobuf::parse_from_bytes(response.as_slice()) {
-            Ok(response) => Ok(response),
-            _ => Err(errors::Error::ParseError)
-        }
+        Ok(response)
     }
 
     /// Returns enclave metadata.
@@ -147,5 +155,53 @@ impl EkidenEnclave {
         let response: ContractInitResponse = self.call("_contract_init", &request)?;
 
         Ok(response)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn untrusted_init_quote(p_target_info: *mut sgx_target_info_t,
+                                       p_gid: *mut sgx_epid_group_id_t) -> sgx_status_t {
+
+    unsafe {
+        sgx_init_quote(p_target_info, p_gid)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn untrusted_get_quote(p_report: *const sgx_report_t,
+                                      quote_type: sgx_quote_sign_type_t,
+                                      p_spid: *const sgx_spid_t,
+                                      p_nonce: *const sgx_quote_nonce_t,
+                                      p_qe_report: *mut sgx_report_t,
+                                      p_quote: *mut u8,
+                                      _quote_capacity: u32,
+                                      quote_size: *mut u32) -> sgx_status_t {
+    // Calculate quote size.
+    let status = unsafe {
+        sgx_calc_quote_size(
+            ptr::null(),
+            0,
+            quote_size
+        )
+    };
+
+    match status {
+        sgx_status_t::SGX_SUCCESS => {},
+        _ => return status
+    };
+
+    // Get quote from the quoting enclave.
+    unsafe {
+        sgx_get_quote(
+            p_report,
+            quote_type,
+            p_spid,
+            p_nonce,
+            ptr::null(),
+            0,
+            p_qe_report,
+            p_quote as *mut sgx_quote_t,
+            *quote_size
+        )
     }
 }

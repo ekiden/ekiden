@@ -2,11 +2,32 @@ syntax = "proto3";
 
 package enclave_rpc;
 
-message Request {
-    // Request method.
+// Cryptographic box (encrypted and authenticated).
+message CryptoBox {
+    // Nonce.
+    bytes nonce = 1;
+    // Encrypted and authenticated payload.
+    bytes payload = 2;
+    // Optional originator public key.
+    bytes public_key = 3;
+}
+
+message PlainRequest {
+    // Request method. If the method is empty, the payload contains an
+    // encrypted Request message, which can only be decrypted inside the
+    // enclave.
     string method = 1;
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
+}
+
+message Request {
+    oneof request {
+        // Plain-text request.
+        PlainRequest plain_request = 1;
+        // Encrypted request.
+        CryptoBox encrypted_request = 2;
+    }
 }
 
 message Error {
@@ -14,7 +35,7 @@ message Error {
     string message = 1;
 }
 
-message Response {
+message PlainResponse {
     enum Code {
         INVALID = 0;
 
@@ -25,11 +46,21 @@ message Response {
         ERROR = 400;
         ERROR_BAD_REQUEST = 401;
         ERROR_METHOD_NOT_FOUND = 402;
+        ERROR_SECURE_CHANNEL = 403;
     }
     // Response code.
     Code code = 1;
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
+}
+
+message Response {
+    oneof response {
+        // Plain-text response.
+        PlainResponse plain_response = 1;
+        // Encrypted response.
+        CryptoBox encrypted_response = 2;
+    }
 }
 
 // Meta methods.
@@ -57,8 +88,19 @@ message ContractInitResponse {
     bytes sealed_keys = 2;
 }
 
-message AttestationInitRequest {
+message ChannelInitRequest {
+    // 16-byte random nonce.
+    bytes nonce = 1;
+    // 16-byte SPID used for verifying remote attestation.
+    bytes spid = 2;
+    // 32-byte client short-term public key.
+    bytes short_term_public_key = 3;
 }
 
-message AttestationInitResponse {
+message ChannelInitResponse {
+    // Encoded signed attestation quote. This quote contains the long-term
+    // public key of the contract.
+    bytes quote = 1;
+    // Encrypted server short-term public key.
+    CryptoBox short_term_public_key = 2;
 }

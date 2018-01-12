@@ -7,7 +7,7 @@ extern crate token_api;
 create_client_api!();
 
 fn main() {
-    let client = token::Client::new("localhost", 9001).unwrap();
+    let mut client = token::Client::new("localhost", 9001).unwrap();
 
     // Create new token contract.
     let mut request = token::CreateRequest::new();

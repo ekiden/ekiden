@@ -19,5 +19,7 @@ fn main () {
         rust_protobuf: true,
     }).expect("protoc-rust-grpc");
 
+    println!("cargo:rerun-if-changed={}", "src/compute_web3.proto");
+
     libcontract_utils::build_untrusted();
 }

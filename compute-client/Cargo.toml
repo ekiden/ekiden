@@ -11,6 +11,10 @@ futures = "0.*"
 futures-cpupool = "0.1.*"
 tls-api  = "0.*"
 httpbis  = "0.4.1"
+byteorder = "1.2.1"
+rand = "0.4"
+sodalite = "0.3.0"
+libcontract-common = { path = "../libcontract/common" }
 
 [build-dependencies]
 libcontract-utils = { path = "../libcontract/utils" }

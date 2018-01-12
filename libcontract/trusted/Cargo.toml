@@ -15,6 +15,7 @@ sgx_tservice = { path = "/sgx/sgx_tservice" }
 sgx_tkey_exchange = { path = "/sgx/sgx_tkey_exchange" }
 sgx_trts = { path = "/sgx/sgx_trts" }
 sgx_tseal = { path = "/sgx/sgx_tseal" }
+sgx_tse = { path = "/sgx/sgx_tse" }
 protobuf-sgx = { path = "../../third_party/protobuf" }
 sodalite = "0.3.0"
 lazy_static = { version = "1.0", features = ["spin_no_std"] }

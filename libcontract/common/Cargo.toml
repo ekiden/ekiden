@@ -9,14 +9,18 @@ build = "build.rs"
 
 [features]
 default = ["no-sgx"]
-no-sgx = ["protobuf"]
-sgx = ["protobuf-sgx", "sgx_types", "sgx_tstd"]
+no-sgx = ["protobuf", "rand", "byteorder/std"]
+sgx = ["protobuf-sgx", "sgx_types", "sgx_tstd", "sgx_trts"]
 
 [dependencies]
 protobuf = { version = "1.4.2", optional = true }
 protobuf-sgx = { path = "../../third_party/protobuf", optional = true }
 sgx_types = { path = "/sgx/sgx_types", optional = true }
 sgx_tstd = { path = "/sgx/sgx_tstd", optional = true }
+sgx_trts = { path = "/sgx/sgx_trts", optional = true }
+sodalite = "0.3.0"
+rand = { version = "0.4", optional = true }
+byteorder = { version = "1.2.1", default-features = false }
 
 [build-dependencies]
 libcontract-utils = { path = "../utils" }

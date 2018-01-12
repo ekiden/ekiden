@@ -10,6 +10,7 @@ extern crate sgx_tservice;
 extern crate sgx_tkey_exchange;
 extern crate sgx_trts;
 extern crate sgx_tseal;
+extern crate sgx_tse;
 
 extern crate protobuf;
 extern crate sodalite;
@@ -28,3 +29,5 @@ pub mod errors;
 
 #[macro_use]
 mod macros;
+
+mod untrusted;

@@ -23,13 +23,16 @@ macro_rules! create_client {
             #[allow(dead_code)]
             impl Client {
                 pub fn new(host: &str, port: u16) -> Result<Self, Error> {
-                    let client = ContractClient::new(host, port);
+                    let mut client = ContractClient::new(host, port);
 
                     // Ensure that the remote server is using the correct contract.
                     let status = client.status()?;
                     if status.contract != stringify!($metadata_name) || status.version != $metadata_version {
                         return Err(Error::new("Server is not running the correct contract"));
                     }
+
+                    // Initialize a secure session.
+                    client.init_secure_channel()?;
 
                     Ok(Client {
                         client: client,
@@ -57,7 +60,7 @@ macro_rules! create_client_methods {
     (
         $method_name: ident, $request_type: ty, $response_type: ty
     ) => {
-        pub fn $method_name(&self, request: $request_type) -> Result<$response_type, Error> {
+        pub fn $method_name(&mut self, request: $request_type) -> Result<$response_type, Error> {
             self.client.call(stringify!($method_name), request)
         }
     };
