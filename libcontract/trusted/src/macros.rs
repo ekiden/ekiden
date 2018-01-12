@@ -13,13 +13,15 @@
 /// extern crate sgx_tstd as std;
 ///
 /// #[macro_use]
-/// extern crate libenclave_trusted;
+/// extern crate libcontract_common;
+///
+/// extern crate protobuf;
 ///
 /// #[allow(unused)]
 /// #[prelude_import]
 /// use std::prelude::v1::*;
 ///
-/// create_enclave!();
+/// create_enclave_api!();
 /// ```
 #[macro_export]
 macro_rules! create_enclave {
