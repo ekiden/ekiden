@@ -25,5 +25,5 @@ pub use contract::*;
 pub use contract_error::ContractError;
 
 pub mod api {
-    pub use generated::enclave_rpc::{Request, Response, Response_Code, Error, MetadataRequest, MetadataResponse};
+    pub use generated::enclave_rpc::{CiphertextAndNonce, Request, Response, Response_Code, Error, MetadataRequest, MetadataResponse};
 }

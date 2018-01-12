@@ -1,5 +1,6 @@
 use grpc;
 use protobuf;
+use protobuf::Message;
 
 use libcontract_untrusted::enclave;
 use libcontract_common::api;
@@ -44,6 +45,11 @@ impl Compute for ComputeServerImpl {
         let mut enclave_request = api::Request::new();
         enclave_request.set_method(request.get_method().to_string());
         enclave_request.set_payload(request.get_payload().to_vec());
+        let encrypted_state_raw = request.get_encrypted_state();
+        if encrypted_state_raw.len() != 0 {
+            let encrypted_state = protobuf::parse_from_bytes(encrypted_state_raw).unwrap();
+            enclave_request.set_encrypted_state(encrypted_state);
+        }
 
         let mut raw_response = match self.contract.call_raw(&enclave_request) {
             Ok(response) => response,
@@ -66,6 +72,7 @@ impl Compute for ComputeServerImpl {
 
         let mut response = CallContractResponse::new();
         response.set_payload(raw_response.take_payload());
+        response.set_encrypted_state(raw_response.get_encrypted_state().write_to_bytes().unwrap());
 
         return grpc::SingleResponse::completed(response);
     }

@@ -2,15 +2,20 @@ syntax = "proto3";
 
 package enclave_rpc;
 
+message CiphertextAndNonce {
+    // Padded ciphertext.
+    bytes ciphertext = 1;
+    // Nonce.
+    bytes nonce = 2;
+}
+
 message Request {
     // Request method.
     string method = 1;
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
     // Starting state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
-    bytes encrypted_state = 3;
-    // %%% Starting state  (must be valid Protocol Buffers, based on contract).
-    bytes state = 103;
+    CiphertextAndNonce encrypted_state = 3;
 }
 
 message Error {
@@ -35,9 +40,7 @@ message Response {
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
     // New state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
-    bytes encrypted_state = 3;
-    // %%% New state (must be valid Protocol Buffers, based on contract).
-    bytes state = 103;
+    CiphertextAndNonce encrypted_state = 3;
 }
 
 // Meta methods.

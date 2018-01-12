@@ -37,14 +37,14 @@ impl ContractClient {
         let mut raw_request = CallContractRequest::new();
         raw_request.set_method(method.to_string());
         raw_request.set_payload(request.write_to_bytes().unwrap());
-        raw_request.set_state(state);
+        raw_request.set_encrypted_state(state);
 
         let (_, response, _) = self.client.call_contract(
             grpc::RequestOptions::new(),
             raw_request
         ).wait().unwrap();
 
-        let new_state = response.get_state().to_vec();
+        let new_state = response.get_encrypted_state().to_vec();
         let response: Rs = protobuf::parse_from_bytes(response.get_payload()).unwrap();
 
         Ok((new_state, response))

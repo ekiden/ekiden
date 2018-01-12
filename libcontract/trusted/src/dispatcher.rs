@@ -49,9 +49,8 @@ pub fn return_success<S: Message, P: Message>(state: Option<S>,
     response.set_code(api::Response_Code::SUCCESS);
 
     if let Some(state) = state {
-        let state = state.write_to_bytes().expect("Failed to serialize state");
-        // TODO: encrypt state
-        response.set_state(state);
+        let encrypted_state = super::state_crypto::encrypt_state(&state).expect("Failed to serialize state");
+        response.set_encrypted_state(encrypted_state);
     }
 
     let payload = payload.write_to_bytes().expect("Failed to serialize payload");

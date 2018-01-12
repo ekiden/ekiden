@@ -27,13 +27,13 @@ message CallContractRequest {
     string method = 1;
     // Method dependent payload (Protocol Buffers serialized).
     bytes payload = 2;
-    // %%% Contract starting state (Protocol Buffers serialized).
-    bytes state = 103;
+    // %%%
+    bytes encrypted_state = 103;
 }
 
 message CallContractResponse {
     // Method dependent payload (Protocol Buffers serialized).
     bytes payload = 1;
-    // %%% New contract state (Protocol Buffers serialized).
-    bytes state = 102;
+    // %%%
+    bytes encrypted_state = 103;
 }

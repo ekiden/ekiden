@@ -9,5 +9,7 @@ authors = [
 [dependencies]
 sgx_types = { path = "/sgx/sgx_types" }
 sgx_tstd = { path = "/sgx/sgx_tstd" }
+sgx_trts = { path = "/sgx/sgx_trts" }
 protobuf-sgx = { path = "../../third_party/protobuf" }
 libcontract-common = { path = "../common", features = ["sgx"], default-features = false }
+sodalite = "0.3.0"

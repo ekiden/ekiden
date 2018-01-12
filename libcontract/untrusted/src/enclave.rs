@@ -122,6 +122,7 @@ impl EkidenEnclave {
     }
 
     /// Perform an RPC call against the enclave.
+    // TODO: interface is out of date
     pub fn call<R: Message, S: Message + MessageStatic>(&self, method: &str, request: &R) -> Result<S, errors::Error> {
         // Prepare request.
         let mut raw_request = libcontract_common::api::Request::new();

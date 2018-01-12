@@ -62,24 +62,20 @@ macro_rules! create_enclave {
             };
 
             // Parse starting state.
-            let state: Option<$metadata_state_type> = {
-                let raw_state = request.get_state();
-                if raw_state.len() == 0 {
-                    None
-                } else {
-                    // TODO: decrypt state
-                    match protobuf::parse_from_bytes(raw_state) {
-                        Ok(value) => Some(value),
-                        _ => {
-                            $crate::dispatcher::return_error(
-                                libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
-                                "Unable to parse request state",
-                                &raw_response
-                            );
-                            return;
-                        }
+            let state: Option<$metadata_state_type> = if request.has_encrypted_state() {
+                match $crate::state_crypto::decrypt_state(request.get_encrypted_state()) {
+                    Ok(value) => Some(value),
+                    _ => {
+                        $crate::dispatcher::return_error(
+                            libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
+                            "Unable to parse request state",
+                            &raw_response
+                        );
+                        return;
                     }
                 }
+            } else {
+                None
             };
 
             // Invoke given method.
