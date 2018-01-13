@@ -27,13 +27,15 @@ message CallContractRequest {
     string method = 1;
     // Method dependent payload (Protocol Buffers serialized).
     bytes payload = 2;
-    // %%%
+    // Temporary: Encrypted contract state (Protocol Buffers serialized CiphertextAndNonce or empty).
+    // TODO: remove this when compute nodes fetch and store state themselves
     bytes encrypted_state = 103;
 }
 
 message CallContractResponse {
     // Method dependent payload (Protocol Buffers serialized).
     bytes payload = 1;
-    // %%%
+    // Temporary: Encrypted contract state (Protocol Buffers serialized CiphertextAndNonce or empty).
+    // TODO: remove this when compute nodes fetch and store state themselves
     bytes encrypted_state = 103;
 }
