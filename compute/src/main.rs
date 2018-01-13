@@ -3,7 +3,6 @@ extern crate futures_cpupool;
 extern crate grpc;
 extern crate protobuf;
 extern crate tls_api;
-extern crate base64;
 extern crate thread_local;
 
 extern crate libcontract_untrusted;
