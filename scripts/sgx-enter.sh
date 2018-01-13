@@ -27,5 +27,5 @@ docker run --rm -t -i \
   -e "INTEL_SGX_SDK=/opt/sgxsdk" \
   -p "${TENDERMINT_PORT}:46657" \
   -w /code \
-  baiduxlab/sgx-rust-experimental \
+  ekiden/rust-sgx-sdk \
   bash
