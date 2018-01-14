@@ -1,14 +1,48 @@
-use std::io::{Cursor, Result, Read, Seek, SeekFrom};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io;
+use std::io::{Cursor, Error, ErrorKind, Read, Seek, SeekFrom};
+use std::str::FromStr;
 
+use base64;
 use byteorder::{LittleEndian, ReadBytesExt};
+use reqwest;
+
+/// Intel IAS API URL.
+const IAS_API_URL: &'static str = "https://test-as.sgx.trustedservices.intel.com";
+/// Intel IAS report endpoint.
+const IAS_ENDPOINT_REPORT: &'static str = "/attestation/sgx/v2/report";
 
 // SPID.
-const SPID_LEN: usize = 16;
-type SPID = [u8; SPID_LEN];
+pub const SPID_LEN: usize = 16;
+
+#[derive(Default, Debug, Clone)]
+pub struct SPID(pub [u8; SPID_LEN]);
+
+#[derive(Copy, Clone, Debug)]
+pub enum SPIDParseError {
+    InvalidLength,
+    InvalidCharacter,
+}
+
+/// IAS configuration.
+///
+/// The `spid` is a valid SPID obtained from Intel, while `pkcs12_archive`
+/// is the path to the PKCS#12 archive (certificate and private key), which
+/// will be used to authenticate to IAS.
+pub struct IASConfiguration {
+    /// SPID assigned by Intel.
+    pub spid: SPID,
+    /// PKCS#12 archive containing the identity for authenticating to IAS.
+    pub pkcs12_archive: String,
+}
 
 /// IAS (Intel Attestation Service) interface.
 pub struct IAS {
+    /// SPID assigned by Intel.
     spid: SPID,
+    /// Client used for IAS requests.
+    client: Option<reqwest::Client>,
 }
 
 /// Decoded quote body.
@@ -43,6 +77,43 @@ pub struct Quote {
     signature: Vec<u8>,
 }
 
+impl FromStr for SPID {
+    type Err = SPIDParseError;
+
+    /// Parse SPID from hex-encoded string.
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut spid = SPID::default();
+
+        if s.len() != 2 * SPID_LEN {
+            return Err(SPIDParseError::InvalidLength);
+        }
+
+        let mut modulus = 0;
+        let mut buf = 0;
+        let mut output_idx = 0;
+
+        for byte in s.bytes() {
+            buf <<= 4;
+
+            match byte {
+                b'A'...b'F' => buf |= byte - b'A' + 10,
+                b'a'...b'f' => buf |= byte - b'a' + 10,
+                b'0'...b'9' => buf |= byte - b'0',
+                _ => return Err(SPIDParseError::InvalidCharacter)
+            }
+
+            modulus += 1;
+            if modulus == 2 {
+                modulus = 0;
+                spid.0[output_idx] = buf;
+                output_idx += 1;
+            }
+        }
+
+        Ok(spid)
+    }
+}
+
 impl Quote {
     /// Report data public key offset.
     const PUBLIC_KEY_OFFSET: usize = 0;
@@ -72,14 +143,41 @@ impl Quote {
 
 impl IAS {
     /// Construct new IAS interface.
-    pub fn new(spid: SPID) -> IAS {
-        IAS {
-            spid: spid,
-        }
+    pub fn new(config: Option<IASConfiguration>) -> io::Result<IAS> {
+        Ok(IAS {
+            spid: match config {
+                Some(ref config) => config.spid.clone(),
+                None => SPID([0; SPID_LEN])
+            },
+            client: match config {
+                Some(IASConfiguration{spid: _, pkcs12_archive}) => {
+                    // Read and parse PKCS#12 archive.
+                    let mut buffer = Vec::new();
+                    File::open(pkcs12_archive)?.read_to_end(&mut buffer)?;
+                    let identity = match reqwest::Identity::from_pkcs12_der(&buffer, "") {
+                        Ok(identity) => identity,
+                        _ => return Err(Error::new(ErrorKind::Other, "Failed to load IAS credentials"))
+                    };
+
+                    // Create client with the identity.
+                    let client = match {
+                        reqwest::ClientBuilder::new()
+                        .identity(identity)
+                        .build()
+                    } {
+                        Ok(client) => client,
+                        _ => return Err(Error::new(ErrorKind::Other, "Failed to create IAS client"))
+                    };
+
+                    Some(client)
+                },
+                None => None
+            },
+        })
     }
 
     /// Decode quote.
-    pub fn decode_quote(quote: &Vec<u8>) -> Result<Quote> {
+    pub fn decode_quote(quote: &Vec<u8>) -> io::Result<Quote> {
         let mut reader = Cursor::new(quote);
         let mut quote: Quote = Quote::default();
 
@@ -117,17 +215,47 @@ impl IAS {
         Ok(quote)
     }
 
+    /// Make authenticated web request to IAS.
+    fn ias_request(&mut self, endpoint: &str, data: &HashMap<&str, String>) -> io::Result<reqwest::Response> {
+        let endpoint = format!("{}{}", IAS_API_URL, endpoint);
+
+        match self.client.as_ref().unwrap().post(&endpoint).json(&data).send() {
+            Ok(response) => Ok(response),
+            _ => return Err(Error::new(ErrorKind::Other, "Request to IAS failed"))
+        }
+    }
+
+    /// Make authenticated web request to IAS report endpoint.
+    fn ias_report(&mut self, quote: &Vec<u8>) -> io::Result<()> {
+        if self.client.is_none() {
+            // IAS verification disabled.
+            return Ok(());
+        }
+
+        let mut request = HashMap::new();
+        request.insert("isvEnclaveQuote", base64::encode(&quote));
+        // TODO: Nonce?
+
+        let response = self.ias_request(IAS_ENDPOINT_REPORT, &request)?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err(Error::new(ErrorKind::Other, "IAS quote verification failed"))
+        }
+    }
+
     /// Verify quote via IAS and decode report data.
-    pub fn verify_quote(&self, quote: &Vec<u8>) -> Result<Quote> {
-        // TODO: Contact IAS to verify the quote signature.
+    pub fn verify_quote(&mut self, quote: &Vec<u8>) -> io::Result<Quote> {
+        // Validate quote using IAS, abort if quote is invalid.
+        self.ias_report(&quote)?;
 
-        let quote = IAS::decode_quote(&quote)?;
-
-        Ok(quote)
+        // Decode the valid quote.
+        Ok(IAS::decode_quote(&quote)?)
     }
 
     /// Get configured SPID.
-    pub fn get_spid(&self) -> &SPID {
-        &self.spid
+    pub fn get_spid(&self) -> &[u8; SPID_LEN] {
+        &self.spid.0
     }
 }

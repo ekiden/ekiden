@@ -14,6 +14,8 @@ httpbis  = "0.4.1"
 byteorder = "1.2.1"
 rand = "0.4"
 sodalite = "0.3.0"
+reqwest = "0.8.2"
+base64 = "0.9.0"
 libcontract-common = { path = "../libcontract/common" }
 
 [build-dependencies]

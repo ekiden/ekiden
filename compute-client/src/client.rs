@@ -15,7 +15,7 @@ use libcontract_common::secure_channel::{create_box, open_box, RandomNonceGenera
 use super::errors::Error;
 use super::generated::compute_web3::{StatusRequest, CallContractRequest};
 use super::generated::compute_web3_grpc::{Compute, ComputeClient};
-use super::ias::IAS;
+use super::ias::{IAS, IASConfiguration};
 
 // Secret seed used for generating private and public keys.
 const SECRET_SEED_LEN: usize = 32;
@@ -59,14 +59,13 @@ pub struct ContractStatus {
 
 impl ContractClient {
     /// Constructs a new contract client.
-    pub fn new(host: &str, port: u16) -> Self {
-        ContractClient {
+    pub fn new(host: &str, port: u16, ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
+        Ok(ContractClient {
             // TODO: Use TLS client.
             client: ComputeClient::new_plain(&host, port, Default::default()).unwrap(),
-            // TODO: Specify SPID (and certificates).
-            ias: IAS::new([0; 16]),
+            ias: IAS::new(ias_config)?,
             secure_channel: SecureChannelContext::default(),
-        }
+        })
     }
 
     /// Calls a contract method.
