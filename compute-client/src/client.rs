@@ -32,6 +32,10 @@ pub struct SecureChannelContext {
     contract_long_term_public_key: sodalite::BoxPublicKey,
     /// Contract contract short-term public key.
     contract_short_term_public_key: sodalite::BoxPublicKey,
+    /// Cached shared request key.
+    shared_request_key: Option<sodalite::SecretboxKey>,
+    /// Cached shared response key.
+    shared_response_key: Option<sodalite::SecretboxKey>,
     /// Channel status.
     ready: bool,
     /// Long-term nonce generator.
@@ -221,12 +225,14 @@ impl SecureChannelContext {
         self.contract_long_term_public_key.copy_from_slice(&contract_long_term_public_key);
 
         // Open boxed short term server public key.
+        let mut shared_key: Option<sodalite::SecretboxKey> = None;
         let contract_short_term_public_key = open_box(
             &contract_short_term_public_key,
             &NONCE_CONTEXT_INIT,
             &mut self.long_term_nonce_generator,
             &self.contract_long_term_public_key,
-            &self.client_private_key
+            &self.client_private_key,
+            &mut shared_key,
         )?;
 
         self.contract_short_term_public_key.copy_from_slice(&contract_short_term_public_key);
@@ -247,7 +253,8 @@ impl SecureChannelContext {
             &NONCE_CONTEXT_REQUEST,
             &mut self.short_term_nonce_generator,
             &self.contract_short_term_public_key,
-            &self.client_private_key
+            &self.client_private_key,
+            &mut self.shared_request_key,
         )?;
 
         // Set public key so the contract knows which client this is.
@@ -263,7 +270,8 @@ impl SecureChannelContext {
             &NONCE_CONTEXT_RESPONSE,
             &mut self.short_term_nonce_generator,
             &self.contract_short_term_public_key,
-            &self.client_private_key
+            &self.client_private_key,
+            &mut self.shared_response_key,
         )?;
 
         Ok(protobuf::parse_from_bytes(&plain_response)?)

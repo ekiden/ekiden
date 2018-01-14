@@ -27,6 +27,10 @@ struct ClientSession {
     contract_public_key: sodalite::BoxPublicKey,
     /// Contract short-term private key.
     contract_private_key: sodalite::BoxSecretKey,
+    /// Cached shared request key.
+    shared_request_key: Option<sodalite::SecretboxKey>,
+    /// Cached shared response key.
+    shared_response_key: Option<sodalite::SecretboxKey>,
     /// Short-term nonce generator.
     nonce_generator: MonotonicNonceGenerator,
 }
@@ -189,12 +193,14 @@ impl SecureChannelContext {
         }
 
         let session = ClientSession::new(key.clone())?;
+        let mut shared_key: Option<sodalite::SecretboxKey> = None;
         let crypto_box = secure_channel::create_box(
             session.get_contract_public_key(),
             &secure_channel::NONCE_CONTEXT_INIT,
             &mut self.nonce_generator,
             session.get_client_public_key(),
-            &self.private_key
+            &self.private_key,
+            &mut shared_key,
         )?;
 
         // TODO: What about session table overflows?
@@ -265,7 +271,8 @@ impl ClientSession {
             &secure_channel::NONCE_CONTEXT_REQUEST,
             &mut self.nonce_generator,
             &self.client_public_key,
-            &self.contract_private_key
+            &self.contract_private_key,
+            &mut self.shared_request_key,
         )?;
 
         Ok(protobuf::parse_from_bytes(&plain_request)?)
@@ -278,7 +285,8 @@ impl ClientSession {
             &secure_channel::NONCE_CONTEXT_RESPONSE,
             &mut self.nonce_generator,
             &self.client_public_key,
-            &self.contract_private_key
+            &self.contract_private_key,
+            &mut self.shared_response_key,
         )?)
     }
 }

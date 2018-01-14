@@ -176,7 +176,9 @@ pub fn create_box<NG: NonceGenerator>(payload: &[u8],
                                       nonce_context: &NonceContext,
                                       nonce_generator: &mut NG,
                                       public_key: &sodalite::BoxPublicKey,
-                                      private_key: &sodalite::BoxSecretKey) -> Result<api::CryptoBox, ContractError> {
+                                      private_key: &sodalite::BoxSecretKey,
+                                      shared_key: &mut Option<sodalite::SecretboxKey>)
+                                      -> Result<api::CryptoBox, ContractError> {
 
     let mut crypto_box = api::CryptoBox::new();
     let mut key_with_payload = vec![0u8; payload.len() + 32];
@@ -187,12 +189,21 @@ pub fn create_box<NG: NonceGenerator>(payload: &[u8],
     // room for it. The box_ method also requires that it is zero-initialized.
     key_with_payload[32..].copy_from_slice(payload);
 
-    match sodalite::box_(
+    if shared_key.is_none() {
+        // Compute shared key so we can speed up subsequent box operations.
+        let mut key = shared_key.get_or_insert([0u8; sodalite::SECRETBOX_KEY_LEN]);
+        sodalite::box_beforenm(
+            &mut key,
+            &public_key,
+            &private_key
+        );
+    }
+
+    match sodalite::box_afternm(
         &mut encrypted,
         &key_with_payload,
         &nonce,
-        &public_key,
-        &private_key
+        &shared_key.unwrap()
     ) {
         Ok(_) => {},
         _ => return Err(ContractError::new("Box operation failed"))
@@ -209,17 +220,28 @@ pub fn open_box<NG: NonceGenerator>(crypto_box: &api::CryptoBox,
                                     nonce_context: &NonceContext,
                                     nonce_generator: &mut NG,
                                     public_key: &sodalite::BoxPublicKey,
-                                    private_key: &sodalite::BoxSecretKey) -> Result<Vec<u8>, ContractError> {
+                                    private_key: &sodalite::BoxSecretKey,
+                                    shared_key: &mut Option<sodalite::SecretboxKey>)
+                                    -> Result<Vec<u8>, ContractError> {
 
     // Reserve space for payload.
     let mut payload = vec![0u8; crypto_box.get_payload().len()];
 
-    match sodalite::box_open(
+    if shared_key.is_none() {
+        // Compute shared key so we can speed up subsequent box operations.
+        let mut key = shared_key.get_or_insert([0u8; sodalite::SECRETBOX_KEY_LEN]);
+        sodalite::box_beforenm(
+            &mut key,
+            &public_key,
+            &private_key
+        );
+    }
+
+    match sodalite::box_open_afternm(
         &mut payload,
         &crypto_box.get_payload(),
         &nonce_generator.unpack_nonce(&crypto_box, &nonce_context)?,
-        &public_key,
-        &private_key,
+        &shared_key.unwrap()
     ) {
         Ok(_) => {
             // Trim first all-zero 32 bytes that were used to allocate space for the shared
