@@ -132,7 +132,16 @@ impl SecureChannelContext {
     /// Return sealed keypair.
     pub fn get_sealed_keypair(&self) -> Result<Vec<u8>, ContractError> {
         let void: [u8; 0] = [0_u8; 0];
-        let sealed_data = match SgxSealedData::<SecretSeed>::seal_data(&void, &self.seed) {
+        let sealed_data = match SgxSealedData::<SecretSeed>::seal_data_ex(
+            0x01, // KEYPOLICY_MRENCLAVE
+            sgx_attributes_t {
+                flags: 0xfffffffffffffff3,
+                xfrm: 0
+            },
+            0xF0000000,
+            &void,
+            &self.seed
+        ) {
             Ok(data) => data,
             Err(_) => return Err(ContractError::new("Failed to seal keypair"))
         };
