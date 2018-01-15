@@ -37,6 +37,24 @@ This should install any required dependencies and build all packages. By default
 built in simulation mode. To change this, do `export SGX_MODE=HW` (currently untested) before
 running the `cargo make` command.
 
+## Obtaining contract MRENCLAVE
+
+In order to establish authenticated channels with Ekiden contract enclaves, the client needs
+to know the enclave hash (MRENCLAVE) so it knows that it is talking with the correct contract
+code.
+
+To obtain the enclave hash, there is a utility that you can run:
+```bash
+$ python scripts/parse_enclave.py target/enclave/token.signed.so
+```
+
+This utility will output a lot of enclave metadata, the important part is:
+```
+         ...
+         ENCLAVEHASH    e38ded31efe3beb062081dc9a7f9af4b785ae8fa2ce61e0bddec2b6aedb02484
+         ...
+```
+
 ## Running
 
 The easiest way to run Ekiden is through the provided scripts,
@@ -46,7 +64,7 @@ which set up the Docker containers for you.
 
 To build and run a storage node:
 ```bash
-$ bash scripts/sgx-enter.sh 
+$ bash scripts/sgx-enter.sh
 $ cargo run -p storage
 ```
 
