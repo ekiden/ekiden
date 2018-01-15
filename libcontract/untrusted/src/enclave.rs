@@ -6,9 +6,7 @@ use std::ptr;
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
-use libcontract_common;
-use libcontract_common::api::{Request, PlainRequest, Response, MetadataRequest, MetadataResponse,
-                              ContractInitRequest, ContractInitResponse};
+use libcontract_common::api;
 
 use super::errors;
 
@@ -68,17 +66,17 @@ impl EkidenEnclave {
     /// Perform a plain-text RPC call against the enclave.
     pub fn call<R: Message, S: Message + MessageStatic>(&self, method: &str, request: &R) -> Result<S, errors::Error> {
         // Prepare plain request.
-        let mut plain_request = PlainRequest::new();
+        let mut plain_request = api::PlainRequest::new();
         plain_request.set_method(String::from(method));
         plain_request.set_payload(request.write_to_bytes()?);
 
-        let mut raw_request = Request::new();
+        let mut raw_request = api::Request::new();
         raw_request.set_plain_request(plain_request);
 
         let raw_request = raw_request.write_to_bytes()?;
         let raw_response = self.call_raw(&raw_request)?;
 
-        let raw_response: Response = match protobuf::parse_from_bytes(raw_response.as_slice()) {
+        let raw_response: api::Response = match protobuf::parse_from_bytes(raw_response.as_slice()) {
             Ok(response) => response,
             _ => return Err(errors::Error::ParseError)
         };
@@ -89,10 +87,10 @@ impl EkidenEnclave {
 
         // Validate response code.
         match raw_response.get_code() {
-            libcontract_common::api::PlainResponse_Code::SUCCESS => {},
+            api::PlainResponse_Code::SUCCESS => {},
             code => {
                 // Deserialize error.
-                let error: libcontract_common::api::Error = match protobuf::parse_from_bytes(raw_response.get_payload()) {
+                let error: api::Error = match protobuf::parse_from_bytes(raw_response.get_payload()) {
                     Ok(error) => error,
                     _ => return Err(errors::Error::ResponseError(code, "<Unable to parse error payload>".to_string()))
                 };
@@ -140,19 +138,27 @@ impl EkidenEnclave {
     }
 
     /// Returns enclave metadata.
-    pub fn get_metadata(&self) -> Result<MetadataResponse, errors::Error> {
-        let request = MetadataRequest::new();
-        let response: MetadataResponse = self.call("_metadata", &request)?;
+    pub fn get_metadata(&self) -> Result<api::MetadataResponse, errors::Error> {
+        let request = api::MetadataRequest::new();
+        let response: api::MetadataResponse = self.call("_metadata", &request)?;
 
         Ok(response)
     }
 
     /// Perform enclave initialization.
-    pub fn initialize(&self, sealed_keys: Vec<u8>) -> Result<ContractInitResponse, errors::Error> {
-        let mut request = ContractInitRequest::new();
+    pub fn initialize(&self) -> Result<api::ContractInitResponse, errors::Error> {
+        let request = api::ContractInitRequest::new();
+        let response: api::ContractInitResponse = self.call("_contract_init", &request)?;
+
+        Ok(response)
+    }
+
+    /// Restore enclave from previous initialization.
+    pub fn restore(&self, sealed_keys: Vec<u8>) -> Result<api::ContractRestoreResponse, errors::Error> {
+        let mut request = api::ContractRestoreRequest::new();
         request.set_sealed_keys(sealed_keys);
 
-        let response: ContractInitResponse = self.call("_contract_init", &request)?;
+        let response: api::ContractRestoreResponse = self.call("_contract_restore", &request)?;
 
         Ok(response)
     }

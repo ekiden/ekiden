@@ -89,6 +89,7 @@ macro_rules! create_enclave {
                 // Meta methods.
                 _metadata, api::MetadataRequest, api::MetadataResponse,
                 _contract_init, api::ContractInitRequest, api::ContractInitResponse,
+                _contract_restore, api::ContractRestoreRequest, api::ContractRestoreResponse,
                 _channel_init, api::ChannelInitRequest, api::ChannelInitResponse,
                 // User-defined methods.
                 $( $method_name, $request_type, $response_type ),*
@@ -117,6 +118,12 @@ macro_rules! create_enclave {
             -> Result<libcontract_common::api::ContractInitResponse, libcontract_common::ContractError> {
 
             $crate::secure_channel::contract_init(request)
+        }
+
+        fn _contract_restore(request: libcontract_common::api::ContractRestoreRequest)
+            -> Result<libcontract_common::api::ContractRestoreResponse, libcontract_common::ContractError> {
+
+            $crate::secure_channel::contract_restore(request)
         }
 
         fn _channel_init(request: libcontract_common::api::ChannelInitRequest)

@@ -29,8 +29,8 @@ impl ComputeServerImpl {
             let contract = enclave::EkidenEnclave::new(&self.contract_filename).unwrap();
 
             // Initialize contract.
-            // TODO: Support passing non-zero sealed state.
-            contract.initialize(vec![]).expect("Failed to initialize contract");
+            // TODO: Support contract restore.
+            contract.initialize().expect("Failed to initialize contract");
 
             Box::new(contract)
         })

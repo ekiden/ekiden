@@ -301,17 +301,26 @@ pub fn contract_init(request: api::ContractInitRequest) -> Result<api::ContractI
 
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
-    if request.get_sealed_keys().is_empty() {
-        // Generate a new keypair.
-        channel.generate_keypair()?;
-    } else {
-        // Unseal existing keypair.
-        channel.unseal_keypair(request.get_sealed_keys())?;
-    }
+    // Generate a new keypair.
+    channel.generate_keypair()?;
 
     let mut response = api::ContractInitResponse::new();
     response.set_public_key(channel.get_public_key().to_vec());
     response.set_sealed_keys(channel.get_sealed_keypair()?);
+
+    Ok(response)
+}
+
+/// Restore contract from sealed state.
+pub fn contract_restore(request: api::ContractRestoreRequest) -> Result<api::ContractRestoreResponse, ContractError> {
+
+    let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
+
+    // Unseal existing keypair.
+    channel.unseal_keypair(request.get_sealed_keys())?;
+
+    let mut response = api::ContractRestoreResponse::new();
+    response.set_public_key(channel.get_public_key().to_vec());
 
     Ok(response)
 }

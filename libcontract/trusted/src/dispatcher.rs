@@ -24,6 +24,7 @@ pub struct RawResponse {
 const PLAIN_METHODS: &'static [&'static str] = &[
     "_metadata",
     "_contract_init",
+    "_contract_restore",
     "_channel_init",
 ];
 
