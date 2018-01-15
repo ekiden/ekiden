@@ -15,7 +15,7 @@ use libcontract_common::secure_channel::{create_box, open_box, RandomNonceGenera
 use super::errors::Error;
 use super::generated::compute_web3::{StatusRequest, CallContractRequest};
 use super::generated::compute_web3_grpc::{Compute, ComputeClient};
-use super::ias::{IAS, IASConfiguration};
+use super::ias::{IAS, IASConfiguration, MrEnclave};
 
 // Secret seed used for generating private and public keys.
 const SECRET_SEED_LEN: usize = 32;
@@ -50,6 +50,8 @@ pub struct ContractClient {
     client: ComputeClient,
     /// IAS interface instance.
     ias: IAS,
+    /// Contract MRENCLAVE.
+    mr_enclave: MrEnclave,
     /// Secure channel context.
     secure_channel: SecureChannelContext,
 }
@@ -63,10 +65,15 @@ pub struct ContractStatus {
 
 impl ContractClient {
     /// Constructs a new contract client.
-    pub fn new(host: &str, port: u16, ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
+    pub fn new(host: &str,
+               port: u16,
+               mr_enclave: MrEnclave,
+               ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
+
         Ok(ContractClient {
             // TODO: Use TLS client.
             client: ComputeClient::new_plain(&host, port, Default::default()).unwrap(),
+            mr_enclave: mr_enclave,
             ias: IAS::new(ias_config)?,
             secure_channel: SecureChannelContext::default(),
         })
@@ -168,6 +175,11 @@ impl ContractClient {
         let quote = self.ias.verify_quote(&response.take_quote())?;
         if quote.get_nonce().to_vec() != nonce {
             return Err(Error::new("Secure channel initialization failed: nonce mismatch"));
+        }
+
+        // Verify MRENCLAVE.
+        if quote.get_mr_enclave() != &self.mr_enclave {
+            return Err(Error::new("Secure channel initialization failed: MRENCLAVE mismatch"));
         }
 
         // Extract public key and establish a secure channel.

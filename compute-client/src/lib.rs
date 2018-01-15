@@ -11,6 +11,9 @@ extern crate base64;
 
 extern crate libcontract_common;
 
+#[macro_use]
+mod hex_encoded;
+
 mod generated;
 mod client;
 mod errors;
@@ -22,4 +25,4 @@ mod macros;
 // Re-export.
 pub use client::{ContractClient, ContractStatus};
 pub use errors::Error;
-pub use ias::{SPID, SPID_LEN, IASConfiguration};
+pub use ias::{SPID, SPID_LEN, MrEnclave, MRENCLAVE_LEN, IASConfiguration};

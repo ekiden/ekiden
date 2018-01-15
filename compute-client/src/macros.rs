@@ -22,8 +22,12 @@ macro_rules! create_client {
 
             #[allow(dead_code)]
             impl Client {
-                pub fn new(host: &str, port: u16, ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
-                    let mut client = ContractClient::new(host, port, ias_config)?;
+                pub fn new(host: &str,
+                           port: u16,
+                           mr_enclave: MrEnclave,
+                           ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
+
+                    let mut client = ContractClient::new(host, port, mr_enclave, ias_config)?;
 
                     // Ensure that the remote server is using the correct contract.
                     let status = client.status()?;

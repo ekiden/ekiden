@@ -14,16 +14,10 @@ const IAS_API_URL: &'static str = "https://test-as.sgx.trustedservices.intel.com
 const IAS_ENDPOINT_REPORT: &'static str = "/attestation/sgx/v2/report";
 
 // SPID.
-pub const SPID_LEN: usize = 16;
+hex_encoded_struct!(SPID, SPID_LEN, 16);
 
-#[derive(Default, Debug, Clone)]
-pub struct SPID(pub [u8; SPID_LEN]);
-
-#[derive(Copy, Clone, Debug)]
-pub enum SPIDParseError {
-    InvalidLength,
-    InvalidCharacter,
-}
+// MRENCLAVE.
+hex_encoded_struct!(MrEnclave, MRENCLAVE_LEN, 32);
 
 /// IAS configuration.
 ///
@@ -62,7 +56,7 @@ pub struct ReportBody {
     cpu_svn: [u8; 16],
     misc_select: u32,
     attributes: [u8; 16],
-    mr_enclave: [u8; 32],
+    mr_enclave: MrEnclave,
     mr_signer: [u8; 32],
     isv_prod_id: u16,
     isv_svn: u16,
@@ -75,43 +69,6 @@ pub struct Quote {
     body: Body,
     report_body: ReportBody,
     signature: Vec<u8>,
-}
-
-impl FromStr for SPID {
-    type Err = SPIDParseError;
-
-    /// Parse SPID from hex-encoded string.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut spid = SPID::default();
-
-        if s.len() != 2 * SPID_LEN {
-            return Err(SPIDParseError::InvalidLength);
-        }
-
-        let mut modulus = 0;
-        let mut buf = 0;
-        let mut output_idx = 0;
-
-        for byte in s.bytes() {
-            buf <<= 4;
-
-            match byte {
-                b'A'...b'F' => buf |= byte - b'A' + 10,
-                b'a'...b'f' => buf |= byte - b'a' + 10,
-                b'0'...b'9' => buf |= byte - b'0',
-                _ => return Err(SPIDParseError::InvalidCharacter)
-            }
-
-            modulus += 1;
-            if modulus == 2 {
-                modulus = 0;
-                spid.0[output_idx] = buf;
-                output_idx += 1;
-            }
-        }
-
-        Ok(spid)
-    }
 }
 
 impl Quote {
@@ -138,6 +95,11 @@ impl Quote {
     /// contract enclave, which provides the nonce in a specific location.
     pub fn get_nonce(&self) -> &[u8] {
         &self.report_body.report_data[Quote::NONCE_OFFSET..Quote::NONCE_OFFSET + Quote::NONCE_LENGTH]
+    }
+
+    /// Get MRENCLAVE from report body.
+    pub fn get_mr_enclave(&self) -> &MrEnclave {
+        &self.report_body.mr_enclave
     }
 }
 
@@ -197,7 +159,7 @@ impl IAS {
         quote.report_body.misc_select = reader.read_u32::<LittleEndian>()?;
         reader.seek(SeekFrom::Current(28))?; // 28 reserved bytes.
         reader.read_exact(&mut quote.report_body.attributes)?;
-        reader.read_exact(&mut quote.report_body.mr_enclave)?;
+        reader.read_exact(&mut quote.report_body.mr_enclave.0)?;
         reader.seek(SeekFrom::Current(32))?; // 32 reserved bytes.
         reader.read_exact(&mut quote.report_body.mr_signer)?;
         reader.seek(SeekFrom::Current(96))?; // 96 reserved bytes.

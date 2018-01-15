@@ -28,6 +28,13 @@ fn main() {
                            .takes_value(true)
                            .default_value("9001")
                            .display_order(2))
+                      .arg(Arg::with_name("mr-enclave")
+                           .long("mr-enclave")
+                           .value_name("MRENCLAVE")
+                           .help("MRENCLAVE in hex format")
+                           .takes_value(true)
+                           .required(true)
+                           .display_order(3))
                       .arg(Arg::with_name("ias-spid")
                            .long("ias-spid")
                            .value_name("SPID")
@@ -44,6 +51,7 @@ fn main() {
     let mut client = token::Client::new(
         matches.value_of("host").unwrap(),
         value_t!(matches, "port", u16).unwrap_or(9001),
+        value_t!(matches, "mr-enclave", compute_client::MrEnclave).unwrap_or_else(|e| e.exit()),
         if matches.is_present("ias-spid") {
             Some(compute_client::IASConfiguration {
                 spid: value_t!(matches, "ias-spid", compute_client::SPID).unwrap_or_else(|e| e.exit()),
