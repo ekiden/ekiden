@@ -1,3 +1,5 @@
+// Tendermint ABCI Application for Ekiden
+// This is a short-lived facade object, so all state needs to be protected by Arc/Mutex
 // For reference on how to use the ABCI
 // https://github.com/tendermint/abci
 // https://github.com/tendermint/basecoin/
@@ -50,7 +52,7 @@ impl Application for Ekidenmint {
 	resp.set_code(types::CodeType::OK);
       },
       Err(error) => {
-	resp.set_code(types::CodeType::BaseEncodingError);
+	resp.set_code(types::CodeType::BaseInvalidInput);
 	resp.set_log(error);
       },
     }
@@ -75,11 +77,11 @@ impl Application for Ekidenmint {
     let tx = p.get_tx();
     match State::check_tx(tx) {
       Ok(_) => {
+	// Respond
+	resp.set_code(types::CodeType::OK);
       	// Set the state
 	let mut s = self.state.lock().unwrap();
 	s.set_latest(tx.to_vec());
-	// Respond
-	resp.set_code(types::CodeType::OK);
       },
       Err(error) => {
 	resp.set_code(types::CodeType::BaseEncodingError);
