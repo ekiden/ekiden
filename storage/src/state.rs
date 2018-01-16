@@ -1,4 +1,3 @@
-
 pub struct State {
   latest: Option<Vec<u8>>,
 }

@@ -10,14 +10,12 @@ use state::State;
 //#[derive(Copy, Clone)]
 #[derive(Clone)]
 pub struct Ekidenmint {
-  name: String,
   state: Arc<Mutex<State>>,
 }
 
 impl Ekidenmint {
   pub fn new(state: Arc<Mutex<State>>) -> Ekidenmint {
     Ekidenmint{
-      name: String::from("test"),
       state: state,
     }
   }
@@ -25,25 +23,27 @@ impl Ekidenmint {
 
 impl Application for Ekidenmint {
   fn info(&self, req: &types::RequestInfo) -> types::ResponseInfo {
-    // @todo
+    // @todo - supposed to return information about app state
+    // https://github.com/tendermint/abci
     println!("info");
     types::ResponseInfo::new()
   }
 
   fn set_option(&self, req: &types::RequestSetOption) -> types::ResponseSetOption {
-    // @todo
+    // @todo - Set application options
+    // https://github.com/tendermint/abci
     println!("set_option {}:{}", req.get_key(), req.get_value());
     types::ResponseSetOption::new()
   }
 
   fn query(&self, p: &types::RequestQuery) -> types::ResponseQuery {
-    // @todo
+    // @todo - handle query requests
+    // https://github.com/tendermint/abci
     println!("query");
     types::ResponseQuery::new()
   }
 
   fn check_tx(&self, p: &types::RequestCheckTx) -> types::ResponseCheckTx {
-    //println!("check_tx");
     let mut resp = types::ResponseCheckTx::new();
     match State::check_tx(p.get_tx()) {
       Ok(_) => {

@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex, mpsc};
 use grpc;
-//use protobuf;
 
 use generated::storage::{GetRequest, GetResponse, SetRequest, SetResponse};
 use generated::storage_grpc::Storage;
@@ -51,7 +50,7 @@ impl Storage for StorageServerImpl {
 	let broadcast_channel = self.tx.lock().unwrap();
 	broadcast_channel.send(req);
 	match rx.recv().unwrap() {
-	  Ok(result) => grpc::SingleResponse::completed(SetResponse::new()),
+	  Ok(_result) => grpc::SingleResponse::completed(SetResponse::new()),
 	  Err(error) => grpc::SingleResponse::err(grpc::Error::Other("Error forwarding to Tendermint")),
 	}
       },

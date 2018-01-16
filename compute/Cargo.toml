@@ -11,10 +11,10 @@ build = "build.rs"
 libcontract-common = { path = "../libcontract/common", features = ["no-sgx"], default-features = false }
 libcontract-untrusted = { path = "../libcontract/untrusted" }
 protobuf = "1.4.2"
-grpc = "0.*"
-futures = "0.*"
+grpc = "0.2.1"
+futures = "0.1.17"
 futures-cpupool = "0.1.*"
-tls-api = "0.*"
+tls-api = "0.1.12"
 httpbis = "0.4.1"
 thread_local = "0.3.5"
 clap = "2.29.1"
@@ -22,4 +22,4 @@ clap = "2.29.1"
 [build-dependencies]
 libcontract-utils = { path = "../libcontract/utils" }
 protoc-rust = "1.4"
-protoc-rust-grpc = "0.*"
+protoc-rust-grpc = "0.2.1"
