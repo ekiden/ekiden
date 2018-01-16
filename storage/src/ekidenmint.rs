@@ -24,7 +24,7 @@ impl Ekidenmint {
 }
 
 impl Application for Ekidenmint {
-  fn info(&self, req: &types::RequestInfo) -> types::ResponseInfo {
+  fn info(&self, _req: &types::RequestInfo) -> types::ResponseInfo {
     // @todo - supposed to return information about app state
     // https://github.com/tendermint/abci
     println!("info");
@@ -38,7 +38,7 @@ impl Application for Ekidenmint {
     types::ResponseSetOption::new()
   }
 
-  fn query(&self, p: &types::RequestQuery) -> types::ResponseQuery {
+  fn query(&self, _p: &types::RequestQuery) -> types::ResponseQuery {
     // @todo - handle query requests
     // https://github.com/tendermint/abci
     println!("query");
@@ -97,10 +97,10 @@ impl Application for Ekidenmint {
     types::ResponseEndBlock::new()
   }
 
-  fn commit(&self, p: &types::RequestCommit) -> types::ResponseCommit {
+  fn commit(&self, _p: &types::RequestCommit) -> types::ResponseCommit {
     // RequestCommit is empty
     println!("commit");
-    let mut resp = types::ResponseCommit::new();
+    let resp = types::ResponseCommit::new();
     // @todo - respond with Merkle root hash of the application state in `data`
     //resp.set_code(types::CodeType::OK);
     //resp.set_data(String::from("test data").into_bytes());
@@ -114,7 +114,7 @@ impl Application for Ekidenmint {
     return response;
   }
 
-  fn flush(&self, p: &types::RequestFlush) -> types::ResponseFlush {
+  fn flush(&self, _p: &types::RequestFlush) -> types::ResponseFlush {
     // Appears to be unused in https://github.com/tendermint/basecoin/blob/master/app/app.go
     //println!("flush");
     types::ResponseFlush::new()

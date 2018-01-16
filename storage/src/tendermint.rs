@@ -1,4 +1,3 @@
-use std::io::{self, Write};
 use std::sync::mpsc;
 use futures::{Future, Stream};
 use hyper;

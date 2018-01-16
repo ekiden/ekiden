@@ -54,10 +54,10 @@ impl Storage for StorageServerImpl {
 	broadcast_channel.send(req).unwrap();
 	match rx.recv().unwrap() {
 	  Ok(_result) => grpc::SingleResponse::completed(SetResponse::new()),
-	  Err(error) => grpc::SingleResponse::err(grpc::Error::Other("Error forwarding to Tendermint")),
+	  Err(_error) => grpc::SingleResponse::err(grpc::Error::Other("Error forwarding to Tendermint")),
 	}
       },
-      Err(error) => grpc::SingleResponse::err(grpc::Error::Other("Invalid payload fails check_tx")),
+      Err(_error) => grpc::SingleResponse::err(grpc::Error::Other("Invalid payload fails check_tx")),
     }
   }
 }
