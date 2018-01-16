@@ -1,7 +1,7 @@
 #!/bin/bash
 
-DATAPATH="/tmp"
-GENESISPATH=$DATAPATH/genesis.json
+DATA_PATH="/tmp/tendermint"
+GENESIS_PATH=$DATA_PATH/genesis.json
 
 # Check to see if docker is on the path
 if [ ! $(which docker) ]; then
@@ -10,9 +10,9 @@ if [ ! $(which docker) ]; then
 fi
 
 # Clear the data directory
-if [ -f $GENESISPATH ]; then
+if [ -f $GENESIS_PATH ]; then
     echo "Clearing Tendermint directory"
-    docker run -it --rm -v "$DATAPATH:/tendermint" tendermint/tendermint unsafe_reset_all
+    docker run -it --rm -v "$DATA_PATH:/tendermint" tendermint/tendermint unsafe_reset_all
 else
     echo "Cannot recognize Tendermint directory"
 fi
