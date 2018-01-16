@@ -6,6 +6,7 @@ authors = [
 ]
 
 [dependencies]
+client-utils = { path = "../utils" }
 libcontract-common = { path = "../../libcontract/common" }
 compute-client = { path = "../../compute-client" }
 token-api = { path = "../../contracts/token/api" }
