@@ -42,6 +42,11 @@ static CONFIG_EKIDEN_EDL: &'static str = include_str!("../config/ekiden.edl");
 
 /// Get current build environment configuration.
 fn get_build_configuration() -> BuildConfiguration {
+    // Ensure build script is restarted if any of the env variables changes.
+    println!("cargo:rerun-if-env-changed=SGX_MODE");
+    println!("cargo:rerun-if-env-changed=INTEL_SGX_SDK");
+    println!("cargo:rerun-if-env-changed=RUST_SGX_SDK");
+
     BuildConfiguration {
         mode: match env::var("SGX_MODE").expect("Please define SGX_MODE").as_ref() {
             "HW" => SgxMode::Hardware,
@@ -76,14 +81,27 @@ fn edger8r(config: &BuildConfiguration, part: BuildPart, output: &str) -> io::Re
     Ok(())
 }
 
+/// Enable SGX features based on current mode.
+pub fn detect_sgx_features() {
+    let config = get_build_configuration();
+
+    match config.mode {
+        SgxMode::Simulation => {
+            // Enable sgx-simulation feature.
+            println!("cargo:rustc-cfg=feature=\"sgx-simulation\"");
+        },
+        _ => {},
+    }
+}
+
 /// Build the untrusted part of an Ekiden enclave.
 pub fn build_untrusted() {
     let config = get_build_configuration();
 
-    let urts_library_name = match config.mode {
+    /*let urts_library_name = match config.mode {
         SgxMode::Hardware => "sgx_urts",
         SgxMode::Simulation => "sgx_urts_sim",
-    };
+    };*/
 
     // Create temporary directory to hold the built libraries.
     let temp_dir = mktemp::Temp::new_dir().expect("Failed to create temporary directory");
@@ -108,7 +126,7 @@ pub fn build_untrusted() {
     println!("cargo:rustc-link-lib=static=enclave_u");
     println!("cargo:rustc-link-search=native={}",
              Path::new(&config.intel_sdk_dir).join(SGX_SDK_LIBRARY_PATH).to_str().unwrap());
-    println!("cargo:rustc-link-lib=dylib={}", urts_library_name);
+    // println!("cargo:rustc-link-lib=dylib={}", urts_library_name);
 }
 
 /// Build the trusted Ekiden SGX enclave.

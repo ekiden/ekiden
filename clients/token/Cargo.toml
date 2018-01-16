@@ -9,3 +9,4 @@ authors = [
 libcontract-common = { path = "../../libcontract/common" }
 compute-client = { path = "../../compute-client" }
 token-api = { path = "../../contracts/token/api" }
+clap = "2.29.1"
