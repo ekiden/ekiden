@@ -2,20 +2,39 @@ syntax = "proto3";
 
 package enclave_rpc;
 
-message CiphertextAndNonce {
+message CryptoSecretbox {
     // Padded ciphertext.
     bytes ciphertext = 1;
     // Nonce.
     bytes nonce = 2;
 }
 
-message Request {
+// Cryptographic box (encrypted and authenticated).
+message CryptoBox {
+    // Nonce.
+    bytes nonce = 1;
+    // Encrypted and authenticated payload.
+    bytes payload = 2;
+    // Optional originator public key.
+    bytes public_key = 3;
+}
+
+message PlainRequest {
     // Request method.
     string method = 1;
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
+}
+
+message Request {
+    oneof request {
+        // Plain-text request.
+        PlainRequest plain_request = 1;
+        // Encrypted request.
+        CryptoBox encrypted_request = 2;
+    }
     // Starting state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
-    CiphertextAndNonce encrypted_state = 3;
+    CryptoSecretbox encrypted_state = 3;
 }
 
 message Error {
@@ -23,7 +42,7 @@ message Error {
     string message = 1;
 }
 
-message Response {
+message PlainResponse {
     enum Code {
         INVALID = 0;
 
@@ -34,13 +53,24 @@ message Response {
         ERROR = 400;
         ERROR_BAD_REQUEST = 401;
         ERROR_METHOD_NOT_FOUND = 402;
+        ERROR_SECURE_CHANNEL = 403;
+        ERROR_METHOD_SECURE = 404;
     }
     // Response code.
     Code code = 1;
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
+}
+
+message Response {
+    oneof response {
+        // Plain-text response.
+        PlainResponse plain_response = 1;
+        // Encrypted response.
+        CryptoBox encrypted_response = 2;
+    }
     // New state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
-    CiphertextAndNonce encrypted_state = 3;
+    CryptoSecretbox encrypted_state = 3;
 }
 
 // Meta methods.
@@ -52,4 +82,50 @@ message MetadataResponse {
     string name = 1;
     // Contract version.
     string version = 2;
+}
+
+message ContractInitRequest {
+}
+
+message ContractInitResponse {
+    // Public key used to establish a secure channel with the enclave. This
+    // key is generated as part of the contract initialization process.
+    bytes public_key = 1;
+    // Sealed keys that should be persisted to the filesystem and used in
+    // next enclave invocation.
+    bytes sealed_keys = 2;
+}
+
+message ContractRestoreRequest {
+    // Sealed keys if this enclave has previously been initialized.
+    bytes sealed_keys = 1;
+}
+
+message ContractRestoreResponse {
+    // Public key used to establish a secure channel with the enclave. This
+    // key is generated as part of the contract initialization process.
+    bytes public_key = 1;
+}
+
+message ChannelInitRequest {
+    // 16-byte random nonce.
+    bytes nonce = 1;
+    // 16-byte SPID used for verifying remote attestation.
+    bytes spid = 2;
+    // 32-byte client short-term public key.
+    bytes short_term_public_key = 3;
+}
+
+message ChannelInitResponse {
+    // Encoded signed attestation quote. This quote contains the long-term
+    // public key of the contract.
+    bytes quote = 1;
+    // Encrypted server short-term public key.
+    CryptoBox short_term_public_key = 2;
+}
+
+message ChannelCloseRequest {
+}
+
+message ChannelCloseResponse {
 }

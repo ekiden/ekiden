@@ -23,19 +23,12 @@ message StatusResponse {
 }
 
 message CallContractRequest {
-    // Contract method.
-    string method = 1;
-    // Method dependent payload (Protocol Buffers serialized).
-    bytes payload = 2;
-    // Temporary: Encrypted contract state (Protocol Buffers serialized CiphertextAndNonce or empty).
-    // TODO: remove this when compute nodes fetch and store state themselves
-    bytes encrypted_state = 103;
+    // Raw contract request payload that will be passed unmodified to the
+    // contract (Protocol Buffers serialized).
+    bytes payload = 1;
 }
 
 message CallContractResponse {
-    // Method dependent payload (Protocol Buffers serialized).
+    // Raw contract dependent response payload (Protocol Buffers serialized).
     bytes payload = 1;
-    // Temporary: Encrypted contract state (Protocol Buffers serialized CiphertextAndNonce or empty).
-    // TODO: remove this when compute nodes fetch and store state themselves
-    bytes encrypted_state = 103;
 }

@@ -36,8 +36,8 @@ impl TokenContract {
     // PRIVATE METHODS
     fn get_from_balance(&self, addr: &Address, value: u64) -> Result<u64, ContractError> {
         match self.balance_of.get(addr.as_str()) {
-            None => Err(ContractError::new(String::from("Nonexistent `from` account"))),
-            Some(b) if *b < value => Err(ContractError::new(String::from("Insufficient `from` balance"))),
+            None => Err(ContractError::new("Nonexistent `from` account")),
+            Some(b) if *b < value => Err(ContractError::new("Insufficient `from` balance")),
             Some(b) => Ok(*b),
         }
     }
@@ -53,7 +53,7 @@ impl TokenContract {
         let from_balance = self.get_from_balance(from, value)?;
         let to_balance = self.get_to_balance(to)?;
         if to_balance + value <= to_balance {
-            return Err(ContractError::new(String::from("Transfer value too large, overflow `to` account")));
+            return Err(ContractError::new("Transfer value too large, overflow `to` account"));
         }
 
         // Set new balances

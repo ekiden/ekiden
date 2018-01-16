@@ -42,21 +42,23 @@ macro_rules! create_enclave {
                                    response_data: *mut u8,
                                    response_capacity: usize,
                                    response_length: *mut usize) {
-            let raw_response = $crate::dispatcher::RawResponse {
+
+            let mut raw_response = $crate::dispatcher::RawResponse {
                 data: response_data,
                 capacity: response_capacity,
                 length: response_length,
+                public_key: vec![],
             };
 
             // Parse request.
-            let request = match $crate::dispatcher::parse_request(request_data, request_length) {
+            let request = match $crate::dispatcher::parse_request(
+                request_data,
+                request_length,
+                &mut raw_response
+            ) {
                 Ok(value) => value,
                 _ => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
-                        "Unable to parse request",
-                        &raw_response
-                    );
+                    // A suitable response has already been generated.
                     return;
                 }
             };
@@ -78,16 +80,41 @@ macro_rules! create_enclave {
                 None
             };
 
-            // Invoke given method.
+            // Special handling methods.
+            match request.get_method() {
+                // Special handling for channel close as it requires to know the caller
+                // channel identity and to generate the response before closing the channel.
+                "_channel_close" => {
+                    // Prepare response before closing the channel.
+                    let response = api::ChannelCloseResponse::new();
+                    $crate::dispatcher::return_success(response, &raw_response);
 
-            // Meta methods.
+                    match $crate::secure_channel::channel_close(&raw_response.public_key) {
+                        Ok(_) => {},
+                        _ => {
+                            // Errors are ignored.
+                        }
+                    };
+                    return;
+                },
+                _ => {},
+            }
+
+            // Invoke given method.
+            use libcontract_common::api;
+
             create_enclave_method!(
                 state,
                 request,
                 raw_response,
                 $metadata_state_type,
-                _metadata, libcontract_common::api::MetadataRequest,
-                libcontract_common::api::MetadataResponse
+                // Meta methods.
+                _metadata, api::MetadataRequest, api::MetadataResponse,
+                _contract_init, api::ContractInitRequest, api::ContractInitResponse,
+                _contract_restore, api::ContractRestoreRequest, api::ContractRestoreResponse,
+                _channel_init, api::ChannelInitRequest, api::ChannelInitResponse,
+                // User-defined methods.
+                $( $method_name, $request_type, $response_type ),*
             );
 
             // User-defined methods.
@@ -103,7 +130,7 @@ macro_rules! create_enclave {
 
             // If we are still here, the method could not be found.
             $crate::dispatcher::return_error(
-                libcontract_common::api::Response_Code::ERROR_METHOD_NOT_FOUND,
+                libcontract_common::api::PlainResponse_Code::ERROR_METHOD_NOT_FOUND,
                 "Method not found",
                 &raw_response
             );
@@ -119,6 +146,24 @@ macro_rules! create_enclave {
             response.set_version(String::from($metadata_version));
 
             Ok((None, response))
+        }
+
+        fn _contract_init(request: libcontract_common::api::ContractInitRequest)
+            -> Result<libcontract_common::api::ContractInitResponse, libcontract_common::ContractError> {
+
+            $crate::secure_channel::contract_init(request)
+        }
+
+        fn _contract_restore(request: libcontract_common::api::ContractRestoreRequest)
+            -> Result<libcontract_common::api::ContractRestoreResponse, libcontract_common::ContractError> {
+
+            $crate::secure_channel::contract_restore(request)
+        }
+
+        fn _channel_init(request: libcontract_common::api::ChannelInitRequest)
+            -> Result<libcontract_common::api::ChannelInitResponse, libcontract_common::ContractError> {
+
+            $crate::secure_channel::channel_init(request)
         }
     };
 }
@@ -136,7 +181,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::Response_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::PlainResponse_Code::ERROR_BAD_REQUEST,
                         "Unable to parse request payload",
                         &$response
                     );
@@ -149,7 +194,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::Response_Code::ERROR,
+                        libcontract_common::api::PlainResponse_Code::ERROR,
                         message.as_str(),
                         &$response
                     );
