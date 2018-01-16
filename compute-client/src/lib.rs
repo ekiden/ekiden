@@ -9,10 +9,8 @@ extern crate sodalite;
 extern crate reqwest;
 extern crate base64;
 
-extern crate libcontract_common;
-
 #[macro_use]
-mod hex_encoded;
+extern crate libcontract_common;
 
 mod generated;
 pub mod backend;

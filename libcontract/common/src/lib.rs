@@ -25,6 +25,9 @@ pub mod contract;
 pub mod contract_error;
 pub mod secure_channel;
 
+#[macro_use]
+pub mod hex_encoded;
+
 mod generated;
 
 #[macro_use]
