@@ -297,7 +297,7 @@ lazy_static! {
 }
 
 /// Initialize contract.
-pub fn contract_init(request: api::ContractInitRequest) -> Result<api::ContractInitResponse, ContractError> {
+pub fn contract_init(_request: api::ContractInitRequest) -> Result<api::ContractInitResponse, ContractError> {
 
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
