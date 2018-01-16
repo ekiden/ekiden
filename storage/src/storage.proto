@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package storage;
+
+service Storage {
+    rpc Get (GetRequest) returns (GetResponse) {}
+    rpc Set (SetRequest) returns (SetResponse) {}
+}
+
+message GetRequest {
+}
+
+message GetResponse {
+  // Bytes of latest state
+  bytes payload = 1;
+}
+
+message SetRequest {
+  // Bytes of next state
+  bytes payload = 1;
+}
+
+message SetResponse {
+}
