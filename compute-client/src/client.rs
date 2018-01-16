@@ -5,9 +5,7 @@ use sodalite;
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
-use libcontract_common::api::{Request, PlainRequest, PlainResponse, PlainResponse_Code,
-                              Error as ResponseError, ChannelInitRequest, ChannelInitResponse, CryptoBox,
-                              ChannelCloseRequest, ChannelCloseResponse};
+use libcontract_common::api;
 use libcontract_common::secure_channel::{create_box, open_box, RandomNonceGenerator, MonotonicNonceGenerator,
                                          NONCE_CONTEXT_INIT, NONCE_CONTEXT_REQUEST, NONCE_CONTEXT_RESPONSE};
 
@@ -81,11 +79,11 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         where Rq: Message,
               Rs: Message + MessageStatic {
 
-        let mut plain_request = PlainRequest::new();
+        let mut plain_request = api::PlainRequest::new();
         plain_request.set_method(method.to_string());
         plain_request.set_payload(request.write_to_bytes()?);
 
-        let mut enclave_request = Request::new();
+        let mut enclave_request = api::Request::new();
         if self.secure_channel.ready {
             // Encrypt request.
             enclave_request.set_encrypted_request(
@@ -125,10 +123,10 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
 
         // Validate response code.
         match plain_response.get_code() {
-            PlainResponse_Code::SUCCESS => {},
+            api::PlainResponse_Code::SUCCESS => {},
             _ => {
                 // Deserialize error.
-                let mut error: ResponseError = match protobuf::parse_from_bytes(&plain_response.take_payload()) {
+                let mut error: api::Error = match protobuf::parse_from_bytes(&plain_response.take_payload()) {
                     Ok(error) => error,
                     _ => return Err(Error::new("Unknown error"))
                 };
@@ -144,7 +142,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
 
     /// Initialize a secure channel with the contract.
     pub fn init_secure_channel(&mut self) -> Result<(), Error> {
-        let mut request = ChannelInitRequest::new();
+        let mut request = api::ChannelInitRequest::new();
 
         // Reset secure channel.
         self.secure_channel.reset()?;
@@ -157,7 +155,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         request.set_spid(self.ias.get_spid().to_vec());
         request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
 
-        let (_state, mut response): (Option<Vec<u8>>, ChannelInitResponse) = self.call("_channel_init", None, request)?;
+        let (_state, mut response): (Option<Vec<u8>>, api::ChannelInitResponse) = self.call("_channel_init", None, request)?;
 
         // Verify quote via IAS, verify nonce.
         let quote = self.ias.verify_quote(&response.take_quote())?;
@@ -182,9 +180,9 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
     /// Close secure channel.
     pub fn close_secure_channel(&mut self) -> Result<(), Error> {
         // Send request to close channel.
-        let request = ChannelCloseRequest::new();
+        let request = api::ChannelCloseRequest::new();
 
-        let (_state, _response): (Option<Vec<u8>>, ChannelCloseResponse) = self.call("_channel_close", None, request)?;
+        let (_state, _response): (Option<Vec<u8>>, api::ChannelCloseResponse) = self.call("_channel_close", None, request)?;
 
         // Reset local part of the secure channel.
         self.secure_channel.reset()?;
@@ -220,7 +218,7 @@ impl SecureChannelContext {
     /// Setup secure channel.
     pub fn setup(&mut self,
                  contract_long_term_public_key: &[u8],
-                 contract_short_term_public_key: &CryptoBox) -> Result<(), Error> {
+                 contract_short_term_public_key: &api::CryptoBox) -> Result<(), Error> {
 
         self.contract_long_term_public_key.copy_from_slice(&contract_long_term_public_key);
 
@@ -247,7 +245,7 @@ impl SecureChannelContext {
     }
 
     /// Create cryptographic box with RPC request.
-    pub fn create_request_box(&mut self, request: &PlainRequest) -> Result<CryptoBox, Error> {
+    pub fn create_request_box(&mut self, request: &api::PlainRequest) -> Result<api::CryptoBox, Error> {
         let mut crypto_box = create_box(
             &request.write_to_bytes()?,
             &NONCE_CONTEXT_REQUEST,
@@ -264,7 +262,7 @@ impl SecureChannelContext {
     }
 
     /// Open cryptographic box with RPC response.
-    pub fn open_response_box(&mut self, response: &CryptoBox) -> Result<PlainResponse, Error> {
+    pub fn open_response_box(&mut self, response: &api::CryptoBox) -> Result<api::PlainResponse, Error> {
         let plain_response = open_box(
             &response,
             &NONCE_CONTEXT_RESPONSE,
