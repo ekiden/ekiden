@@ -21,6 +21,8 @@ impl StorageServerImpl {
 }
 
 impl Storage for StorageServerImpl {
+
+  // Handle `get` requests to retrieve latest state
   fn get(&self, _options: grpc::RequestOptions, _req: GetRequest) -> grpc::SingleResponse<GetResponse> {
     let s = self.state.lock().unwrap();
     match s.get_latest() {
@@ -35,6 +37,7 @@ impl Storage for StorageServerImpl {
     }
   }
 
+  // Set the next state as latest
   fn set(&self, _options: grpc::RequestOptions, req: SetRequest) -> grpc::SingleResponse<SetResponse> {
     let payload = req.get_payload();
 
@@ -48,7 +51,7 @@ impl Storage for StorageServerImpl {
 	  payload: payload.to_vec(),
 	};
 	let broadcast_channel = self.tx.lock().unwrap();
-	broadcast_channel.send(req);
+	broadcast_channel.send(req).unwrap();
 	match rx.recv().unwrap() {
 	  Ok(_result) => grpc::SingleResponse::completed(SetResponse::new()),
 	  Err(error) => grpc::SingleResponse::err(grpc::Error::Other("Error forwarding to Tendermint")),

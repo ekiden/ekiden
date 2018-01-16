@@ -69,11 +69,11 @@ fn main() {
 
   // Start the Tendermint ABCI listener
   let abci_listen_addr = "127.0.0.1:46658".parse().unwrap();
-  let app = ekidenmint::Ekidenmint::new(Arc::clone(&s));
-  let app_server = TcpServer::new(AbciProto, abci_listen_addr);
+  let mut app_server = TcpServer::new(AbciProto, abci_listen_addr);
+  app_server.threads(1);
   app_server.serve(move || {
     Ok(AbciService {
-      app: Box::new(app.clone()),
+      app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&s))),
     })
   });
 
