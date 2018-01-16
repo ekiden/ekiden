@@ -3,7 +3,7 @@ use thread_local::ThreadLocal;
 
 use libcontract_untrusted::enclave;
 
-use generated::compute_web3::{StatusRequest, StatusResponse, CallContractRequest, CallContractResponse};
+use generated::compute_web3::{CallContractRequest, CallContractResponse};
 use generated::compute_web3_grpc::Compute;
 
 pub struct ComputeServerImpl {
@@ -38,23 +38,6 @@ impl ComputeServerImpl {
 }
 
 impl Compute for ComputeServerImpl {
-    fn status(&self, _options: grpc::RequestOptions, _request: StatusRequest) -> grpc::SingleResponse<StatusResponse> {
-        // Get contract metadata.
-        let metadata = match self.get_contract().get_metadata() {
-            Ok(metadata) => metadata,
-            Err(_) => return grpc::SingleResponse::err(grpc::Error::Other("Failed to get metadata"))
-        };
-
-        let mut response = StatusResponse::new();
-        {
-            let contract = response.mut_contract();
-            contract.set_name(metadata.get_name().to_string());
-            contract.set_version(metadata.get_version().to_string());
-        }
-
-        return grpc::SingleResponse::completed(response);
-    }
-
     fn call_contract(&self, _options: grpc::RequestOptions, request: CallContractRequest)
         -> grpc::SingleResponse<CallContractResponse> {
 

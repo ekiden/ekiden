@@ -1,20 +1,18 @@
 use rand::{OsRng, Rng};
 
-use grpc;
 use sodalite;
 
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
-use libcontract_common::api::{Request, PlainRequest, Response, PlainResponse, PlainResponse_Code,
+use libcontract_common::api::{Request, PlainRequest, PlainResponse, PlainResponse_Code,
                               Error as ResponseError, ChannelInitRequest, ChannelInitResponse, CryptoBox,
                               ChannelCloseRequest, ChannelCloseResponse};
 use libcontract_common::secure_channel::{create_box, open_box, RandomNonceGenerator, MonotonicNonceGenerator,
                                          NONCE_CONTEXT_INIT, NONCE_CONTEXT_REQUEST, NONCE_CONTEXT_RESPONSE};
 
 use super::errors::Error;
-use super::generated::compute_web3::{StatusRequest, CallContractRequest};
-use super::generated::compute_web3_grpc::{Compute, ComputeClient};
+use super::backend::ContractClientBackend;
 use super::ias::{IAS, IASConfiguration, MrEnclave};
 
 // Secret seed used for generating private and public keys.
@@ -45,9 +43,9 @@ pub struct SecureChannelContext {
 }
 
 /// Contract client.
-pub struct ContractClient {
-    /// gRPC client instance.
-    client: ComputeClient,
+pub struct ContractClient<Backend: ContractClientBackend> {
+    /// Backend handling network communication.
+    backend: Backend,
     /// IAS interface instance.
     ias: IAS,
     /// Contract MRENCLAVE.
@@ -63,16 +61,14 @@ pub struct ContractStatus {
     pub version: String,
 }
 
-impl ContractClient {
+impl<Backend: ContractClientBackend> ContractClient<Backend> {
     /// Constructs a new contract client.
-    pub fn new(host: &str,
-               port: u16,
+    pub fn new(backend: Backend,
                mr_enclave: MrEnclave,
                ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
 
         Ok(ContractClient {
-            // TODO: Use TLS client.
-            client: ComputeClient::new_plain(&host, port, Default::default()).unwrap(),
+            backend: backend,
             mr_enclave: mr_enclave,
             ias: IAS::new(ias_config)?,
             secure_channel: SecureChannelContext::default(),
@@ -99,25 +95,20 @@ impl ContractClient {
             // Plain-text request.
             enclave_request.set_plain_request(plain_request);
         }
+
         if let Some(state) = state {
             let state = protobuf::parse_from_bytes(&state)?;
             enclave_request.set_encrypted_state(state);
         }
 
-        let mut raw_request = CallContractRequest::new();
-        raw_request.set_payload(enclave_request.write_to_bytes()?);
+        let mut response = self.backend.call(enclave_request)?;
 
-        let (_, response, _) = self.client.call_contract(
-            grpc::RequestOptions::new(),
-            raw_request
-        ).wait().unwrap();
-
-        let mut response: Response = protobuf::parse_from_bytes(response.get_payload())?;
         let new_state = if response.has_encrypted_state() {
             Some(response.get_encrypted_state().write_to_bytes()?)
         } else {
             None
         };
+
         if self.secure_channel.ready && !response.has_encrypted_response() {
             return Err(Error::new("Contract returned plain response for encrypted request"))
         }
@@ -149,19 +140,6 @@ impl ContractClient {
         let response: Rs = protobuf::parse_from_bytes(plain_response.get_payload())?;
 
         Ok((new_state, response))
-    }
-
-    /// Get compute node status.
-    pub fn status(&self) -> Result<ContractStatus, Error> {
-        let request = StatusRequest::new();
-        let (_, mut response, _) = self.client.status(grpc::RequestOptions::new(), request).wait().unwrap();
-
-        let mut contract = response.take_contract();
-
-        Ok(ContractStatus {
-            contract: contract.take_name(),
-            version: contract.take_version(),
-        })
     }
 
     /// Initialize a secure channel with the contract.

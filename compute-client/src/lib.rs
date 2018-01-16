@@ -15,6 +15,7 @@ extern crate libcontract_common;
 mod hex_encoded;
 
 mod generated;
+pub mod backend;
 mod client;
 mod errors;
 mod ias;

@@ -15,26 +15,20 @@ macro_rules! create_client {
     ) => {
         mod $metadata_name {
             use compute_client::*;
+            use compute_client::backend::*;
             pub use $api_module::*;
 
-            pub struct Client {
-                client: ContractClient,
+            pub struct Client<Backend: ContractClientBackend> {
+                client: ContractClient<Backend>,
             }
 
             #[allow(dead_code)]
-            impl Client {
-                pub fn new(host: &str,
-                           port: u16,
+            impl<Backend: ContractClientBackend> Client<Backend> {
+                pub fn new(backend: Backend,
                            mr_enclave: MrEnclave,
                            ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
 
-                    let mut client = ContractClient::new(host, port, mr_enclave, ias_config)?;
-
-                    // Ensure that the remote server is using the correct contract.
-                    let status = client.status()?;
-                    if status.contract != stringify!($metadata_name) || status.version != $metadata_version {
-                        return Err(Error::new("Server is not running the correct contract"));
-                    }
+                    let mut client = ContractClient::new(backend, mr_enclave, ias_config)?;
 
                     // Initialize a secure session.
                     client.init_secure_channel()?;
@@ -44,17 +38,13 @@ macro_rules! create_client {
                     })
                 }
 
-                pub fn status(&self) -> Result<ContractStatus, Error> {
-                    self.client.status()
-                }
-
                 // Generate methods.
                 $(
                     create_client_method!($method_name $method_in -> $method_out);
                 )*
             }
 
-            impl Drop for Client {
+            impl<Backend: ContractClientBackend> Drop for Client<Backend> {
                 fn drop(&mut self) {
                     // Close secure channel when going out of scope.
                     self.client.close_secure_channel().unwrap();

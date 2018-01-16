@@ -3,23 +3,7 @@ syntax = "proto3";
 package compute_web3;
 
 service Compute {
-    rpc Status (StatusRequest) returns (StatusResponse) {}
     rpc CallContract (CallContractRequest) returns (CallContractResponse) {}
-}
-
-message StatusRequest {
-}
-
-message StatusResponse {
-    message Contract {
-        // Contract name.
-        string name = 1;
-        // Contract version.
-        string version = 2;
-    }
-
-    // Contract loaded in this compute node.
-    Contract contract = 1;
 }
 
 message CallContractRequest {

@@ -48,9 +48,13 @@ fn main() {
                            .requires("ias-spid"))
                       .get_matches();
 
-    let mut client = token::Client::new(
+    let backend = compute_client::backend::Web3ContractClientBackend::new(
         matches.value_of("host").unwrap(),
-        value_t!(matches, "port", u16).unwrap_or(9001),
+        value_t!(matches, "port", u16).unwrap_or(9001)
+    ).unwrap();
+
+    let mut client = token::Client::new(
+        backend,
         value_t!(matches, "mr-enclave", compute_client::MrEnclave).unwrap_or_else(|e| e.exit()),
         if matches.is_present("ias-spid") {
             Some(compute_client::IASConfiguration {
