@@ -55,6 +55,11 @@ This utility will output a lot of enclave metadata, the important part is:
          ...
 ```
 
+For convenience, you may choose to use the following command:
+```
+CONTRACT=token; cargo run -p $CONTRACT-client -- --mr-enclave $(python scripts/parse_enclave.py target/enclave/$CONTRACT.signed.so  2>/dev/null | grep ENCLAVEHASH | cut -f2)
+```
+
 ## Running
 
 The easiest way to run Ekiden is through the provided scripts,
