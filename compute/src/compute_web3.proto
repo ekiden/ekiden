@@ -3,7 +3,12 @@ syntax = "proto3";
 package compute_web3;
 
 service Compute {
+    // Contract interface.
     rpc CallContract (CallContractRequest) returns (CallContractResponse) {}
+
+    // IAS proxy.
+    rpc IasGetSpid (IasGetSpidRequest) returns (IasGetSpidResponse) {}
+    rpc IasVerifyQuote (IasVerifyQuoteRequest) returns (IasVerifyQuoteResponse) {}
 }
 
 message CallContractRequest {
@@ -15,4 +20,28 @@ message CallContractRequest {
 message CallContractResponse {
     // Raw contract dependent response payload (Protocol Buffers serialized).
     bytes payload = 1;
+}
+
+message IasGetSpidRequest {
+}
+
+message IasGetSpidResponse {
+    // 16-byte SPID used by the compute node.
+    bytes spid = 1;
+}
+
+message IasVerifyQuoteRequest {
+    // Quote to verify.
+    bytes quote = 1;
+    // Nonce.
+    bytes nonce = 2;
+}
+
+message IasVerifyQuoteResponse {
+    // Attestation verification report fields. These should be used to independently
+    // verify the IAS verification.
+    bool success = 1;
+    string body = 2;
+    bytes signature = 3;
+    string certificates = 4;
 }

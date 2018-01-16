@@ -55,10 +55,21 @@ This utility will output a lot of enclave metadata, the important part is:
          ...
 ```
 
-For convenience, you may choose to use the following command:
+You will need this hash when running the contract client (see below).
+
+## Obtaining SPID and generating PKCS#12 bundle
+
+In order to communicate with Intel Attestation Service (IAS), you need to generate a certificate
+and get an SPID from Intel. For more information on that process, see the following links:
+* [How to create self-signed certificates for use with Intel SGX RA](https://software.intel.com/en-us/articles/how-to-create-self-signed-certificates-for-use-with-intel-sgx-remote-attestation-using)
+* [Apply for an SPID](https://software.intel.com/formfill/sgx-onboarding)
+
+To generate a PKCS#12 bundle from a private key (`client.key`) and certificate (`client.crt`), run:
+```bash
+$ openssl pkcs12 -export -out client.pfx -inkey client.key -in client.crt -certfile client.crt
 ```
-CONTRACT=token; cargo run -p $CONTRACT-client -- --mr-enclave $(python scripts/parse_enclave.py target/enclave/$CONTRACT.signed.so  2>/dev/null | grep ENCLAVEHASH | cut -f2)
-```
+
+You will need to pass both SPID and the PKCS#12 bundle when starting the compute node.
 
 ## Running
 
@@ -94,7 +105,7 @@ $ bash scripts/sgx-attach.sh
 
 The generic compute binary takes a signed contract enclave as a parameter:
 ```bash
-$ cargo run -p compute ./target/enclave/dummy.signed.so
+$ cargo run -p compute ./target/enclave/token.signed.so -- --ias-spid <spid> --ias-pkcs12 client.pfx
 ```
 
 To get a list of built enclaves:
@@ -102,11 +113,25 @@ To get a list of built enclaves:
 $ ls ./target/enclave/*.signed.so
 ```
 
+### Contract client
+
+To run the token contract client:
+```bash
+$ cargo run -p token-client -- --mr-enclave <mr-enclave>
+```
+
+For convenience, you may choose to use the following command, which combines the above step of obtaining
+a MRENCLAVE and passing it to the client:
+```
+CONTRACT=token; cargo run -p $CONTRACT-client -- --mr-enclave $(python scripts/parse_enclave.py target/enclave/$CONTRACT.signed.so  2>/dev/null | grep ENCLAVEHASH | cut -f2)
+```
+
 ## Packages
 - `abci`: Tendermint Application Blockchain Interface
-- `client`: Ekiden client library
+- `compute-client`: Ekiden client library
 - `compute`: Ekiden compute node
 - `contracts`: Ekiden contracts (e.g. token)
+- `clients`: Ekiden contract clients (e.g. token)
 - `libcontract/common`: common library for all Ekiden contracts
   - source code directory for `libcontract_*`.
 - `libcontract/trusted`: `libcontract` packaging for SGX environment

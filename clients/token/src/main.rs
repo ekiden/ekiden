@@ -35,17 +35,6 @@ fn main() {
                            .takes_value(true)
                            .required(true)
                            .display_order(3))
-                      .arg(Arg::with_name("ias-spid")
-                           .long("ias-spid")
-                           .value_name("SPID")
-                           .help("IAS SPID in hex format")
-                           .takes_value(true)
-                           .requires("ias-pkcs12"))
-                      .arg(Arg::with_name("ias-pkcs12")
-                           .long("ias-pkcs12")
-                           .help("Path to IAS client certificate and private key PKCS#12 archive")
-                           .takes_value(true)
-                           .requires("ias-spid"))
                       .get_matches();
 
     let backend = compute_client::backend::Web3ContractClientBackend::new(
@@ -55,15 +44,7 @@ fn main() {
 
     let mut client = token::Client::new(
         backend,
-        value_t!(matches, "mr-enclave", compute_client::MrEnclave).unwrap_or_else(|e| e.exit()),
-        if matches.is_present("ias-spid") {
-            Some(compute_client::IASConfiguration {
-                spid: value_t!(matches, "ias-spid", compute_client::SPID).unwrap_or_else(|e| e.exit()),
-                pkcs12_archive: matches.value_of("ias-pkcs12").unwrap().to_string()
-            })
-        } else {
-            None
-        }
+        value_t!(matches, "mr-enclave", compute_client::MrEnclave).unwrap_or_else(|e| e.exit())
     ).unwrap();
 
     // Create new token contract.

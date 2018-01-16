@@ -18,6 +18,8 @@ tls-api = "0.1.12"
 httpbis = "0.4.1"
 thread_local = "0.3.5"
 clap = "2.29.1"
+reqwest = "0.8.2"
+base64 = "0.9.0"
 
 [build-dependencies]
 libcontract-utils = { path = "../libcontract/utils" }

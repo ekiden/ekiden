@@ -11,7 +11,7 @@ use libcontract_common::secure_channel::{create_box, open_box, RandomNonceGenera
 
 use super::errors::Error;
 use super::backend::ContractClientBackend;
-use super::ias::{IAS, IASConfiguration, MrEnclave};
+use super::quote::MrEnclave;
 
 // Secret seed used for generating private and public keys.
 const SECRET_SEED_LEN: usize = 32;
@@ -44,8 +44,6 @@ pub struct SecureChannelContext {
 pub struct ContractClient<Backend: ContractClientBackend> {
     /// Backend handling network communication.
     backend: Backend,
-    /// IAS interface instance.
-    ias: IAS,
     /// Contract MRENCLAVE.
     mr_enclave: MrEnclave,
     /// Secure channel context.
@@ -62,13 +60,11 @@ pub struct ContractStatus {
 impl<Backend: ContractClientBackend> ContractClient<Backend> {
     /// Constructs a new contract client.
     pub fn new(backend: Backend,
-               mr_enclave: MrEnclave,
-               ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
+               mr_enclave: MrEnclave) -> Result<Self, Error> {
 
         Ok(ContractClient {
             backend: backend,
             mr_enclave: mr_enclave,
-            ias: IAS::new(ias_config)?,
             secure_channel: SecureChannelContext::default(),
         })
     }
@@ -152,13 +148,13 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         OsRng::new()?.fill_bytes(&mut nonce);
 
         request.set_nonce(nonce.clone());
-        request.set_spid(self.ias.get_spid().to_vec());
+        request.set_spid(self.backend.get_spid()?);
         request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
 
         let (_state, mut response): (Option<Vec<u8>>, api::ChannelInitResponse) = self.call("_channel_init", None, request)?;
 
         // Verify quote via IAS, verify nonce.
-        let quote = self.ias.verify_quote(&response.take_quote())?;
+        let quote = self.backend.verify_quote(response.take_quote())?;
         if quote.get_nonce().to_vec() != nonce {
             return Err(Error::new("Secure channel initialization failed: nonce mismatch"));
         }

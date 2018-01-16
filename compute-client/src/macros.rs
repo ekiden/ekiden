@@ -25,10 +25,9 @@ macro_rules! create_client {
             #[allow(dead_code)]
             impl<Backend: ContractClientBackend> Client<Backend> {
                 pub fn new(backend: Backend,
-                           mr_enclave: MrEnclave,
-                           ias_config: Option<IASConfiguration>) -> Result<Self, Error> {
+                           mr_enclave: MrEnclave) -> Result<Self, Error> {
 
-                    let mut client = ContractClient::new(backend, mr_enclave, ias_config)?;
+                    let mut client = ContractClient::new(backend, mr_enclave)?;
 
                     // Initialize a secure session.
                     client.init_secure_channel()?;

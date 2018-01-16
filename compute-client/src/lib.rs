@@ -16,7 +16,7 @@ mod generated;
 pub mod backend;
 mod client;
 mod errors;
-mod ias;
+mod quote;
 
 #[macro_use]
 mod macros;
@@ -24,4 +24,4 @@ mod macros;
 // Re-export.
 pub use client::{ContractClient, ContractStatus};
 pub use errors::Error;
-pub use ias::{SPID, SPID_LEN, MrEnclave, MRENCLAVE_LEN, IASConfiguration};
+pub use quote::{MrEnclave, MRENCLAVE_LEN};
