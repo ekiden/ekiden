@@ -18,19 +18,16 @@ extern crate protobuf;
 use std::prelude::v1::*;
 
 use dummy_api::{HelloWorldRequest, HelloWorldResponse};
-use protobuf::well_known_types::Empty;
 
 use libcontract_common::ContractError;
 
 create_enclave_api!();
 
-fn hello_world(state: Option<Empty>, request: HelloWorldRequest) -> Result<(Option<Empty>, HelloWorldResponse), ContractError> {
-    state.unwrap();
-
+fn hello_world(request: HelloWorldRequest) -> Result<HelloWorldResponse, ContractError> {
     println!("hello world called");
 
     let mut response = HelloWorldResponse::new();
     response.set_world(format!("enclave says {}", request.hello));
 
-    Ok((Some(Empty::new()), response))
+    Ok(response)
 }

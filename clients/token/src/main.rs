@@ -69,8 +69,7 @@ fn main() {
     request.set_token_symbol("EKI".to_string());
     request.set_initial_supply(8);
 
-    let dummy_state = Vec::new();
-    let (state, response) = client.create(dummy_state, request).unwrap();
+    let (state, response) = client.create(request).unwrap();
 
     println!("New state from contract: {:?}", state);
     println!("Response from contract: {:?}", response);

@@ -5,7 +5,7 @@ contract_api! {
         state_type = TokenState;
     }
 
-    rpc create(CreateRequest) -> CreateResponse;
+    rpc create(CreateRequest) -> (state, CreateResponse);
 
-    rpc transfer(TransferRequest) -> TransferResponse;
+    rpc transfer(state, TransferRequest) -> (state, TransferResponse);
 }
