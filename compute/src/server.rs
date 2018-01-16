@@ -1,6 +1,4 @@
 use grpc;
-use protobuf;
-use protobuf::Message;
 use thread_local::ThreadLocal;
 
 use libcontract_untrusted::enclave;

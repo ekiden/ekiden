@@ -103,18 +103,34 @@ macro_rules! create_enclave {
             // Invoke given method.
             use libcontract_common::api;
 
+            // Meta methods.
             create_enclave_method!(
                 state,
                 request,
                 raw_response,
                 $metadata_state_type,
-                // Meta methods.
-                _metadata, api::MetadataRequest, api::MetadataResponse,
-                _contract_init, api::ContractInitRequest, api::ContractInitResponse,
-                _contract_restore, api::ContractRestoreRequest, api::ContractRestoreResponse,
-                _channel_init, api::ChannelInitRequest, api::ChannelInitResponse,
-                // User-defined methods.
-                $( $method_name, $request_type, $response_type ),*
+                _metadata, api::MetadataRequest, api::MetadataResponse
+            );
+            create_enclave_method!(
+                state,
+                request,
+                raw_response,
+                $metadata_state_type,
+                _contract_init, api::ContractInitRequest, api::ContractInitResponse
+            );
+            create_enclave_method!(
+                state,
+                request,
+                raw_response,
+                $metadata_state_type,
+                _contract_restore, api::ContractRestoreRequest, api::ContractRestoreResponse
+            );
+            create_enclave_method!(
+                state,
+                request,
+                raw_response,
+                $metadata_state_type,
+                _channel_init, api::ChannelInitRequest, api::ChannelInitResponse
             );
 
             // User-defined methods.
@@ -137,8 +153,8 @@ macro_rules! create_enclave {
         }
 
         // Meta method implementations.
-        fn _metadata(state: Option<$metadata_state_type>, _request: libcontract_common::api::MetadataRequest)
-            -> Result<(Option<$metadata_state_type>, libcontract_common::api::MetadataResponse), libcontract_common::ContractError> {
+        fn _metadata(_request: libcontract_common::api::MetadataRequest)
+            -> Result<libcontract_common::api::MetadataResponse, libcontract_common::ContractError> {
             assert!(state.is_none());
 
             let mut response = libcontract_common::api::MetadataResponse::new();
@@ -148,19 +164,19 @@ macro_rules! create_enclave {
             Ok((None, response))
         }
 
-        fn _contract_init(request: libcontract_common::api::ContractInitRequest)
+        fn _contract_init(state: Option<$metadata_state_type>, request: libcontract_common::api::ContractInitRequest)
             -> Result<libcontract_common::api::ContractInitResponse, libcontract_common::ContractError> {
 
             $crate::secure_channel::contract_init(request)
         }
 
-        fn _contract_restore(request: libcontract_common::api::ContractRestoreRequest)
+        fn _contract_restore(state: Option<$metadata_state_type>, request: libcontract_common::api::ContractRestoreRequest)
             -> Result<libcontract_common::api::ContractRestoreResponse, libcontract_common::ContractError> {
 
             $crate::secure_channel::contract_restore(request)
         }
 
-        fn _channel_init(request: libcontract_common::api::ChannelInitRequest)
+        fn _channel_init(state: Option<$metadata_state_type>, request: libcontract_common::api::ChannelInitRequest)
             -> Result<libcontract_common::api::ChannelInitResponse, libcontract_common::ContractError> {
 
             $crate::secure_channel::channel_init(request)
