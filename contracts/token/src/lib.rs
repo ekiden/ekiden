@@ -20,13 +20,13 @@ use std::prelude::v1::*;
 mod token_contract;
 
 use token_contract::TokenContract;
-use token_api::{TransferRequest, TransferResponse, CreateRequest, CreateResponse};
+use token_api::{TokenState, TransferRequest, TransferResponse, CreateRequest, CreateResponse};
 
 use libcontract_common::{Address, Contract, ContractError, with_contract_state};
 
 create_enclave_api!();
 
-fn create(request: CreateRequest) -> Result<CreateResponse, ContractError> {
+fn create(request: CreateRequest) -> Result<(TokenState, CreateResponse), ContractError> {
     let contract = TokenContract::new(
         &Address::from(request.get_sender().to_string()),
         request.get_initial_supply(),
@@ -34,14 +34,13 @@ fn create(request: CreateRequest) -> Result<CreateResponse, ContractError> {
         request.get_token_symbol().to_string()
     );
 
-    let mut response = CreateResponse::new();
-    response.set_state(contract.get_state());
+    let response = CreateResponse::new();
 
-    Ok(response)
+    Ok((contract.get_state(), response))
 }
 
-fn transfer(request: TransferRequest) -> Result<TransferResponse, ContractError> {
-    let state = with_contract_state(request.get_state(), |contract: &mut TokenContract| {
+fn transfer(state: TokenState, request: TransferRequest) -> Result<(TokenState, TransferResponse), ContractError> {
+    let state = with_contract_state(&state, |contract: &mut TokenContract| {
         contract.transfer(
             &Address::from(request.get_sender().to_string()),
             &Address::from(request.get_destination().to_string()),
@@ -51,8 +50,7 @@ fn transfer(request: TransferRequest) -> Result<TransferResponse, ContractError>
         Ok(())
     })?;
 
-    let mut response = TransferResponse::new();
-    response.set_state(state);
+    let response = TransferResponse::new();
 
-    Ok(response)
+    Ok((state, response))
 }

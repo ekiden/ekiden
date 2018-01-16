@@ -31,7 +31,7 @@ const PLAIN_METHODS: &'static [&'static str] = &[
 /// Parse an RPC request message.
 pub fn parse_request(request_data: *const u8,
                      request_length: usize,
-                     raw_response: &mut RawResponse) -> Result<api::PlainRequest, ()> {
+                     raw_response: &mut RawResponse) -> Result<(Option<api::CryptoSecretbox>, api::PlainRequest), ()> {
 
     let request = unsafe { std::slice::from_raw_parts(request_data, request_length) };
     let mut request: api::Request = match protobuf::parse_from_bytes(request) {
@@ -46,18 +46,24 @@ pub fn parse_request(request_data: *const u8,
         }
     };
 
-    if request.has_encrypted_request() {
+    let encrypted_state = if request.has_encrypted_state() {
+        Some(request.take_encrypted_state())
+    } else {
+        None
+    };
+
+    let plain_request = if request.has_encrypted_request() {
         // Encrypted request.
         raw_response.public_key = request.get_encrypted_request().get_public_key().to_vec();
         match secure_channel::open_request_box(&request.get_encrypted_request()) {
-            Ok(plain_request) => Ok(plain_request),
+            Ok(plain_request) => plain_request,
             _ => {
                 return_error(
                     api::PlainResponse_Code::ERROR_SECURE_CHANNEL,
                     "Unable to open secure channel request",
                     &raw_response
                 );
-                Err(())
+                return Err(())
             }
         }
     } else {
@@ -76,12 +82,15 @@ pub fn parse_request(request_data: *const u8,
             }
         };
 
-        Ok(plain_request)
-    }
+        plain_request
+    };
+
+    Ok((encrypted_state, plain_request))
 }
 
 /// Serialize and return an RPC response.
-pub fn return_response(plain_response: api::PlainResponse,
+pub fn return_response(encrypted_state: Option<api::CryptoSecretbox>,
+                       plain_response: api::PlainResponse,
                        raw_response: &RawResponse) {
 
     let mut response = api::Response::new();
@@ -106,6 +115,10 @@ pub fn return_response(plain_response: api::PlainResponse,
                 ));
             }
         };
+    }
+
+    if let Some(encrypted_state) = encrypted_state {
+        response.set_encrypted_state(encrypted_state);
     }
 
     // TODO: Return null response instead?
@@ -143,8 +156,9 @@ pub fn generate_error(error: api::PlainResponse_Code,
 }
 
 /// Serialize and return an RPC success response.
-pub fn return_success<M: Message>(payload: M,
-                                  raw_response: &RawResponse) {
+pub fn return_success<S: Message, P: Message>(state: Option<S>,
+                                              payload: P,
+                                              raw_response: &RawResponse) {
 
     // Prepare response.
     let mut response = api::PlainResponse::new();
@@ -153,7 +167,13 @@ pub fn return_success<M: Message>(payload: M,
     let payload = payload.write_to_bytes().expect("Failed to serialize payload");
     response.set_payload(payload);
 
+    let encrypted_state = match state {
+        Some(state) => Some(super::state_crypto::encrypt_state(&state).expect("Failed to serialize state")),
+        None => None
+    };
+
     return_response(
+        encrypted_state,
         response,
         raw_response
     );
@@ -165,6 +185,7 @@ pub fn return_error(error: api::PlainResponse_Code,
                     raw_response: &RawResponse) {
 
     return_response(
+        None,
         generate_error(error, &message),
         raw_response
     );

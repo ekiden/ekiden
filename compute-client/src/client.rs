@@ -80,7 +80,8 @@ impl ContractClient {
     }
 
     /// Calls a contract method.
-    pub fn call<Rq, Rs>(&mut self, method: &str, request: Rq) -> Result<Rs, Error>
+    // TODO: have the compute node fetch and store the state
+    pub fn call<Rq, Rs>(&mut self, method: &str, state: Option<Vec<u8>>, request: Rq) -> Result<(Option<Vec<u8>>, Rs), Error>
         where Rq: Message,
               Rs: Message + MessageStatic {
 
@@ -98,6 +99,10 @@ impl ContractClient {
             // Plain-text request.
             enclave_request.set_plain_request(plain_request);
         }
+        if let Some(state) = state {
+            let state = protobuf::parse_from_bytes(&state)?;
+            enclave_request.set_encrypted_state(state);
+        }
 
         let mut raw_request = CallContractRequest::new();
         raw_request.set_payload(enclave_request.write_to_bytes()?);
@@ -108,6 +113,11 @@ impl ContractClient {
         ).wait().unwrap();
 
         let mut response: Response = protobuf::parse_from_bytes(response.get_payload())?;
+        let new_state = if response.has_encrypted_state() {
+            Some(response.get_encrypted_state().write_to_bytes()?)
+        } else {
+            None
+        };
         if self.secure_channel.ready && !response.has_encrypted_response() {
             return Err(Error::new("Contract returned plain response for encrypted request"))
         }
@@ -138,7 +148,7 @@ impl ContractClient {
 
         let response: Rs = protobuf::parse_from_bytes(plain_response.get_payload())?;
 
-        Ok(response)
+        Ok((new_state, response))
     }
 
     /// Get compute node status.
@@ -169,7 +179,7 @@ impl ContractClient {
         request.set_spid(self.ias.get_spid().to_vec());
         request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
 
-        let mut response: ChannelInitResponse = self.call("_channel_init", request)?;
+        let (_state, mut response): (Option<Vec<u8>>, ChannelInitResponse) = self.call("_channel_init", None, request)?;
 
         // Verify quote via IAS, verify nonce.
         let quote = self.ias.verify_quote(&response.take_quote())?;
@@ -196,7 +206,7 @@ impl ContractClient {
         // Send request to close channel.
         let request = ChannelCloseRequest::new();
 
-        let _response: ChannelCloseResponse = self.call("_channel_close", request)?;
+        let (_state, _response): (Option<Vec<u8>>, ChannelCloseResponse) = self.call("_channel_close", None, request)?;
 
         // Reset local part of the secure channel.
         self.secure_channel.reset()?;

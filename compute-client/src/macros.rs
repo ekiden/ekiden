@@ -6,10 +6,11 @@ macro_rules! create_client {
         metadata {
             name = $metadata_name: ident ;
             version = $metadata_version: expr ;
+            state_type = $metadata_state_type: ty ;
         }
 
         $(
-            rpc $method_name: ident ( $request_type: ty ) -> $response_type: ty ;
+            rpc $method_name: ident $method_in: tt -> $method_out: tt ;
         )*
     ) => {
         mod $metadata_name {
@@ -49,7 +50,7 @@ macro_rules! create_client {
 
                 // Generate methods.
                 $(
-                    create_client_method!($method_name, $request_type, $response_type);
+                    create_client_method!($method_name $method_in -> $method_out);
                 )*
             }
 
@@ -66,9 +67,32 @@ macro_rules! create_client {
 /// Internal macro for creating method calls.
 #[macro_export]
 macro_rules! create_client_method {
-    ( $method_name: ident, $request_type: ty, $response_type: ty ) => {
-        pub fn $method_name(&mut self, request: $request_type) -> Result<$response_type, Error> {
-            self.client.call(stringify!($method_name), request)
+    // State in, state out. E.g., transactions
+    ( $method_name: ident ( state , $request_type: ty ) -> ( state , $response_type: ty ) ) => {
+        pub fn $method_name(&mut self, state: Vec<u8>, request: $request_type) -> Result<(Vec<u8>, $response_type), Error> {
+            let (new_state, response) = self.client.call(stringify!($method_name), Some(state), request)?;
+            Ok((new_state.unwrap(), response))
+        }
+    };
+    // No state in, state out. E.g., initializers
+    ( $method_name: ident ( state , $request_type: ty ) -> $response_type: ty ) => {
+        pub fn $method_name(&mut self, state: Vec<u8>, request: $request_type) -> Result<(Vec<u8>, $response_type), Error> {
+            let (_, response) = self.client.call(stringify!($method_name), Some(state), request)?;
+            Ok(response)
+        }
+    };
+    // State in, no state out. E.g., reads
+    ( $method_name: ident ( $request_type: ty ) -> ( state , $response_type: ty ) ) => {
+        pub fn $method_name(&mut self, request: $request_type) -> Result<(Vec<u8>, $response_type), Error> {
+            let (new_state, response) = self.client.call(stringify!($method_name), None, request)?;
+            Ok((new_state.unwrap(), response))
+        }
+    };
+    // No state in, no state out. E.g., _metadata
+    ( $method_name: ident ( $request_type: ty ) -> $response_type: ty ) => {
+        pub fn $method_name(&mut self, request: $request_type) -> Result<(Vec<u8>, $response_type), Error> {
+            let (_, response) = self.client.call(stringify!($method_name), None, request)?;
+            Ok(response)
         }
     };
 }

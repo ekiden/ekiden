@@ -22,6 +22,7 @@ use std::prelude::v1::*;
 pub mod secure_channel;
 pub mod dispatcher;
 pub mod errors;
+pub mod state_crypto;
 
 #[macro_use]
 mod macros;

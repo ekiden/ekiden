@@ -2,6 +2,13 @@ syntax = "proto3";
 
 package enclave_rpc;
 
+message CryptoSecretbox {
+    // Padded ciphertext.
+    bytes ciphertext = 1;
+    // Nonce.
+    bytes nonce = 2;
+}
+
 // Cryptographic box (encrypted and authenticated).
 message CryptoBox {
     // Nonce.
@@ -26,6 +33,8 @@ message Request {
         // Encrypted request.
         CryptoBox encrypted_request = 2;
     }
+    // Starting state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
+    CryptoSecretbox encrypted_state = 3;
 }
 
 message Error {
@@ -60,6 +69,8 @@ message Response {
         // Encrypted response.
         CryptoBox encrypted_response = 2;
     }
+    // New state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
+    CryptoSecretbox encrypted_state = 3;
 }
 
 // Meta methods.

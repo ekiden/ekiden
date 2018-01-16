@@ -64,6 +64,7 @@ impl EkidenEnclave {
     }
 
     /// Perform a plain-text RPC call against the enclave.
+    // TODO: interface is out of date
     pub fn call<R: Message, S: Message + MessageStatic>(&self, method: &str, request: &R) -> Result<S, errors::Error> {
         // Prepare plain request.
         let mut plain_request = api::PlainRequest::new();
