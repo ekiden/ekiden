@@ -22,7 +22,6 @@ mod state;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::sync::mpsc;
-use std::time::Duration;
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
 
@@ -44,19 +43,6 @@ fn main() {
     let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
     tendermint::proxy_broadcasts(&mut tendermint_client, rx);
   });
-
-  // @todo Remove
-  //let (temp_tx, temp_rx) = mpsc::channel();
-  //let broadcast_tx = Arc::clone(&tx);
-  //thread::spawn(move || {
-  //  thread::sleep(Duration::from_secs(3));
-  //  broadcast_tx.lock().unwrap().send(tendermint::BroadcastRequest {
-  //    chan: temp_tx,
-  //    payload: String::from("helloworld").into_bytes(),
-  //  });
-  //  let result = temp_rx.recv().unwrap();
-  //  println!("broadcast output: {:?}", result);
-  //});
 
   // Start the gRPC server.
   let port = 9002;
