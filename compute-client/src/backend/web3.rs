@@ -6,23 +6,12 @@ use protobuf::Message;
 
 use libcontract_common::api;
 
-use super::generated::compute_web3::{CallContractRequest, IasGetSpidRequest, IasVerifyQuoteRequest};
-use super::generated::compute_web3_grpc::{Compute, ComputeClient};
+use super::super::generated::compute_web3::{CallContractRequest, IasGetSpidRequest, IasVerifyQuoteRequest};
+use super::super::generated::compute_web3_grpc::{Compute, ComputeClient};
 
-use super::quote::Quote;
-use super::errors::Error;
-
-/// Contract client backend.
-pub trait ContractClientBackend {
-    /// Call contract.
-    fn call(&self, request: api::Request) -> Result<api::Response, Error>;
-
-    /// Get SPID that can be used to verify the quote later.
-    fn get_spid(&self) -> Result<Vec<u8>, Error>;
-
-    /// Verify quote via IAS.
-    fn verify_quote(&self, quote: Vec<u8>) -> Result<Quote, Error>;
-}
+use super::ContractClientBackend;
+use super::super::quote::Quote;
+use super::super::errors::Error;
 
 pub struct Web3ContractClientBackend {
     /// gRPC client instance.

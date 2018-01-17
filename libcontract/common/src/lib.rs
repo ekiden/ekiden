@@ -24,6 +24,7 @@ pub mod address;
 pub mod contract;
 pub mod contract_error;
 pub mod secure_channel;
+pub mod random;
 
 #[macro_use]
 pub mod hex_encoded;

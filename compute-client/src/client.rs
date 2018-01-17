@@ -1,11 +1,9 @@
-use rand::{OsRng, Rng};
-
 use sodalite;
 
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
-use libcontract_common::api;
+use libcontract_common::{api, random};
 use libcontract_common::secure_channel::{create_box, open_box, RandomNonceGenerator, MonotonicNonceGenerator,
                                          NONCE_CONTEXT_INIT, NONCE_CONTEXT_REQUEST, NONCE_CONTEXT_RESPONSE};
 
@@ -155,7 +153,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
 
         // Generate random nonce.
         let mut nonce = vec![0u8; 16];
-        OsRng::new()?.fill_bytes(&mut nonce);
+        random::get_random_bytes(&mut nonce)?;
 
         request.set_nonce(nonce.clone());
         request.set_spid(self.backend.get_spid()?);
@@ -205,7 +203,7 @@ impl SecureChannelContext {
     pub fn reset(&mut self) -> Result<(), Error> {
         // Generate new short-term key pair for the client.
         let mut seed: SecretSeed = [0u8; SECRET_SEED_LEN];
-        OsRng::new()?.fill_bytes(&mut seed);
+        random::get_random_bytes(&mut seed)?;
 
         sodalite::box_keypair_seed(
             &mut self.client_public_key,
