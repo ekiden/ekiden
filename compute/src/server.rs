@@ -49,30 +49,38 @@ impl ComputeServerImpl {
         // TODO: Use TLS client.
         let storage_client = storage_grpc::StorageClient::new_plain("localhost", 9002, Default::default())?;
 
-        // Get state from storage
-        // TODO: handle uninitialized case
-        let (_, storage_get_response, _) = storage_client.get(grpc::RequestOptions::new(), storage::GetRequest::new()).wait()?;
-        let encrypted_state = protobuf::parse_from_bytes(storage_get_response.get_payload())?;
-
         //
         let mut enclave_request = libcontract_common::api::EnclaveRequest::new();
-        enclave_request.set_encrypted_state(encrypted_state);
-        let client_request = protobuf::parse_from_bytes(rpc_request.get_payload())?;
+
+        // Get state from storage
+        let storage_result = storage_client.get(grpc::RequestOptions::new(), storage::GetRequest::new()).wait();
+        if let Ok((_, storage_get_response, _)) = storage_result {
+            let encrypted_state = protobuf::parse_from_bytes(storage_get_response.get_payload())?;
+            enclave_request.set_encrypted_state(encrypted_state);
+        };
+        // We should bail if there was an error other than the storage not being initialized.
+        // But don't go fixing this. There's another resolution planned in #95.
+
+        //
+        let client_request: libcontract_common::api::ClientRequest = protobuf::parse_from_bytes(rpc_request.get_payload())?;
         enclave_request.set_client_request(client_request);
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
         let enclave_response_bytes = self.get_contract().call_raw(&enclave_request_bytes)?;
 
         let enclave_response: libcontract_common::api::EnclaveResponse = protobuf::parse_from_bytes(&enclave_response_bytes)?;
-        let new_encrypted_state = enclave_response.get_encrypted_state();
-        let client_response = enclave_response.get_client_response();
 
         // Set state in storage
-        let mut storage_set_request = storage::SetRequest::new();
-        storage_set_request.set_payload(new_encrypted_state.write_to_bytes()?);
-        let (_, _storage_set_response, _) = storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait()?;
+        if enclave_response.has_encrypted_state() {
+            let new_encrypted_state = enclave_response.get_encrypted_state();
+            let mut storage_set_request = storage::SetRequest::new();
+            storage_set_request.set_payload(new_encrypted_state.write_to_bytes()?);
+            storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait()?;
+        }
 
         //
+        let client_response = enclave_response.get_client_response();
+
         let mut rpc_response = CallContractResponse::new();
         rpc_response.set_payload(client_response.write_to_bytes()?);
         Ok(rpc_response)
