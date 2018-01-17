@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package enclave_rpc;
 
+// Cryptographic secretbox (encrypted and authenticated).
 message CryptoSecretbox {
     // Padded ciphertext.
     bytes ciphertext = 1;
@@ -19,22 +20,27 @@ message CryptoBox {
     bytes public_key = 3;
 }
 
-message PlainRequest {
+message PlainClientRequest {
     // Request method.
     string method = 1;
     // Payload (must be valid Protocol Buffers, based on given method).
     bytes payload = 2;
 }
 
-message Request {
+message ClientRequest {
     oneof request {
         // Plain-text request.
-        PlainRequest plain_request = 1;
+        PlainClientRequest plain_request = 1;
         // Encrypted request.
         CryptoBox encrypted_request = 2;
     }
+}
+
+message EnclaveRequest {
     // Starting state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
-    CryptoSecretbox encrypted_state = 3;
+    CryptoSecretbox encrypted_state = 1;
+    // The part that comes from a client.
+    ClientRequest client_request = 2;
 }
 
 message Error {
@@ -42,7 +48,7 @@ message Error {
     string message = 1;
 }
 
-message PlainResponse {
+message PlainClientResponse {
     enum Code {
         INVALID = 0;
 
@@ -62,15 +68,20 @@ message PlainResponse {
     bytes payload = 2;
 }
 
-message Response {
+message ClientResponse {
     oneof response {
-        // Plain-text response.
-        PlainResponse plain_response = 1;
         // Encrypted response.
-        CryptoBox encrypted_response = 2;
+        CryptoBox encrypted_response = 1;
+        // Plain-text response.
+        PlainClientResponse plain_response = 2;
     }
+}
+
+message EnclaveResponse {
     // New state, encrypted (must decrypt to valid Protocol Buffers, based on contract).
-    CryptoSecretbox encrypted_state = 3;
+    CryptoSecretbox encrypted_state = 1;
+    // The part that goes to a client.
+    ClientResponse client_response = 2;
 }
 
 // Meta methods.

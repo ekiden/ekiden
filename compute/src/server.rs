@@ -1,10 +1,17 @@
+use std;
 use grpc;
+use protobuf;
+use protobuf::Message;
 use thread_local::ThreadLocal;
 
+use libcontract_common;
 use libcontract_untrusted::enclave;
 
 use generated::compute_web3::{StatusRequest, StatusResponse, CallContractRequest, CallContractResponse};
 use generated::compute_web3_grpc::Compute;
+use generated::storage;
+use generated::storage_grpc;
+use generated::storage_grpc::Storage;
 
 pub struct ComputeServerImpl {
     // Filename of the enclave implementing the contract.
@@ -35,6 +42,41 @@ impl ComputeServerImpl {
             Box::new(contract)
         })
     }
+
+    fn call_contract_fallible(&self, rpc_request: CallContractRequest) -> Result<CallContractResponse, Box<std::error::Error>> {
+        // Connect to storage node
+        // TODO: Let client select storage node.
+        // TODO: Use TLS client.
+        let storage_client = storage_grpc::StorageClient::new_plain("localhost", 9002, Default::default())?;
+
+        // Get state from storage
+        // TODO: handle uninitialized case
+        let (_, storage_get_response, _) = storage_client.get(grpc::RequestOptions::new(), storage::GetRequest::new()).wait()?;
+        let encrypted_state = protobuf::parse_from_bytes(storage_get_response.get_payload())?;
+
+        //
+        let mut enclave_request = libcontract_common::api::EnclaveRequest::new();
+        enclave_request.set_encrypted_state(encrypted_state);
+        let client_request = protobuf::parse_from_bytes(rpc_request.get_payload())?;
+        enclave_request.set_client_request(client_request);
+
+        let enclave_request_bytes = enclave_request.write_to_bytes()?;
+        let enclave_response_bytes = self.get_contract().call_raw(&enclave_request_bytes)?;
+
+        let enclave_response: libcontract_common::api::EnclaveResponse = protobuf::parse_from_bytes(&enclave_response_bytes)?;
+        let new_encrypted_state = enclave_response.get_encrypted_state();
+        let client_response = enclave_response.get_client_response();
+
+        // Set state in storage
+        let mut storage_set_request = storage::SetRequest::new();
+        storage_set_request.set_payload(new_encrypted_state.write_to_bytes()?);
+        let (_, _storage_set_response, _) = storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait()?;
+
+        //
+        let mut rpc_response = CallContractResponse::new();
+        rpc_response.set_payload(client_response.write_to_bytes()?);
+        Ok(rpc_response)
+    }
 }
 
 impl Compute for ComputeServerImpl {
@@ -55,17 +97,11 @@ impl Compute for ComputeServerImpl {
         return grpc::SingleResponse::completed(response);
     }
 
-    fn call_contract(&self, _options: grpc::RequestOptions, request: CallContractRequest)
+    fn call_contract(&self, _options: grpc::RequestOptions, rpc_request: CallContractRequest)
         -> grpc::SingleResponse<CallContractResponse> {
-
-        let raw_response = match self.get_contract().call_raw(&request.get_payload().to_vec()) {
-            Ok(response) => response,
-            Err(_) => return grpc::SingleResponse::err(grpc::Error::Other("Failed to call contract"))
-        };
-
-        let mut response = CallContractResponse::new();
-        response.set_payload(raw_response);
-
-        return grpc::SingleResponse::completed(response);
+        match self.call_contract_fallible(rpc_request) {
+            Ok(rpc_response) => grpc::SingleResponse::completed(rpc_response),
+            Err(_) => return grpc::SingleResponse::err(grpc::Error::Other("Failed to call contract")),
+        }
     }
 }

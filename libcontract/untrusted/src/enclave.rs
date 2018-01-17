@@ -63,35 +63,39 @@ impl EkidenEnclave {
         )
     }
 
-    /// Perform a plain-text RPC call against the enclave.
-    // TODO: interface is out of date
+    /// Perform a plain-text RPC call against the enclave with no state.
     pub fn call<R: Message, S: Message + MessageStatic>(&self, method: &str, request: &R) -> Result<S, errors::Error> {
         // Prepare plain request.
-        let mut plain_request = api::PlainRequest::new();
+        let mut plain_request = api::PlainClientRequest::new();
         plain_request.set_method(String::from(method));
         plain_request.set_payload(request.write_to_bytes()?);
 
-        let mut raw_request = api::Request::new();
-        raw_request.set_plain_request(plain_request);
+        let mut client_request = api::ClientRequest::new();
+        client_request.set_plain_request(plain_request);
 
-        let raw_request = raw_request.write_to_bytes()?;
-        let raw_response = self.call_raw(&raw_request)?;
+        let mut enclave_request = api::EnclaveRequest::new();
+        enclave_request.set_client_request(client_request);
 
-        let raw_response: api::Response = match protobuf::parse_from_bytes(raw_response.as_slice()) {
-            Ok(response) => response,
+        let enclave_request_bytes = enclave_request.write_to_bytes()?;
+        let enclave_response_bytes = self.call_raw(&enclave_request_bytes)?;
+
+        let enclave_response: api::EnclaveResponse = match protobuf::parse_from_bytes(enclave_response_bytes.as_slice()) {
+            Ok(enclave_response) => enclave_response,
             _ => return Err(errors::Error::ParseError)
         };
 
+        let client_response = enclave_response.get_client_response();
+
         // Plain request requires a plain response.
-        assert!(raw_response.has_plain_response());
-        let raw_response = raw_response.get_plain_response();
+        assert!(client_response.has_plain_response());
+        let plain_response = client_response.get_plain_response();
 
         // Validate response code.
-        match raw_response.get_code() {
-            api::PlainResponse_Code::SUCCESS => {},
+        match plain_response.get_code() {
+            api::PlainClientResponse_Code::SUCCESS => {},
             code => {
                 // Deserialize error.
-                let error: api::Error = match protobuf::parse_from_bytes(raw_response.get_payload()) {
+                let error: api::Error = match protobuf::parse_from_bytes(plain_response.get_payload()) {
                     Ok(error) => error,
                     _ => return Err(errors::Error::ResponseError(code, "<Unable to parse error payload>".to_string()))
                 };
@@ -101,7 +105,7 @@ impl EkidenEnclave {
         };
 
         // Deserialize response.
-        match protobuf::parse_from_bytes(raw_response.get_payload()) {
+        match protobuf::parse_from_bytes(plain_response.get_payload()) {
             Ok(response) => Ok(response),
             _ => Err(errors::Error::ParseError)
         }

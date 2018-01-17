@@ -69,12 +69,11 @@ fn main() {
     request.set_token_symbol("EKI".to_string());
     request.set_initial_supply(8);
 
-    let (state, response) = client.create(request).unwrap();
+    let response = client.create(request).unwrap();
 
-    println!("New state from contract: {:?}", state);
     println!("Response from contract: {:?}", response);
 
-    let (state, response) = client.transfer(state, {
+    let response = client.transfer({
         let mut request = token::TransferRequest::new();
         request.set_sender("testaddr".to_string());
         request.set_destination("b".to_string());
@@ -82,6 +81,5 @@ fn main() {
         request
     }).unwrap();
 
-    println!("New state from contract: {:?}", state);
     println!("Response from contract: {:?}", response);
 }

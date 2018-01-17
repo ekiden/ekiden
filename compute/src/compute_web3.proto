@@ -23,7 +23,7 @@ message StatusResponse {
 }
 
 message CallContractRequest {
-    // Raw contract request payload that will be passed unmodified to the
+    // Raw contract request payload that will be passed to the
     // contract (Protocol Buffers serialized).
     bytes payload = 1;
 }

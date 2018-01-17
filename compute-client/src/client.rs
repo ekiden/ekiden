@@ -6,7 +6,7 @@ use sodalite;
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
-use libcontract_common::api::{Request, PlainRequest, Response, PlainResponse, PlainResponse_Code,
+use libcontract_common::api::{PlainClientRequest, ClientRequest, PlainClientResponse, PlainClientResponse_Code, ClientResponse,
                               Error as ResponseError, ChannelInitRequest, ChannelInitResponse, CryptoBox,
                               ChannelCloseRequest, ChannelCloseResponse};
 use libcontract_common::secure_channel::{create_box, open_box, RandomNonceGenerator, MonotonicNonceGenerator,
@@ -80,61 +80,51 @@ impl ContractClient {
     }
 
     /// Calls a contract method.
-    // TODO: have the compute node fetch and store the state
-    pub fn call<Rq, Rs>(&mut self, method: &str, state: Option<Vec<u8>>, request: Rq) -> Result<(Option<Vec<u8>>, Rs), Error>
+    pub fn call<Rq, Rs>(&mut self, method: &str, request: Rq) -> Result<Rs, Error>
         where Rq: Message,
               Rs: Message + MessageStatic {
 
-        let mut plain_request = PlainRequest::new();
+        let mut plain_request = PlainClientRequest::new();
         plain_request.set_method(method.to_string());
         plain_request.set_payload(request.write_to_bytes()?);
 
-        let mut enclave_request = Request::new();
+        let mut client_request = ClientRequest::new();
         if self.secure_channel.ready {
             // Encrypt request.
-            enclave_request.set_encrypted_request(
+            client_request.set_encrypted_request(
                 self.secure_channel.create_request_box(&plain_request)?
             );
         } else {
             // Plain-text request.
-            enclave_request.set_plain_request(plain_request);
-        }
-        if let Some(state) = state {
-            let state = protobuf::parse_from_bytes(&state)?;
-            enclave_request.set_encrypted_state(state);
+            client_request.set_plain_request(plain_request);
         }
 
-        let mut raw_request = CallContractRequest::new();
-        raw_request.set_payload(enclave_request.write_to_bytes()?);
+        let mut rpc_request = CallContractRequest::new();
+        rpc_request.set_payload(client_request.write_to_bytes()?);
 
-        let (_, response, _) = self.client.call_contract(
+        let (_, rpc_response, _) = self.client.call_contract(
             grpc::RequestOptions::new(),
-            raw_request
+            rpc_request
         ).wait().unwrap();
 
-        let mut response: Response = protobuf::parse_from_bytes(response.get_payload())?;
-        let new_state = if response.has_encrypted_state() {
-            Some(response.get_encrypted_state().write_to_bytes()?)
-        } else {
-            None
-        };
-        if self.secure_channel.ready && !response.has_encrypted_response() {
+        let mut client_response: ClientResponse = protobuf::parse_from_bytes(rpc_response.get_payload())?;
+        if self.secure_channel.ready && !client_response.has_encrypted_response() {
             return Err(Error::new("Contract returned plain response for encrypted request"))
         }
 
         let mut plain_response = {
             if self.secure_channel.ready {
                 // Encrypted response.
-                self.secure_channel.open_response_box(&response.get_encrypted_response())?
+                self.secure_channel.open_response_box(&client_response.get_encrypted_response())?
             } else {
                 // Plain-text response.
-                response.take_plain_response()
+                client_response.take_plain_response()
             }
         };
 
         // Validate response code.
         match plain_response.get_code() {
-            PlainResponse_Code::SUCCESS => {},
+            PlainClientResponse_Code::SUCCESS => {},
             _ => {
                 // Deserialize error.
                 let mut error: ResponseError = match protobuf::parse_from_bytes(&plain_response.take_payload()) {
@@ -148,7 +138,7 @@ impl ContractClient {
 
         let response: Rs = protobuf::parse_from_bytes(plain_response.get_payload())?;
 
-        Ok((new_state, response))
+        Ok(response)
     }
 
     /// Get compute node status.
@@ -179,7 +169,7 @@ impl ContractClient {
         request.set_spid(self.ias.get_spid().to_vec());
         request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
 
-        let (_state, mut response): (Option<Vec<u8>>, ChannelInitResponse) = self.call("_channel_init", None, request)?;
+        let mut response: ChannelInitResponse = self.call("_channel_init", request)?;
 
         // Verify quote via IAS, verify nonce.
         let quote = self.ias.verify_quote(&response.take_quote())?;
@@ -206,7 +196,7 @@ impl ContractClient {
         // Send request to close channel.
         let request = ChannelCloseRequest::new();
 
-        let (_state, _response): (Option<Vec<u8>>, ChannelCloseResponse) = self.call("_channel_close", None, request)?;
+        let _response: ChannelCloseResponse = self.call("_channel_close", request)?;
 
         // Reset local part of the secure channel.
         self.secure_channel.reset()?;
@@ -269,7 +259,7 @@ impl SecureChannelContext {
     }
 
     /// Create cryptographic box with RPC request.
-    pub fn create_request_box(&mut self, request: &PlainRequest) -> Result<CryptoBox, Error> {
+    pub fn create_request_box(&mut self, request: &PlainClientRequest) -> Result<CryptoBox, Error> {
         let mut crypto_box = create_box(
             &request.write_to_bytes()?,
             &NONCE_CONTEXT_REQUEST,
@@ -286,7 +276,7 @@ impl SecureChannelContext {
     }
 
     /// Open cryptographic box with RPC response.
-    pub fn open_response_box(&mut self, response: &CryptoBox) -> Result<PlainResponse, Error> {
+    pub fn open_response_box(&mut self, response: &CryptoBox) -> Result<PlainClientResponse, Error> {
         let plain_response = open_box(
             &response,
             &NONCE_CONTEXT_RESPONSE,
