@@ -64,3 +64,57 @@ fn main() {
   });
 
 }
+
+#[cfg(test)]
+mod tests {
+    use grpc;
+    use super::generated::storage;
+    use super::generated::storage_grpc;
+    use super::generated::storage_grpc::Storage;
+
+    #[test]
+    fn exercise1() {
+        let storage_client = storage_grpc::StorageClient::new_plain("localhost", 9002, Default::default()).unwrap();
+
+        // Set state to `helloworld`
+        let mut storage_set_request = storage::SetRequest::new();
+        storage_set_request.set_payload(String::from("helloworld").into_bytes());
+        storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait().unwrap();
+
+        let storage_get_request = storage::GetRequest::new();
+        let (_, storage_get_response, _) = storage_client.get(grpc::RequestOptions::new(), storage_get_request).wait().unwrap();
+        assert_eq!(storage_get_response.get_payload(), String::from("helloworld").as_bytes());
+
+        // Set state to `successor`
+        let mut storage_set_request = storage::SetRequest::new();
+        storage_set_request.set_payload(String::from("successor").into_bytes());
+        storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait().unwrap();
+
+        let storage_get_request = storage::GetRequest::new();
+        let (_, storage_get_response, _) = storage_client.get(grpc::RequestOptions::new(), storage_get_request).wait().unwrap();
+        assert_eq!(storage_get_response.get_payload(), String::from("successor").as_bytes());
+
+        // Set state back to `helloworld`
+        let mut storage_set_request = storage::SetRequest::new();
+        storage_set_request.set_payload(String::from("helloworld").into_bytes());
+        storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait().unwrap();
+
+        let storage_get_request = storage::GetRequest::new();
+        let (_, storage_get_response, _) = storage_client.get(grpc::RequestOptions::new(), storage_get_request).wait().unwrap();
+        assert_eq!(storage_get_response.get_payload(), String::from("helloworld").as_bytes());
+
+        // Set state to a sequence of all byte values
+        let mut scale: Vec<u8> = vec![0; 256];
+        for i in 0..256 {
+            scale[i] = i as u8;
+        }
+
+        let mut storage_set_request = storage::SetRequest::new();
+        storage_set_request.set_payload(scale.clone());
+        storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait().unwrap();
+
+        let storage_get_request = storage::GetRequest::new();
+        let (_, storage_get_response, _) = storage_client.get(grpc::RequestOptions::new(), storage_get_request).wait().unwrap();
+        assert_eq!(storage_get_response.get_payload(), &scale[..]);
+    }
+}
