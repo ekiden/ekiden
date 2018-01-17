@@ -69,6 +69,16 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         })
     }
 
+    /// Calls a contract method without state.
+    pub fn call_stateless<Rq, Rs>(&mut self, method: &str, request: Rq) -> Result<Rs, Error>
+        where Rq: Message,
+              Rs: Message + MessageStatic {
+
+        let (_state, response): (Option<Vec<u8>>, Rs) = self.call(&method, None, request)?;
+
+        Ok(response)
+    }
+
     /// Calls a contract method.
     // TODO: have the compute node fetch and store the state
     pub fn call<Rq, Rs>(&mut self, method: &str, state: Option<Vec<u8>>, request: Rq) -> Result<(Option<Vec<u8>>, Rs), Error>
@@ -151,7 +161,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         request.set_spid(self.backend.get_spid()?);
         request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
 
-        let (_state, mut response): (Option<Vec<u8>>, api::ChannelInitResponse) = self.call("_channel_init", None, request)?;
+        let mut response: api::ChannelInitResponse = self.call_stateless("_channel_init", request)?;
 
         // Verify quote via IAS, verify nonce.
         let quote = self.backend.verify_quote(response.take_quote())?;
@@ -178,7 +188,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         // Send request to close channel.
         let request = api::ChannelCloseRequest::new();
 
-        let (_state, _response): (Option<Vec<u8>>, api::ChannelCloseResponse) = self.call("_channel_close", None, request)?;
+        let _response: api::ChannelCloseResponse = self.call_stateless("_channel_close", request)?;
 
         // Reset local part of the secure channel.
         self.secure_channel.reset()?;
