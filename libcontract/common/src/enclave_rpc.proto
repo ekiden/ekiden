@@ -94,6 +94,8 @@ message ContractInitResponse {
     // Sealed keys that should be persisted to the filesystem and used in
     // next enclave invocation.
     bytes sealed_keys = 2;
+    // MRENCLAVE of the running contract.
+    bytes mr_enclave = 3;
 }
 
 message ContractRestoreRequest {

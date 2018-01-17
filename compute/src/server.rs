@@ -1,6 +1,8 @@
 use grpc;
 use thread_local::ThreadLocal;
+
 use std::sync::{Arc, Mutex};
+use std::fmt::Write;
 
 use libcontract_untrusted::enclave;
 
@@ -37,7 +39,15 @@ impl ComputeServerImpl {
 
             // Initialize contract.
             // TODO: Support contract restore.
-            contract.initialize().expect("Failed to initialize contract");
+            let response = contract.initialize().expect("Failed to initialize contract");
+
+            // Show contract MRENCLAVE in hex format.
+            let mut mr_enclave = String::new();
+            for &byte in response.get_mr_enclave() {
+                write!(&mut mr_enclave, "{:02x}", byte).unwrap();
+            }
+
+            println!("Loaded contract with MRENCLAVE: {}", mr_enclave);
 
             Box::new(contract)
         })

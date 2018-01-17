@@ -304,9 +304,16 @@ pub fn contract_init(_request: api::ContractInitRequest) -> Result<api::Contract
     // Generate a new keypair.
     channel.generate_keypair()?;
 
+    // Generate non-verifiable report, so we can extract enclave metadata (MRENCLAVE).
+    let report = match sgx_tse::rsgx_create_report(&sgx_target_info_t::default(), &sgx_report_data_t::default()) {
+        Ok(report) => report,
+        _ => return Err(ContractError::new("Failed to create report"))
+    };
+
     let mut response = api::ContractInitResponse::new();
     response.set_public_key(channel.get_public_key().to_vec());
     response.set_sealed_keys(channel.get_sealed_keypair()?);
+    response.set_mr_enclave(report.body.mr_enclave.m.to_vec());
 
     Ok(response)
 }
