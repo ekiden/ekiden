@@ -64,17 +64,17 @@ macro_rules! create_client_method {
         }
     };
     // No state in, state out. E.g., initializers
-    ( $method_name: ident ( state , $request_type: ty ) -> $response_type: ty ) => {
-        pub fn $method_name(&mut self, state: Vec<u8>, request: $request_type) -> Result<(Vec<u8>, $response_type), Error> {
-            let (_, response) = self.client.call(stringify!($method_name), Some(state), request)?;
-            Ok(response)
-        }
-    };
-    // State in, no state out. E.g., reads
     ( $method_name: ident ( $request_type: ty ) -> ( state , $response_type: ty ) ) => {
         pub fn $method_name(&mut self, request: $request_type) -> Result<(Vec<u8>, $response_type), Error> {
             let (new_state, response) = self.client.call(stringify!($method_name), None, request)?;
             Ok((new_state.unwrap(), response))
+        }
+    };
+    // State in, no state out. E.g., reads
+    ( $method_name: ident ( state , $request_type: ty ) -> $response_type: ty ) => {
+        pub fn $method_name(&mut self, state: Vec<u8>, request: $request_type) -> Result<$response_type, Error> {
+            let (_, response) = self.client.call(stringify!($method_name), Some(state), request)?;
+            Ok(response)
         }
     };
     // No state in, no state out. E.g., _metadata
