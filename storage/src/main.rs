@@ -94,15 +94,6 @@ mod tests {
         let (_, storage_get_response, _) = storage_client.get(grpc::RequestOptions::new(), storage_get_request).wait().unwrap();
         assert_eq!(storage_get_response.get_payload(), String::from("successor").as_bytes());
 
-        // Set state back to `helloworld`
-        let mut storage_set_request = storage::SetRequest::new();
-        storage_set_request.set_payload(String::from("helloworld").into_bytes());
-        storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait().unwrap();
-
-        let storage_get_request = storage::GetRequest::new();
-        let (_, storage_get_response, _) = storage_client.get(grpc::RequestOptions::new(), storage_get_request).wait().unwrap();
-        assert_eq!(storage_get_response.get_payload(), String::from("helloworld").as_bytes());
-
         // Set state to a sequence of all byte values
         let mut scale: Vec<u8> = vec![0; 256];
         for i in 0..256 {
