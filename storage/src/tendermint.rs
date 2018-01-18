@@ -1,3 +1,5 @@
+extern crate hex;
+
 use std::sync::mpsc;
 use futures::{Future, Stream};
 use hyper;
@@ -151,9 +153,11 @@ impl Tendermint {
   }
 
   pub fn broadcast_tx_commit(&mut self, payload: Vec<u8>) -> Result<JsonRpcResult<BroadcastTxCommit>, Error> {
-    let payload_str = String::from_utf8(payload)?;
+    // https://github.com/tendermint/tendermint/blob/v0.13.0/rpc/lib/server/handlers.go#L280
+    // https://github.com/tendermint/tendermint/blob/v0.13.0/rpc/lib/server/handlers.go#L308
+    let payload_hex = hex::encode(payload);
     let uri = String::new() + &self.uri_prefix +
-      "/broadcast_tx_commit?tx=\"" + &payload_str + "\"";
+      "/broadcast_tx_commit?tx=0x" + &payload_hex;
     let resp_str = self.helper(uri)?;
     let result: JsonRpcResult<BroadcastTxCommit> = serde_json::from_str(&resp_str)?;
     Ok(result)
