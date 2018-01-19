@@ -60,11 +60,16 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
     pub fn new(backend: Backend,
                mr_enclave: MrEnclave) -> Result<Self, Error> {
 
-        Ok(ContractClient {
+        let mut client = ContractClient {
             backend: backend,
             mr_enclave: mr_enclave,
             secure_channel: SecureChannelContext::default(),
-        })
+        };
+
+        // Initialize a secure session.
+        client.init_secure_channel()?;
+
+        Ok(client)
     }
 
     /// Calls a contract method without state.
@@ -277,5 +282,12 @@ impl SecureChannelContext {
         )?;
 
         Ok(protobuf::parse_from_bytes(&plain_response)?)
+    }
+}
+
+impl<Backend: ContractClientBackend> Drop for ContractClient<Backend> {
+    /// Close secure channel when going out of scope.
+    fn drop(&mut self) {
+        self.close_secure_channel().unwrap();
     }
 }

@@ -15,7 +15,7 @@ macro_rules! create_client {
     ) => {
         mod $metadata_name {
             use compute_client::*;
-            use compute_client::backend::*;
+            use compute_client::backend::ContractClientBackend;
             pub use $api_module::*;
 
             pub struct Client<Backend: ContractClientBackend> {
@@ -27,13 +27,8 @@ macro_rules! create_client {
                 pub fn new(backend: Backend,
                            mr_enclave: MrEnclave) -> Result<Self, Error> {
 
-                    let mut client = ContractClient::new(backend, mr_enclave)?;
-
-                    // Initialize a secure session.
-                    client.init_secure_channel()?;
-
                     Ok(Client {
-                        client: client,
+                        client: ContractClient::new(backend, mr_enclave)?,
                     })
                 }
 
@@ -41,13 +36,6 @@ macro_rules! create_client {
                 $(
                     create_client_method!($method_name $method_in -> $method_out);
                 )*
-            }
-
-            impl<Backend: ContractClientBackend> Drop for Client<Backend> {
-                fn drop(&mut self) {
-                    // Close secure channel when going out of scope.
-                    self.client.close_secure_channel().unwrap();
-                }
             }
         }
     };
