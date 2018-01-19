@@ -18,7 +18,7 @@ pub struct ComputeServerImpl {
     // Contract running in an enclave.
     contract: ThreadLocal<enclave::EkidenEnclave>,
     // IAS service.
-    ias: Arc<Mutex<IAS>>,
+    ias: IAS,
 }
 
 impl ComputeServerImpl {
@@ -27,7 +27,7 @@ impl ComputeServerImpl {
         ComputeServerImpl {
             contract_filename: contract_filename.to_string(),
             contract: ThreadLocal::new(),
-            ias: Arc::new(Mutex::new(IAS::new(ias).unwrap())),
+            ias: IAS::new(ias).unwrap(),
         }
     }
 
@@ -74,8 +74,7 @@ impl Compute for ComputeServerImpl {
 
         let mut response = IasGetSpidResponse::new();
 
-        let ias = self.ias.lock().unwrap();
-        response.set_spid(ias.get_spid().to_vec());
+        response.set_spid(self.ias.get_spid().to_vec());
 
         return grpc::SingleResponse::completed(response);
     }
@@ -85,8 +84,7 @@ impl Compute for ComputeServerImpl {
 
         let mut response = IasVerifyQuoteResponse::new();
 
-        let mut ias = self.ias.lock().unwrap();
-        match ias.verify_quote(request.get_nonce(), request.get_quote()) {
+        match self.ias.verify_quote(request.get_nonce(), request.get_quote()) {
             Ok(report) => {
                 // Verification successful.
                 response.set_success(true);

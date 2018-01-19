@@ -69,7 +69,7 @@ impl IAS {
     }
 
     /// Make authenticated web request to IAS.
-    fn make_request(&mut self, endpoint: &str, data: &HashMap<&str, String>) -> io::Result<reqwest::Response> {
+    fn make_request(&self, endpoint: &str, data: &HashMap<&str, String>) -> io::Result<reqwest::Response> {
         let endpoint = format!("{}{}", IAS_API_URL, endpoint);
 
         match self.client.post(&endpoint).json(&data).send() {
@@ -79,7 +79,7 @@ impl IAS {
     }
 
     /// Make authenticated web request to IAS report endpoint.
-    pub fn verify_quote(&mut self, nonce: &[u8], quote: &[u8]) -> io::Result<AttestationVerificationReport> {
+    pub fn verify_quote(&self, nonce: &[u8], quote: &[u8]) -> io::Result<AttestationVerificationReport> {
         let mut request = HashMap::new();
         request.insert("isvEnclaveQuote", base64::encode(&quote));
         request.insert("nonce", base64::encode(&nonce));
