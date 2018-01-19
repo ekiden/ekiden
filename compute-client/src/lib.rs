@@ -41,4 +41,4 @@ mod macros;
 // Re-export.
 pub use client::ContractClient;
 pub use errors::Error;
-pub use quote::{MrEnclave, MRENCLAVE_LEN};
+pub use quote::{MrEnclave, Quote, MRENCLAVE_LEN};

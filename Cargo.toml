@@ -7,6 +7,7 @@ members = [
   "contracts/dummy",
   "contracts/token",
   "contracts/learner",
+  "contracts/key-manager",
   "libcontract/common",
   "libcontract/trusted",
   "libcontract/untrusted",

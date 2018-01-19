@@ -1,0 +1,22 @@
+[package]
+name = "key-manager"
+version = "0.1.0"
+authors = ["Jernej Kos <jernej@kos.mx>"]
+build = "build.rs"
+
+[lib]
+name = "key_manager"
+crate-type = ["staticlib"]
+
+[features]
+default = []
+
+[dependencies]
+key-manager-api = { path = "./api", features = ["sgx"], default-features = false }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
+libcontract-trusted = { path = "../../libcontract/trusted" }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
+
+[build-dependencies]
+libcontract-utils = { path = "../../libcontract/utils" }

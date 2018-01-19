@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package enclave_services;
+
+// This file contains messages for special endpoints available from inside the
+// enclave via the untrusted_rpc_call OCALL.
+
+// IASProxy endpoint.
+// TODO: This should really be shared with the compute node Web3 protocol.
+
+message IasGetSpidRequest {
+}
+
+message IasGetSpidResponse {
+    // 16-byte SPID used by the compute node.
+    bytes spid = 1;
+}
+
+message IasVerifyQuoteRequest {
+    // Quote to verify.
+    bytes quote = 1;
+    // Nonce.
+    bytes nonce = 2;
+}
+
+message IasVerifyQuoteResponse {
+    // HTTP response status code from IAS.
+    enum Status {
+        INVALID = 0;
+        SUCCESS = 200;
+        ERROR_BAD_REQUEST = 400;
+        ERROR_UNAUTHORIZED = 401;
+        ERROR_INTERNAL_SERVER_ERROR = 500;
+        ERROR_SERVICE_UNAVAILABLE = 503;
+    }
+
+    // Attestation verification report fields. These should be used to independently
+    // verify the IAS verification.
+    Status status = 1;
+    string body = 2;
+    bytes signature = 3;
+    string certificates = 4;
+}

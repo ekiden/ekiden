@@ -8,6 +8,9 @@ pub trait ContractClientBackend {
     /// Call contract.
     fn call(&self, client_request: api::ClientRequest) -> Result<api::ClientResponse, Error>;
 
+    /// Call contract with raw data.
+    fn call_raw(&self, request: Vec<u8>) -> Result<Vec<u8>, Error>;
+
     /// Get SPID that can be used to verify the quote later.
     fn get_spid(&self) -> Result<Vec<u8>, Error>;
 

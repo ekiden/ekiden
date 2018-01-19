@@ -11,9 +11,10 @@ use std::collections::HashMap;
 use std::sync::SgxMutex;
 
 use libcontract_common::{api, secure_channel, ContractError};
+use libcontract_common::quote::QUOTE_CONTEXT_SC_CONTRACT_TO_CLIENT;
 use libcontract_common::secure_channel::{MonotonicNonceGenerator, RandomNonceGenerator};
 
-use super::untrusted;
+use super::quote::{get_quote, ReportData, REPORT_DATA_LEN};
 
 // Secret seed used for generating private and public keys.
 const SECRET_SEED_LEN: usize = 32;
@@ -338,22 +339,6 @@ pub fn contract_restore(
     Ok(response)
 }
 
-macro_rules! sgx_call {
-    ($error: expr, $result: ident, $block: block) => {
-        let status = unsafe { $block };
-
-        match status {
-            sgx_status_t::SGX_SUCCESS => {
-                match $result {
-                    sgx_status_t::SGX_SUCCESS => {},
-                    _ => return Err(ContractError::new($error))
-                };
-            },
-            _ => return Err(ContractError::new($error))
-        };
-    }
-}
-
 /// Initialize secure channel.
 pub fn channel_init(
     request: api::ChannelInitRequest,
@@ -361,81 +346,24 @@ pub fn channel_init(
     // Validate request.
     if request.get_nonce().len() != 16 {
         return Err(ContractError::new("Invalid nonce"));
-    } else if request.get_spid().len() != 16 {
-        return Err(ContractError::new("Invalid SPID"));
     }
 
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
     channel.ensure_ready()?;
 
-    // Initialize target suitable for use by the quoting enclave.
-    let mut result = sgx_status_t::SGX_ERROR_UNEXPECTED;
-    let mut target_info = sgx_target_info_t::default();
-    let mut epid_group = sgx_epid_group_id_t::default();
-
-    sgx_call!("Failed to initialize quote", result, {
-        untrusted::untrusted_init_quote(
-            &mut result,
-            &mut target_info as *mut sgx_target_info_t,
-            &mut epid_group as *mut sgx_epid_group_id_t,
-        )
-    });
-
-    // Generate report for the quoting enclave (include channel public key in report data).
-    let mut report_data = sgx_report_data_t::default();
+    // Generate report data to be included.
+    let mut report_data: ReportData = [0; REPORT_DATA_LEN];
     let pkey_len = sodalite::BOX_PUBLIC_KEY_LEN;
-    report_data.d[..pkey_len].copy_from_slice(channel.get_public_key());
-    report_data.d[pkey_len..pkey_len + 16].copy_from_slice(&request.get_nonce()[..16]);
+    report_data[..pkey_len].copy_from_slice(channel.get_public_key());
+    report_data[pkey_len..pkey_len + 16].copy_from_slice(&request.get_nonce()[..16]);
 
-    let report = match sgx_tse::rsgx_create_report(&target_info, &report_data) {
-        Ok(report) => report,
-        _ => return Err(ContractError::new("Failed to create report")),
-    };
-
-    // Request the quoting enclave to generate a quote from our report.
-    let mut qe_report = sgx_report_t::default();
-    let mut qe_nonce = sgx_quote_nonce_t { rand: [0; 16] };
-    let mut spid = sgx_spid_t { id: [0; 16] };
-
-    // Maximum quote size is 16K.
-    let mut quote: Vec<u8> = Vec::with_capacity(16 * 1024);
-    let mut quote_size = 0;
-
-    spid.id.copy_from_slice(&request.get_spid()[..16]);
-
-    match sgx_trts::rsgx_read_rand(&mut qe_nonce.rand) {
-        Ok(_) => {}
-        _ => return Err(ContractError::new("Failed to generate random nonce")),
-    };
-
-    sgx_call!("Failed to get quote", result, {
-        untrusted::untrusted_get_quote(
-            &mut result,
-            &report as *const sgx_report_t,
-            sgx_quote_sign_type_t::SGX_UNLINKABLE_SIGNATURE,
-            &spid as *const sgx_spid_t,
-            &qe_nonce as *const sgx_quote_nonce_t,
-            &mut qe_report as *mut sgx_report_t,
-            quote.as_mut_ptr() as *mut u8,
-            quote.capacity() as u32,
-            &mut quote_size,
-        )
-    });
-
-    match sgx_tse::rsgx_verify_report(&qe_report) {
-        Ok(_) => {}
-        _ => return Err(ContractError::new("Failed to get quote")),
-    };
-
-    unsafe {
-        quote.set_len(quote_size as usize);
-    }
-
-    // TODO: Verify QE signature. Note that this may not be the QE enclave at all as
-    // untrusted_init_quote can provide an arbitrary enclave target. Is there a way
-    // to get the QE identity in a secure way?
-    // lower 32Bytes in report.data = SHA256(qe_nonce||quote).
+    // Generate quote.
+    let quote = get_quote(
+        &request.get_spid(),
+        &QUOTE_CONTEXT_SC_CONTRACT_TO_CLIENT,
+        report_data,
+    )?;
 
     // Create new session.
     let crypto_box = channel.create_session(request.get_short_term_public_key())?;
