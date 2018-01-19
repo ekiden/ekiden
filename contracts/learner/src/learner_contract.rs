@@ -1,12 +1,12 @@
 use std::error::Error;
 
-use rusty_machine::prelude::*;
 use rusty_machine::learning::lin_reg::LinRegressor;
+use rusty_machine::prelude::*;
 use serde_cbor;
 
 use libcontract_common::{Address, Contract, ContractError};
 
-use learner_api::{LearnerState};
+use learner_api::LearnerState;
 
 pub struct Learner {
     owner: Address,
@@ -22,16 +22,20 @@ impl Learner {
     }
 
     pub fn train(
-        &mut self, inputs: &Matrix<f64>, targets: &Vector<f64>
+        &mut self,
+        inputs: &Matrix<f64>,
+        targets: &Vector<f64>,
     ) -> Result<String, ContractError> {
         match self.model.train(inputs, targets) {
             Ok(_) => Ok("The model trained, hooray!".to_string()),
-            Err(err) => Err(ContractError::new(err.description()))
+            Err(err) => Err(ContractError::new(err.description())),
         }
     }
 
     pub fn infer(&self, inputs: &Matrix<f64>) -> Result<Vector<f64>, ContractError> {
-        self.model.predict(inputs).map_err(|err| ContractError::new(err.description()))
+        self.model
+            .predict(inputs)
+            .map_err(|err| ContractError::new(err.description()))
     }
 
     pub fn get_owner(&self) -> Result<&Address, ContractError> {

@@ -8,9 +8,9 @@ extern crate protobuf;
 extern crate rusty_machine;
 extern crate serde_cbor;
 
+extern crate libcontract_common;
 #[macro_use]
 extern crate libcontract_trusted;
-extern crate libcontract_common;
 
 #[macro_use]
 extern crate learner_api;
@@ -23,8 +23,8 @@ mod learner_contract;
 
 use rusty_machine::linalg::{Matrix, Vector};
 
-use learner_contract::Learner;
 use learner_api::*;
+use learner_contract::Learner;
 
 use libcontract_common::{Address, Contract, ContractError};
 
@@ -34,11 +34,14 @@ create_enclave_api!();
 /// In this case, each `Example` has the format:
 /// `{ (tin, a1, a2, temp_next): float_list }`
 fn unpack_examples(examples: &[Example]) -> Result<(Matrix<f64>, Vector<f64>), ContractError> {
-    let (x_vecs, ys_vec): (Vec<Vec<f64>>, Vec<f64>) = examples.iter().filter_map(|example| {
-        unpack_vals!(&example.get_features().feature, (tin, a1, a2, next_temp), {
-            Some((vec![tin, tin * a1 - tin * a2], next_temp))
+    let (x_vecs, ys_vec): (Vec<Vec<f64>>, Vec<f64>) = examples
+        .iter()
+        .filter_map(|example| {
+            unpack_vals!(&example.get_features().feature, (tin, a1, a2, next_temp), {
+                Some((vec![tin, tin * a1 - tin * a2], next_temp))
+            })
         })
-    }).unzip();
+        .unzip();
 
     if x_vecs.len() == 0 {
         return Err(ContractError::new("No examples provided."));
@@ -57,12 +60,13 @@ fn create(request: CreateRequest) -> Result<(LearnerState, CreateResponse), Cont
 }
 
 fn train(
-    state: LearnerState, request: TrainingRequest
+    state: LearnerState,
+    request: TrainingRequest,
 ) -> Result<(LearnerState, TrainingResponse), ContractError> {
     let mut learner = Learner::from_state(&state);
 
     if !Address::from(request.get_requester().to_string()).eq(learner.get_owner()?) {
-        return Err(ContractError::new("Insufficient permissions."))
+        return Err(ContractError::new("Insufficient permissions."));
     }
 
     let (xs, ys) = unpack_examples(request.get_examples())?;
@@ -75,7 +79,7 @@ fn train(
 
 fn infer(
     state: LearnerState,
-    request: InferenceRequest
+    request: InferenceRequest,
 ) -> Result<InferenceResponse, ContractError> {
     let learner = Learner::from_state(&state);
 
@@ -83,14 +87,22 @@ fn infer(
     let preds = learner.infer(&xs)?;
 
     let mut response = InferenceResponse::new();
-    response.set_predictions(preds.iter().map(|&pred| {
-        let mut pred_proto = Example::new();
-        let mut pred_feature = Feature::new();
-        let mut float_list = FloatList::new();
-        float_list.set_value(vec![pred as f32]);
-        pred_feature.set_float_list(float_list);
-        pred_proto.mut_features().feature.insert("next_temp".to_string(), pred_feature);
-        pred_proto
-    }).collect());
+    response.set_predictions(
+        preds
+            .iter()
+            .map(|&pred| {
+                let mut pred_proto = Example::new();
+                let mut pred_feature = Feature::new();
+                let mut float_list = FloatList::new();
+                float_list.set_value(vec![pred as f32]);
+                pred_feature.set_float_list(float_list);
+                pred_proto
+                    .mut_features()
+                    .feature
+                    .insert("next_temp".to_string(), pred_feature);
+                pred_proto
+            })
+            .collect(),
+    );
     Ok(response)
 }
