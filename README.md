@@ -64,11 +64,6 @@ and get an SPID from Intel. For more information on that process, see the follow
 * [How to create self-signed certificates for use with Intel SGX RA](https://software.intel.com/en-us/articles/how-to-create-self-signed-certificates-for-use-with-intel-sgx-remote-attestation-using)
 * [Apply for an SPID](https://software.intel.com/formfill/sgx-onboarding)
 
-To generate a PKCS#12 bundle from a private key (`client.key`) and certificate (`client.crt`), run:
-```bash
-$ openssl pkcs12 -export -out client.pfx -inkey client.key -in client.crt -certfile client.crt
-```
-
 You will need to pass both SPID and the PKCS#12 bundle when starting the compute node.
 
 ## Running
