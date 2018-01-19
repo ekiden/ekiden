@@ -38,9 +38,19 @@ message IasVerifyQuoteRequest {
 }
 
 message IasVerifyQuoteResponse {
+    // HTTP response status code from IAS.
+    enum Status {
+        INVALID = 0;
+        SUCCESS = 200;
+        ERROR_BAD_REQUEST = 400;
+        ERROR_UNAUTHORIZED = 401;
+        ERROR_INTERNAL_SERVER_ERROR = 500;
+        ERROR_SERVICE_UNAVAILABLE = 503;
+    }
+
     // Attestation verification report fields. These should be used to independently
     // verify the IAS verification.
-    bool success = 1;
+    Status status = 1;
     string body = 2;
     bytes signature = 3;
     string certificates = 4;

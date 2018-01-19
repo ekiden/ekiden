@@ -10,6 +10,8 @@ use reqwest;
 /// Intel IAS API URL.
 const IAS_API_URL: &'static str = "https://test-as.sgx.trustedservices.intel.com";
 /// Intel IAS report endpoint.
+///
+/// See [https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf].
 const IAS_ENDPOINT_REPORT: &'static str = "/attestation/sgx/v2/report";
 
 // SPID.
@@ -37,11 +39,13 @@ pub struct IAS {
 
 #[derive(Default)]
 pub struct AttestationVerificationReport {
+    /// IAS response status code.
+    pub status: u16,
     /// Report body (serialized JSON).
     pub body: String,
     /// Signature (report signature).
     pub signature: Vec<u8>,
-    /// Certificate chain in PEM format.
+    /// Report signing certificate chain in PEM format.
     pub certificates: String,
 }
 
@@ -86,12 +90,14 @@ impl IAS {
 
         let response = self.make_request(IAS_ENDPOINT_REPORT, &request)?;
 
+        let mut report = AttestationVerificationReport::default();
+        report.status = response.status().as_u16();
+
         if response.status().is_success() {
             // TODO: Decode attestation verification report.
-            Ok(AttestationVerificationReport::default())
-        } else {
-            Err(Error::new(ErrorKind::Other, "IAS quote verification failed"))
         }
+
+        Ok(report)
     }
 
     /// Get configured SPID.

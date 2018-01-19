@@ -7,7 +7,7 @@ use std::fmt::Write;
 use libcontract_untrusted::enclave;
 
 use generated::compute_web3::{CallContractRequest, CallContractResponse, IasGetSpidRequest, IasGetSpidResponse,
-                              IasVerifyQuoteRequest, IasVerifyQuoteResponse};
+                              IasVerifyQuoteRequest, IasVerifyQuoteResponse, IasVerifyQuoteResponse_Status};
 use generated::compute_web3_grpc::Compute;
 
 use super::ias::{IAS, IASConfiguration};
@@ -86,15 +86,22 @@ impl Compute for ComputeServerImpl {
 
         match self.ias.verify_quote(request.get_nonce(), request.get_quote()) {
             Ok(report) => {
-                // Verification successful.
-                response.set_success(true);
+                response.set_status(match report.status {
+                    200 => IasVerifyQuoteResponse_Status::SUCCESS,
+                    400 => IasVerifyQuoteResponse_Status::ERROR_BAD_REQUEST,
+                    401 => IasVerifyQuoteResponse_Status::ERROR_UNAUTHORIZED,
+                    500 => IasVerifyQuoteResponse_Status::ERROR_INTERNAL_SERVER_ERROR,
+                    503 => IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE,
+                    _ => IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE,
+                });
+
                 response.set_body(report.body);
                 response.set_signature(report.signature);
                 response.set_certificates(report.certificates);
             },
             _ => {
-                // Verification failed.
-                response.set_success(false);
+                // Verification failed due to IAS communication error.
+                response.set_status(IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE);
             }
         }
 
