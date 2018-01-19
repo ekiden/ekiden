@@ -48,6 +48,7 @@ pub trait HexEncoded {
     }
 }
 
+#[macro_export]
 macro_rules! hex_encoded_struct {
     ($type: ident, $length_id: ident, $length: expr) => {
         pub const $length_id: usize = $length;
