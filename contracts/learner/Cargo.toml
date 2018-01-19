@@ -1,0 +1,24 @@
+[package]
+name = "learner"
+version = "0.1.0"
+authors = ["Nick Hynes <nhynes@berkeley.edu>"]
+build = "build.rs"
+
+[lib]
+name = "learner"
+crate-type = ["staticlib"]
+
+[features]
+default = []
+
+[dependencies]
+learner-api = { path = "./api", features = ["sgx"], default-features = false }
+libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
+libcontract-trusted = { path = "../../libcontract/trusted" }
+protobuf-sgx = { path = "../../third_party/protobuf" }
+rusty-machine = { path = "/sgx/third_party/rusty-machine" }
+serde_cbor = { path = "../../third_party/serde_cbor" }
+sgx_tstd = { path = "/sgx/sgx_tstd" }
+
+[build-dependencies]
+libcontract-utils = { path = "../../libcontract/utils" }

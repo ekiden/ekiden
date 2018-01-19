@@ -1,0 +1,70 @@
+syntax = "proto3";
+option cc_enable_arenas = true;
+
+package learner;
+
+message LearnerState {
+  string owner = 1;
+  bytes model = 2;
+}
+
+message CreateRequest {
+  string requester = 1;
+}
+
+message CreateResponse {
+  string log = 1;
+}
+
+message TrainingRequest {
+  string requester = 1;
+  repeated Example examples = 2;
+}
+
+message TrainingResponse {
+  string log = 1;
+}
+
+message InferenceRequest {
+  string requester = 1;
+  repeated Example examples = 2;
+}
+
+message InferenceResponse {
+  repeated Example predictions = 1;
+  string log = 2;
+}
+
+
+// inlined from tensorflow
+// https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example
+
+message Examples {
+  repeated Example examples = 1;
+}
+
+message Example {
+  Features features = 1;
+};
+
+message Features {
+  map<string, Feature> feature = 1;
+};
+
+message Feature {
+  oneof kind {
+    BytesList bytes_list = 1;
+    FloatList float_list = 2;
+    Int64List int64_list = 3;
+  }
+};
+
+message BytesList {
+  repeated bytes value = 1;
+}
+message FloatList {
+  repeated float value = 1 [packed = true];
+}
+message Int64List {
+  repeated int64 value = 1 [packed = true];
+}

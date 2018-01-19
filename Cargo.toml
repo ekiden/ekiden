@@ -5,6 +5,7 @@ members = [
   "compute-client",
   "contracts/dummy",
   "contracts/token",
+  "contracts/learner",
   "libcontract/common",
   "libcontract/trusted",
   "libcontract/untrusted",
