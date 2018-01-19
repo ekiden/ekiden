@@ -48,13 +48,6 @@ pub struct ContractClient<Backend: ContractClientBackend> {
     secure_channel: SecureChannelContext,
 }
 
-pub struct ContractStatus {
-    /// Contract name.
-    pub contract: String,
-    /// Contract version.
-    pub version: String,
-}
-
 impl<Backend: ContractClientBackend> ContractClient<Backend> {
     /// Constructs a new contract client.
     pub fn new(backend: Backend,
