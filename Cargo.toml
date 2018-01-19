@@ -12,3 +12,4 @@ members = [
   "clients/token",
   "storage",
 ]
+exclude = ["third_party"]

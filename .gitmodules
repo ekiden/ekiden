@@ -1,0 +1,3 @@
+[submodule "third_party/serde_cbor"]
+	path = third_party/serde_cbor
+	url = https://github.com/ekiden/cbor.git
