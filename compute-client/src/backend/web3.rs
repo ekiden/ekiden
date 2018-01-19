@@ -23,7 +23,10 @@ impl Web3ContractClientBackend {
     pub fn new(host: &str, port: u16) -> Result<Self, Error> {
         Ok(Web3ContractClientBackend {
             // TODO: Use TLS client.
-            client: ComputeClient::new_plain(&host, port, Default::default()).unwrap(),
+            client: match ComputeClient::new_plain(&host, port, Default::default()) {
+                Ok(client) => client,
+                _ => return Err(Error::new("Failed to initialize gRPC client"))
+            },
         })
     }
 }
