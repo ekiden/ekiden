@@ -1,6 +1,6 @@
 # Ekiden
 
-[![CircleCI](https://circleci.com/gh/sunblaze-ucb/ekiden.svg?style=svg)](https://circleci.com/gh/sunblaze-ucb/ekiden)
+[![CircleCI](https://circleci.com/gh/sunblaze-ucb/ekiden.svg?style=svg&circle-token=1e61090ac6971ca5db0514e4593d5fdeff83f6a9)](https://circleci.com/gh/sunblaze-ucb/ekiden)
 
 ## Dependencies
 
