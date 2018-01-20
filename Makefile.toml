@@ -4,11 +4,15 @@ RUST_SGX_SDK = "/sgx"
 SGX_MODE = "SIM"
 SGX_ARCH = "x64"
 
-[tasks.format-flow]
-alias = "empty"
-
 [tasks.build]
 args = ["build"]
+
+[tasks.build-flow]
+dependencies = [
+    "pre-build",
+    "build",
+    "post-build",
+]
 
 [tasks.test-flow]
 alias = "empty"
