@@ -8,18 +8,24 @@ use rand::{OsRng, Rng};
 #[cfg(feature = "sgx")]
 use sgx_trts;
 
-use super::{ContractError};
+use super::ContractError;
 use super::api;
 
 // Nonce context is used to prevent message reuse in a different context.
 pub const NONCE_CONTEXT_LEN: usize = 16;
 type NonceContext = [u8; NONCE_CONTEXT_LEN];
 /// Nonce for use in channel initialization context (EkidenS-----Init).
-pub const NONCE_CONTEXT_INIT: NonceContext = [69, 107, 105, 100, 101, 110, 83, 45, 45, 45, 45, 45, 73, 110, 105, 116];
+pub const NONCE_CONTEXT_INIT: NonceContext = [
+    69, 107, 105, 100, 101, 110, 83, 45, 45, 45, 45, 45, 73, 110, 105, 116
+];
 /// Nonce for use in request context (EkidenS--Request).
-pub const NONCE_CONTEXT_REQUEST: NonceContext = [69, 107, 105, 100, 101, 110, 83, 45, 45, 82, 101, 113, 117, 101, 115, 116];
+pub const NONCE_CONTEXT_REQUEST: NonceContext = [
+    69, 107, 105, 100, 101, 110, 83, 45, 45, 82, 101, 113, 117, 101, 115, 116
+];
 /// Nonce for use in response context (EkidenS-Response).
-pub const NONCE_CONTEXT_RESPONSE: NonceContext = [69, 107, 105, 100, 101, 110, 83, 45, 82, 101, 115, 112, 111, 110, 115, 101];
+pub const NONCE_CONTEXT_RESPONSE: NonceContext = [
+    69, 107, 105, 100, 101, 110, 83, 45, 82, 101, 115, 112, 111, 110, 115, 101
+];
 
 /// Nonce generator.
 pub trait NonceGenerator {
@@ -27,16 +33,17 @@ pub trait NonceGenerator {
     fn get_nonce(&mut self, context: &NonceContext) -> Result<sodalite::BoxNonce, ContractError>;
 
     /// Unpack nonce from a cryptographic box.
-    fn unpack_nonce(&mut self,
-                    crypto_box: &api::CryptoBox,
-                    context: &NonceContext) -> Result<sodalite::BoxNonce, ContractError> {
-
+    fn unpack_nonce(
+        &mut self,
+        crypto_box: &api::CryptoBox,
+        context: &NonceContext,
+    ) -> Result<sodalite::BoxNonce, ContractError> {
         let mut nonce = [0u8; sodalite::BOX_NONCE_LEN];
         nonce.copy_from_slice(&crypto_box.get_nonce());
 
         // Ensure that the nonce context is correct.
         if nonce[..NONCE_CONTEXT_LEN] != context[..NONCE_CONTEXT_LEN] {
-            return Err(ContractError::new("Invalid nonce"))
+            return Err(ContractError::new("Invalid nonce"));
         }
 
         Ok(nonce)
@@ -62,8 +69,12 @@ impl RandomNonceGenerator {
         Ok(RandomNonceGenerator {
             rng: match OsRng::new() {
                 Ok(rng) => rng,
-                _ => return Err(ContractError::new("Failed to initialize random nonce generator"))
-            }
+                _ => {
+                    return Err(ContractError::new(
+                        "Failed to initialize random nonce generator",
+                    ))
+                }
+            },
         })
     }
 }
@@ -74,8 +85,8 @@ impl NonceGenerator for RandomNonceGenerator {
         let mut nonce: sodalite::BoxNonce = [0; sodalite::BOX_NONCE_LEN];
 
         match sgx_trts::rsgx_read_rand(&mut nonce) {
-            Ok(_) => {},
-            _ => return Err(ContractError::new("Nonce generation failed"))
+            Ok(_) => {}
+            _ => return Err(ContractError::new("Nonce generation failed")),
         }
 
         nonce[..NONCE_CONTEXT_LEN].copy_from_slice(context);
@@ -134,16 +145,17 @@ impl NonceGenerator for MonotonicNonceGenerator {
         Ok(fixed_nonce)
     }
 
-    fn unpack_nonce(&mut self,
-                    crypto_box: &api::CryptoBox,
-                    context: &NonceContext) -> Result<sodalite::BoxNonce, ContractError> {
-
+    fn unpack_nonce(
+        &mut self,
+        crypto_box: &api::CryptoBox,
+        context: &NonceContext,
+    ) -> Result<sodalite::BoxNonce, ContractError> {
         let mut nonce = [0u8; sodalite::BOX_NONCE_LEN];
         nonce.copy_from_slice(&crypto_box.get_nonce());
 
         // Ensure that the nonce context is correct.
         if nonce[..NONCE_CONTEXT_LEN] != context[..NONCE_CONTEXT_LEN] {
-            return Err(ContractError::new("Invalid nonce"))
+            return Err(ContractError::new("Invalid nonce"));
         }
 
         // Decode counter.
@@ -153,9 +165,9 @@ impl NonceGenerator for MonotonicNonceGenerator {
         match self.last_received_nonce {
             Some(last_nonce) => {
                 if counter_value <= last_nonce {
-                    return Err(ContractError::new("Invalid nonce"))
+                    return Err(ContractError::new("Invalid nonce"));
                 }
-            },
+            }
             None => {}
         }
 
@@ -172,14 +184,14 @@ impl Default for MonotonicNonceGenerator {
 }
 
 /// Create cryptographic box (encrypted and authenticated).
-pub fn create_box<NG: NonceGenerator>(payload: &[u8],
-                                      nonce_context: &NonceContext,
-                                      nonce_generator: &mut NG,
-                                      public_key: &sodalite::BoxPublicKey,
-                                      private_key: &sodalite::BoxSecretKey,
-                                      shared_key: &mut Option<sodalite::SecretboxKey>)
-                                      -> Result<api::CryptoBox, ContractError> {
-
+pub fn create_box<NG: NonceGenerator>(
+    payload: &[u8],
+    nonce_context: &NonceContext,
+    nonce_generator: &mut NG,
+    public_key: &sodalite::BoxPublicKey,
+    private_key: &sodalite::BoxSecretKey,
+    shared_key: &mut Option<sodalite::SecretboxKey>,
+) -> Result<api::CryptoBox, ContractError> {
     let mut crypto_box = api::CryptoBox::new();
     let mut key_with_payload = vec![0u8; payload.len() + 32];
     let mut encrypted = vec![0u8; payload.len() + 32];
@@ -192,21 +204,17 @@ pub fn create_box<NG: NonceGenerator>(payload: &[u8],
     if shared_key.is_none() {
         // Compute shared key so we can speed up subsequent box operations.
         let mut key = shared_key.get_or_insert([0u8; sodalite::SECRETBOX_KEY_LEN]);
-        sodalite::box_beforenm(
-            &mut key,
-            &public_key,
-            &private_key
-        );
+        sodalite::box_beforenm(&mut key, &public_key, &private_key);
     }
 
     match sodalite::box_afternm(
         &mut encrypted,
         &key_with_payload,
         &nonce,
-        &shared_key.unwrap()
+        &shared_key.unwrap(),
     ) {
-        Ok(_) => {},
-        _ => return Err(ContractError::new("Box operation failed"))
+        Ok(_) => {}
+        _ => return Err(ContractError::new("Box operation failed")),
     };
 
     crypto_box.set_nonce(nonce.to_vec());
@@ -216,38 +224,34 @@ pub fn create_box<NG: NonceGenerator>(payload: &[u8],
 }
 
 /// Open cryptographic box.
-pub fn open_box<NG: NonceGenerator>(crypto_box: &api::CryptoBox,
-                                    nonce_context: &NonceContext,
-                                    nonce_generator: &mut NG,
-                                    public_key: &sodalite::BoxPublicKey,
-                                    private_key: &sodalite::BoxSecretKey,
-                                    shared_key: &mut Option<sodalite::SecretboxKey>)
-                                    -> Result<Vec<u8>, ContractError> {
-
+pub fn open_box<NG: NonceGenerator>(
+    crypto_box: &api::CryptoBox,
+    nonce_context: &NonceContext,
+    nonce_generator: &mut NG,
+    public_key: &sodalite::BoxPublicKey,
+    private_key: &sodalite::BoxSecretKey,
+    shared_key: &mut Option<sodalite::SecretboxKey>,
+) -> Result<Vec<u8>, ContractError> {
     // Reserve space for payload.
     let mut payload = vec![0u8; crypto_box.get_payload().len()];
 
     if shared_key.is_none() {
         // Compute shared key so we can speed up subsequent box operations.
         let mut key = shared_key.get_or_insert([0u8; sodalite::SECRETBOX_KEY_LEN]);
-        sodalite::box_beforenm(
-            &mut key,
-            &public_key,
-            &private_key
-        );
+        sodalite::box_beforenm(&mut key, &public_key, &private_key);
     }
 
     match sodalite::box_open_afternm(
         &mut payload,
         &crypto_box.get_payload(),
         &nonce_generator.unpack_nonce(&crypto_box, &nonce_context)?,
-        &shared_key.unwrap()
+        &shared_key.unwrap(),
     ) {
         Ok(_) => {
             // Trim first all-zero 32 bytes that were used to allocate space for the shared
             // secret key.
             Ok(payload[32..].to_vec())
-        },
-        _ => Err(ContractError::new("Failed to open box"))
+        }
+        _ => Err(ContractError::new("Failed to open box")),
     }
 }

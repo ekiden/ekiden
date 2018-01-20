@@ -1,14 +1,11 @@
-
 #[derive(Debug, PartialEq)]
 pub struct Address {
-    value: String
+    value: String,
 }
 
 impl Address {
     pub fn from(addr: String) -> Address {
-        Address {
-            value: addr
-        }
+        Address { value: addr }
     }
 
     pub fn as_str(&self) -> &str {

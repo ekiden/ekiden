@@ -1,7 +1,7 @@
 use libcontract_common::api;
 
-use super::super::quote::Quote;
 use super::super::errors::Error;
+use super::super::quote::Quote;
 
 /// Contract client backend.
 pub trait ContractClientBackend {

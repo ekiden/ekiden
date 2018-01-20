@@ -60,7 +60,9 @@ macro_rules! create_client_method {
     };
     // State in, no state out. E.g., reads
     ( $method_name: ident ( state , $request_type: ty ) -> $response_type: ty ) => {
-        pub fn $method_name(&mut self, state: Vec<u8>, request: $request_type) -> Result<$response_type, Error> {
+        pub fn $method_name(
+            &mut self, state: Vec<u8>, request: $request_type
+        ) -> Result<$response_type, Error> {
             let (_, response) = self.client.call(stringify!($method_name), Some(state), request)?;
             Ok(response)
         }

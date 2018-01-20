@@ -1,5 +1,5 @@
 extern crate libcontract_utils;
 
-fn main () {
+fn main() {
     libcontract_utils::build_trusted();
 }

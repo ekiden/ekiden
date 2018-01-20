@@ -60,30 +60,43 @@ impl IAS {
                 File::open(&config.pkcs12_archive)?.read_to_end(&mut buffer)?;
                 let identity = match reqwest::Identity::from_pkcs12_der(&buffer, "") {
                     Ok(identity) => identity,
-                    _ => return Err(Error::new(ErrorKind::Other, "Failed to load IAS credentials"))
+                    _ => {
+                        return Err(Error::new(
+                            ErrorKind::Other,
+                            "Failed to load IAS credentials",
+                        ))
+                    }
                 };
 
                 // Create client with the identity.
                 match reqwest::ClientBuilder::new().identity(identity).build() {
                     Ok(client) => client,
-                    _ => return Err(Error::new(ErrorKind::Other, "Failed to create IAS client"))
+                    _ => return Err(Error::new(ErrorKind::Other, "Failed to create IAS client")),
                 }
             },
         })
     }
 
     /// Make authenticated web request to IAS.
-    fn make_request(&self, endpoint: &str, data: &HashMap<&str, String>) -> io::Result<reqwest::Response> {
+    fn make_request(
+        &self,
+        endpoint: &str,
+        data: &HashMap<&str, String>,
+    ) -> io::Result<reqwest::Response> {
         let endpoint = format!("{}{}", IAS_API_URL, endpoint);
 
         match self.client.post(&endpoint).json(&data).send() {
             Ok(response) => Ok(response),
-            _ => return Err(Error::new(ErrorKind::Other, "Request to IAS failed"))
+            _ => return Err(Error::new(ErrorKind::Other, "Request to IAS failed")),
         }
     }
 
     /// Make authenticated web request to IAS report endpoint.
-    pub fn verify_quote(&self, nonce: &[u8], quote: &[u8]) -> io::Result<AttestationVerificationReport> {
+    pub fn verify_quote(
+        &self,
+        nonce: &[u8],
+        quote: &[u8],
+    ) -> io::Result<AttestationVerificationReport> {
         let mut request = HashMap::new();
         request.insert("isvEnclaveQuote", base64::encode(&quote));
         request.insert("nonce", base64::encode(&nonce));

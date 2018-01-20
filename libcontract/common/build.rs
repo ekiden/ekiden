@@ -1,5 +1,5 @@
-extern crate protoc_rust;
 extern crate libcontract_utils;
+extern crate protoc_rust;
 
 fn main() {
     libcontract_utils::generate_mod("src/generated", &["enclave_rpc"]);

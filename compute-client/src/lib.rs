@@ -4,9 +4,9 @@
 #[cfg(not(feature = "sgx"))]
 extern crate grpc;
 #[cfg(not(feature = "sgx"))]
-extern crate tls_api;
-#[cfg(not(feature = "sgx"))]
 extern crate rand;
+#[cfg(not(feature = "sgx"))]
+extern crate tls_api;
 
 #[cfg(feature = "sgx")]
 #[cfg_attr(feature = "sgx", macro_use)]
@@ -20,8 +20,8 @@ extern crate sgx_trts;
 #[cfg(feature = "sgx")]
 use std::prelude::v1::*;
 
-extern crate protobuf;
 extern crate byteorder;
+extern crate protobuf;
 extern crate sodalite;
 
 #[macro_use]

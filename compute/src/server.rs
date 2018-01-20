@@ -1,7 +1,7 @@
-use std;
 use grpc;
 use protobuf;
 use protobuf::Message;
+use std;
 use thread_local::ThreadLocal;
 
 use std::fmt::Write;
@@ -9,14 +9,15 @@ use std::fmt::Write;
 use libcontract_common;
 use libcontract_untrusted::enclave;
 
-use generated::compute_web3::{CallContractRequest, CallContractResponse, IasGetSpidRequest, IasGetSpidResponse,
-                              IasVerifyQuoteRequest, IasVerifyQuoteResponse, IasVerifyQuoteResponse_Status};
+use generated::compute_web3::{CallContractRequest, CallContractResponse, IasGetSpidRequest,
+                              IasGetSpidResponse, IasVerifyQuoteRequest, IasVerifyQuoteResponse,
+                              IasVerifyQuoteResponse_Status};
 use generated::compute_web3_grpc::Compute;
 use generated::storage;
 use generated::storage_grpc;
 use generated::storage_grpc::Storage;
 
-use super::ias::{IAS, IASConfiguration};
+use super::ias::{IASConfiguration, IAS};
 
 pub struct ComputeServerImpl {
     // Filename of the enclave implementing the contract.
@@ -45,7 +46,9 @@ impl ComputeServerImpl {
 
             // Initialize contract.
             // TODO: Support contract restore.
-            let response = contract.initialize().expect("Failed to initialize contract");
+            let response = contract
+                .initialize()
+                .expect("Failed to initialize contract");
 
             // Show contract MRENCLAVE in hex format.
             let mut mr_enclave = String::new();
@@ -59,17 +62,23 @@ impl ComputeServerImpl {
         })
     }
 
-    fn call_contract_fallible(&self, rpc_request: CallContractRequest) -> Result<CallContractResponse, Box<std::error::Error>> {
+    fn call_contract_fallible(
+        &self,
+        rpc_request: CallContractRequest,
+    ) -> Result<CallContractResponse, Box<std::error::Error>> {
         // Connect to storage node
         // TODO: Let client select storage node.
         // TODO: Use TLS client.
-        let storage_client = storage_grpc::StorageClient::new_plain("localhost", 9002, Default::default())?;
+        let storage_client =
+            storage_grpc::StorageClient::new_plain("localhost", 9002, Default::default())?;
 
         //
         let mut enclave_request = libcontract_common::api::EnclaveRequest::new();
 
         // Get state from storage
-        let storage_result = storage_client.get(grpc::RequestOptions::new(), storage::GetRequest::new()).wait();
+        let storage_result = storage_client
+            .get(grpc::RequestOptions::new(), storage::GetRequest::new())
+            .wait();
         if let Ok((_, storage_get_response, _)) = storage_result {
             let encrypted_state = protobuf::parse_from_bytes(storage_get_response.get_payload())?;
             enclave_request.set_encrypted_state(encrypted_state);
@@ -78,20 +87,24 @@ impl ComputeServerImpl {
         // But don't go fixing this. There's another resolution planned in #95.
 
         //
-        let client_request: libcontract_common::api::ClientRequest = protobuf::parse_from_bytes(rpc_request.get_payload())?;
+        let client_request: libcontract_common::api::ClientRequest =
+            protobuf::parse_from_bytes(rpc_request.get_payload())?;
         enclave_request.set_client_request(client_request);
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
         let enclave_response_bytes = self.get_contract().call_raw(&enclave_request_bytes)?;
 
-        let enclave_response: libcontract_common::api::EnclaveResponse = protobuf::parse_from_bytes(&enclave_response_bytes)?;
+        let enclave_response: libcontract_common::api::EnclaveResponse =
+            protobuf::parse_from_bytes(&enclave_response_bytes)?;
 
         // Set state in storage
         if enclave_response.has_encrypted_state() {
             let new_encrypted_state = enclave_response.get_encrypted_state();
             let mut storage_set_request = storage::SetRequest::new();
             storage_set_request.set_payload(new_encrypted_state.write_to_bytes()?);
-            storage_client.set(grpc::RequestOptions::new(), storage_set_request).wait()?;
+            storage_client
+                .set(grpc::RequestOptions::new(), storage_set_request)
+                .wait()?;
         }
 
         //
@@ -104,17 +117,24 @@ impl ComputeServerImpl {
 }
 
 impl Compute for ComputeServerImpl {
-    fn call_contract(&self, _options: grpc::RequestOptions, rpc_request: CallContractRequest)
-        -> grpc::SingleResponse<CallContractResponse> {
+    fn call_contract(
+        &self,
+        _options: grpc::RequestOptions,
+        rpc_request: CallContractRequest,
+    ) -> grpc::SingleResponse<CallContractResponse> {
         match self.call_contract_fallible(rpc_request) {
             Ok(rpc_response) => grpc::SingleResponse::completed(rpc_response),
-            Err(_) => return grpc::SingleResponse::err(grpc::Error::Other("Failed to call contract")),
+            Err(_) => {
+                return grpc::SingleResponse::err(grpc::Error::Other("Failed to call contract"))
+            }
         }
     }
 
-    fn ias_get_spid(&self, _options: grpc::RequestOptions, _request: IasGetSpidRequest)
-                    -> grpc::SingleResponse<IasGetSpidResponse> {
-
+    fn ias_get_spid(
+        &self,
+        _options: grpc::RequestOptions,
+        _request: IasGetSpidRequest,
+    ) -> grpc::SingleResponse<IasGetSpidResponse> {
         let mut response = IasGetSpidResponse::new();
 
         response.set_spid(self.ias.get_spid().to_vec());
@@ -122,12 +142,16 @@ impl Compute for ComputeServerImpl {
         return grpc::SingleResponse::completed(response);
     }
 
-    fn ias_verify_quote(&self, _options: grpc::RequestOptions, request: IasVerifyQuoteRequest)
-                        -> grpc::SingleResponse<IasVerifyQuoteResponse> {
-
+    fn ias_verify_quote(
+        &self,
+        _options: grpc::RequestOptions,
+        request: IasVerifyQuoteRequest,
+    ) -> grpc::SingleResponse<IasVerifyQuoteResponse> {
         let mut response = IasVerifyQuoteResponse::new();
 
-        match self.ias.verify_quote(request.get_nonce(), request.get_quote()) {
+        match self.ias
+            .verify_quote(request.get_nonce(), request.get_quote())
+        {
             Ok(report) => {
                 response.set_status(match report.status {
                     200 => IasVerifyQuoteResponse_Status::SUCCESS,
@@ -141,7 +165,7 @@ impl Compute for ComputeServerImpl {
                 response.set_body(report.body);
                 response.set_signature(report.signature);
                 response.set_certificates(report.certificates);
-            },
+            }
             _ => {
                 // Verification failed due to IAS communication error.
                 response.set_status(IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE);

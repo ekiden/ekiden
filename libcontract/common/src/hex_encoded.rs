@@ -14,8 +14,9 @@ pub trait HexEncoded {
     fn inner(&mut self, index: usize) -> &mut u8;
 
     fn from_hex(s: &str) -> Result<Self, ParseError>
-                            where Self: Sized + Default {
-
+    where
+        Self: Sized + Default,
+    {
         let mut result = Self::default();
 
         if s.len() != 2 * Self::LEN {
@@ -33,7 +34,7 @@ pub trait HexEncoded {
                 b'A'...b'F' => buf |= byte - b'A' + 10,
                 b'a'...b'f' => buf |= byte - b'a' + 10,
                 b'0'...b'9' => buf |= byte - b'0',
-                _ => return Err(ParseError::InvalidCharacter)
+                _ => return Err(ParseError::InvalidCharacter),
             }
 
             modulus += 1;

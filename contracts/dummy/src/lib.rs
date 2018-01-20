@@ -4,9 +4,9 @@
 #[macro_use]
 extern crate sgx_tstd as std;
 
+extern crate libcontract_common;
 #[macro_use]
 extern crate libcontract_trusted;
-extern crate libcontract_common;
 
 #[macro_use]
 extern crate dummy_api;

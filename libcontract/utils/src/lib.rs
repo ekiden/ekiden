@@ -3,16 +3,16 @@ extern crate mktemp;
 extern crate protoc_rust;
 
 use std::env;
-use std::path::Path;
-use std::process::Command;
+use std::fs;
 use std::io;
 use std::io::prelude::*;
-use std::fs;
+use std::path::Path;
+use std::process::Command;
 
 /// SGX build mode.
 pub enum SgxMode {
     Hardware,
-    Simulation
+    Simulation,
 }
 
 /// Build part.
@@ -48,7 +48,10 @@ fn get_build_configuration() -> BuildConfiguration {
     println!("cargo:rerun-if-env-changed=RUST_SGX_SDK");
 
     BuildConfiguration {
-        mode: match env::var("SGX_MODE").expect("Please define SGX_MODE").as_ref() {
+        mode: match env::var("SGX_MODE")
+            .expect("Please define SGX_MODE")
+            .as_ref()
+        {
             "HW" => SgxMode::Hardware,
             _ => SgxMode::Simulation,
         },
@@ -67,14 +70,24 @@ fn edger8r(config: &BuildConfiguration, part: BuildPart, output: &str) -> io::Re
     edl_file.write_all(CONFIG_EKIDEN_EDL.as_bytes())?;
 
     Command::new(edger8r_bin.to_str().unwrap())
-        .args(&["--search-path", Path::new(&config.intel_sdk_dir).join(SGX_SDK_INCLUDE_PATH).to_str().unwrap()])
-        .args(&["--search-path", Path::new(&config.rust_sdk_dir).join(RUST_SDK_EDL_PATH).to_str().unwrap()])
-        .args(
-            &match part {
-                BuildPart::Untrusted => ["--untrusted", "--untrusted-dir", &output],
-                BuildPart::Trusted => ["--trusted", "--trusted-dir", &output],
-            }
-        )
+        .args(&[
+            "--search-path",
+            Path::new(&config.intel_sdk_dir)
+                .join(SGX_SDK_INCLUDE_PATH)
+                .to_str()
+                .unwrap(),
+        ])
+        .args(&[
+            "--search-path",
+            Path::new(&config.rust_sdk_dir)
+                .join(RUST_SDK_EDL_PATH)
+                .to_str()
+                .unwrap(),
+        ])
+        .args(&match part {
+            BuildPart::Untrusted => ["--untrusted", "--untrusted-dir", &output],
+            BuildPart::Trusted => ["--trusted", "--trusted-dir", &output],
+        })
         .arg(edl_filename.to_str().unwrap())
         .status()?;
 
@@ -89,8 +102,8 @@ pub fn detect_sgx_features() {
         SgxMode::Simulation => {
             // Enable sgx-simulation feature.
             println!("cargo:rustc-cfg=feature=\"sgx-simulation\"");
-        },
-        _ => {},
+        }
+        _ => {}
     }
 }
 
@@ -119,8 +132,13 @@ pub fn build_untrusted() {
         .compile("enclave_u");
 
     println!("cargo:rustc-link-lib=static=enclave_u");
-    println!("cargo:rustc-link-search=native={}",
-             Path::new(&config.intel_sdk_dir).join(SGX_SDK_LIBRARY_PATH).to_str().unwrap());
+    println!(
+        "cargo:rustc-link-search=native={}",
+        Path::new(&config.intel_sdk_dir)
+            .join(SGX_SDK_LIBRARY_PATH)
+            .to_str()
+            .unwrap()
+    );
 }
 
 /// Build the trusted Ekiden SGX enclave.
@@ -179,6 +197,7 @@ pub fn generate_mod(output_dir: &str, modules: &[&str]) {
 
     // Create .gitignore
     let output_gitignore_file = Path::new(&output_dir).join(".gitignore");
-    let mut file = fs::File::create(output_gitignore_file).expect("Failed to create .gitignore file");
+    let mut file =
+        fs::File::create(output_gitignore_file).expect("Failed to create .gitignore file");
     writeln!(&mut file, "*").unwrap();
 }

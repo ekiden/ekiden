@@ -1,9 +1,13 @@
-#[macro_use] extern crate clap;
+#[macro_use]
+extern crate clap;
 
-#[macro_use] extern crate compute_client;
-#[macro_use] extern crate client_utils;
+#[macro_use]
+extern crate client_utils;
+#[macro_use]
+extern crate compute_client;
 
-#[macro_use] extern crate token_api;
+#[macro_use]
+extern crate token_api;
 
 use clap::{App, Arg};
 
@@ -23,13 +27,15 @@ fn main() {
 
     println!("Response from contract: {:?}", response);
 
-    let response = client.transfer({
-        let mut request = token::TransferRequest::new();
-        request.set_sender("testaddr".to_string());
-        request.set_destination("b".to_string());
-        request.set_value(3);
-        request
-    }).unwrap();
+    let response = client
+        .transfer({
+            let mut request = token::TransferRequest::new();
+            request.set_sender("testaddr".to_string());
+            request.set_destination("b".to_string());
+            request.set_value(3);
+            request
+        })
+        .unwrap();
 
     println!("Response from contract: {:?}", response);
 }

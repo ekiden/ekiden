@@ -12,11 +12,15 @@ pub trait Contract<State: Message> {
 }
 
 /// Performs contract operations on serialized state.
-pub fn with_contract_state<C, State, Handler>(state: &State, handler: Handler) -> Result<State, ContractError>
-    where C: Contract<State>,
-          State: Message,
-          Handler: Fn(&mut C) -> Result<(), ContractError> {
-
+pub fn with_contract_state<C, State, Handler>(
+    state: &State,
+    handler: Handler,
+) -> Result<State, ContractError>
+where
+    C: Contract<State>,
+    State: Message,
+    Handler: Fn(&mut C) -> Result<(), ContractError>,
+{
     let mut contract = C::from_state(&state);
     handler(&mut contract)?;
 
