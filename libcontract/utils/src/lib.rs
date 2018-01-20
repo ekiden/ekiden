@@ -98,11 +98,6 @@ pub fn detect_sgx_features() {
 pub fn build_untrusted() {
     let config = get_build_configuration();
 
-    /*let urts_library_name = match config.mode {
-        SgxMode::Hardware => "sgx_urts",
-        SgxMode::Simulation => "sgx_urts_sim",
-    };*/
-
     // Create temporary directory to hold the built libraries.
     let temp_dir = mktemp::Temp::new_dir().expect("Failed to create temporary directory");
     let temp_dir_path = temp_dir.to_path_buf();
@@ -126,7 +121,6 @@ pub fn build_untrusted() {
     println!("cargo:rustc-link-lib=static=enclave_u");
     println!("cargo:rustc-link-search=native={}",
              Path::new(&config.intel_sdk_dir).join(SGX_SDK_LIBRARY_PATH).to_str().unwrap());
-    // println!("cargo:rustc-link-lib=dylib={}", urts_library_name);
 }
 
 /// Build the trusted Ekiden SGX enclave.

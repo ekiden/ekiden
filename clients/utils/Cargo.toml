@@ -1,0 +1,6 @@
+[package]
+name = "client-utils"
+version = "0.1.0"
+authors = ["Nick Hynes <nhynes@berkeley.edu>"]
+
+[dependencies]

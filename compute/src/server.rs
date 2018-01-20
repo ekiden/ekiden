@@ -4,28 +4,36 @@ use protobuf;
 use protobuf::Message;
 use thread_local::ThreadLocal;
 
+use std::fmt::Write;
+
 use libcontract_common;
 use libcontract_untrusted::enclave;
 
-use generated::compute_web3::{StatusRequest, StatusResponse, CallContractRequest, CallContractResponse};
+use generated::compute_web3::{CallContractRequest, CallContractResponse, IasGetSpidRequest, IasGetSpidResponse,
+                              IasVerifyQuoteRequest, IasVerifyQuoteResponse, IasVerifyQuoteResponse_Status};
 use generated::compute_web3_grpc::Compute;
 use generated::storage;
 use generated::storage_grpc;
 use generated::storage_grpc::Storage;
+
+use super::ias::{IAS, IASConfiguration};
 
 pub struct ComputeServerImpl {
     // Filename of the enclave implementing the contract.
     contract_filename: String,
     // Contract running in an enclave.
     contract: ThreadLocal<enclave::EkidenEnclave>,
+    // IAS service.
+    ias: IAS,
 }
 
 impl ComputeServerImpl {
     /// Create new compute server instance.
-    pub fn new(contract_filename: &str) -> Self {
+    pub fn new(contract_filename: &str, ias: IASConfiguration) -> Self {
         ComputeServerImpl {
             contract_filename: contract_filename.to_string(),
             contract: ThreadLocal::new(),
+            ias: IAS::new(ias).unwrap(),
         }
     }
 
@@ -37,7 +45,15 @@ impl ComputeServerImpl {
 
             // Initialize contract.
             // TODO: Support contract restore.
-            contract.initialize().expect("Failed to initialize contract");
+            let response = contract.initialize().expect("Failed to initialize contract");
+
+            // Show contract MRENCLAVE in hex format.
+            let mut mr_enclave = String::new();
+            for &byte in response.get_mr_enclave() {
+                write!(&mut mr_enclave, "{:02x}", byte).unwrap();
+            }
+
+            println!("Loaded contract with MRENCLAVE: {}", mr_enclave);
 
             Box::new(contract)
         })
@@ -88,28 +104,50 @@ impl ComputeServerImpl {
 }
 
 impl Compute for ComputeServerImpl {
-    fn status(&self, _options: grpc::RequestOptions, _request: StatusRequest) -> grpc::SingleResponse<StatusResponse> {
-        // Get contract metadata.
-        let metadata = match self.get_contract().get_metadata() {
-            Ok(metadata) => metadata,
-            Err(_) => return grpc::SingleResponse::err(grpc::Error::Other("Failed to get metadata"))
-        };
-
-        let mut response = StatusResponse::new();
-        {
-            let contract = response.mut_contract();
-            contract.set_name(metadata.get_name().to_string());
-            contract.set_version(metadata.get_version().to_string());
-        }
-
-        return grpc::SingleResponse::completed(response);
-    }
-
     fn call_contract(&self, _options: grpc::RequestOptions, rpc_request: CallContractRequest)
         -> grpc::SingleResponse<CallContractResponse> {
         match self.call_contract_fallible(rpc_request) {
             Ok(rpc_response) => grpc::SingleResponse::completed(rpc_response),
             Err(_) => return grpc::SingleResponse::err(grpc::Error::Other("Failed to call contract")),
         }
+    }
+
+    fn ias_get_spid(&self, _options: grpc::RequestOptions, _request: IasGetSpidRequest)
+                    -> grpc::SingleResponse<IasGetSpidResponse> {
+
+        let mut response = IasGetSpidResponse::new();
+
+        response.set_spid(self.ias.get_spid().to_vec());
+
+        return grpc::SingleResponse::completed(response);
+    }
+
+    fn ias_verify_quote(&self, _options: grpc::RequestOptions, request: IasVerifyQuoteRequest)
+                        -> grpc::SingleResponse<IasVerifyQuoteResponse> {
+
+        let mut response = IasVerifyQuoteResponse::new();
+
+        match self.ias.verify_quote(request.get_nonce(), request.get_quote()) {
+            Ok(report) => {
+                response.set_status(match report.status {
+                    200 => IasVerifyQuoteResponse_Status::SUCCESS,
+                    400 => IasVerifyQuoteResponse_Status::ERROR_BAD_REQUEST,
+                    401 => IasVerifyQuoteResponse_Status::ERROR_UNAUTHORIZED,
+                    500 => IasVerifyQuoteResponse_Status::ERROR_INTERNAL_SERVER_ERROR,
+                    503 => IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE,
+                    _ => IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE,
+                });
+
+                response.set_body(report.body);
+                response.set_signature(report.signature);
+                response.set_certificates(report.certificates);
+            },
+            _ => {
+                // Verification failed due to IAS communication error.
+                response.set_status(IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE);
+            }
+        }
+
+        return grpc::SingleResponse::completed(response);
     }
 }
