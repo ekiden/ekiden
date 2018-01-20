@@ -1,0 +1,22 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: docker.io/wh00/ekiden-meta-testing
+    steps:
+      - run: echo 'PS1='"'"'\$ '"'"'; . /root/.bashrc' >> $BASH_ENV
+      - checkout:
+          path: /code
+      - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
+      - run: cd /code && cargo make
+      - run:
+          command: /code/target/debug/storage
+          background: true
+      - run: tendermint init
+      - run:
+          command: tendermint node --consensus.create_empty_blocks=false
+          background: true
+      - run:
+          command: /code/target/debug/compute /code/target/enclave/token.signed.so --ias-pkcs12 client.pfx --ias-spid 00000000
+          background: true
+      - run: /code/target/debug/token --mr-enclave $(python /code/scripts/parse_enclave.py /code/target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
