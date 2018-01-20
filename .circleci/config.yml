@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run:
         name: Greeting
-        command: echo "Ekiden!"
+        command: echo Ekiden
       - run:
         name: Print the Current Time
         command: date
