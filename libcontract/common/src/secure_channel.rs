@@ -183,6 +183,57 @@ impl Default for MonotonicNonceGenerator {
     }
 }
 
+/// Current state of the secure channel session.
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum SessionState {
+    /// Session is being initialized.
+    ///
+    /// From this state, the session will transition into:
+    /// * `ClientAttestationRequired` if the contract requires the client to
+    ///   attest itself as well.
+    /// * `Established` if no client attestation is required.
+    Init,
+    /// Contract is waiting for client attestation. The channel may not be
+    /// used for any method calls except _channel_attest_client. Any calls
+    /// must be encrypted and authenticated.
+    ///
+    /// From this state, the session will transition into:
+    /// * `Established` if the attestation is successful.
+    ///
+    /// In case client attestation fails, the session will stay in this state.
+    ClientAttestationRequired,
+    /// Secure channel is established.
+    Established,
+}
+
+impl SessionState {
+    /// Transition secure channel to a new state.
+    pub fn transition_to(&mut self, new_state: SessionState) -> Result<(), ContractError> {
+        match (*self, new_state) {
+            (_, SessionState::Init) => {}
+            (SessionState::Init, SessionState::ClientAttestationRequired) => {}
+            (SessionState::Init, SessionState::Established) => {}
+            (SessionState::ClientAttestationRequired, SessionState::Established) => {}
+            _ => {
+                return Err(ContractError::new(
+                    "Invalid secure channel state transition",
+                ))
+            }
+        }
+
+        // Update state if transition is allowed.
+        *self = new_state;
+
+        Ok(())
+    }
+}
+
+impl Default for SessionState {
+    fn default() -> Self {
+        SessionState::Init
+    }
+}
+
 /// Create cryptographic box (encrypted and authenticated).
 pub fn create_box<NG: NonceGenerator>(
     payload: &[u8],

@@ -26,10 +26,11 @@ pub mod contract_error;
 pub mod secure_channel;
 pub mod random;
 pub mod client;
-pub mod quote;
 
 #[macro_use]
 pub mod hex_encoded;
+
+pub mod quote;
 
 mod generated;
 

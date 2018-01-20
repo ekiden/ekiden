@@ -1,10 +1,11 @@
 use grpc;
-use rand::{OsRng, Rng};
+use sodalite;
 
 use protobuf;
 use protobuf::Message;
 
-use libcontract_common::api;
+use libcontract_common::{api, random};
+use libcontract_common::quote::Quote;
 
 use super::super::generated::compute_web3::{CallContractRequest, IasGetSpidRequest,
                                             IasVerifyQuoteRequest};
@@ -12,7 +13,6 @@ use super::super::generated::compute_web3_grpc::{Compute, ComputeClient};
 
 use super::ContractClientBackend;
 use super::super::errors::Error;
-use super::super::quote::Quote;
 
 pub struct Web3ContractClientBackend {
     /// gRPC client instance.
@@ -51,7 +51,12 @@ impl ContractClientBackend for Web3ContractClientBackend {
             .wait()
         {
             Ok((_, rpc_response, _)) => rpc_response,
-            _ => return Err(Error::new("Failed to call contract")),
+            Err(error) => {
+                return Err(Error::new(&format!(
+                    "Failed to call contract (gRPC error: {:?})",
+                    error
+                )))
+            }
         };
 
         Ok(rpc_response.take_payload())
@@ -81,7 +86,7 @@ impl ContractClientBackend for Web3ContractClientBackend {
 
         // Generate random nonce.
         let mut nonce = vec![0u8; 16];
-        OsRng::new()?.fill_bytes(&mut nonce);
+        random::get_random_bytes(&mut nonce)?;
         request.set_nonce(nonce.clone());
 
         let response = match self.client
@@ -95,5 +100,17 @@ impl ContractClientBackend for Web3ContractClientBackend {
         // TODO: Check response, verify signatures, verify nonce etc.
 
         Ok(decoded)
+    }
+
+    /// Get quote of the local enclave for mutual attestation.
+    fn get_quote(
+        &self,
+        _spid: &Vec<u8>,
+        _nonce: &Vec<u8>,
+        _public_key: &sodalite::BoxPublicKey,
+    ) -> Result<Vec<u8>, Error> {
+        Err(Error::new(
+            "This backend does not support mutual attestation",
+        ))
     }
 }

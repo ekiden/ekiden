@@ -1,7 +1,7 @@
 use libcontract_common::ContractError;
 use libcontract_common::client::ClientEndpoint;
+use libcontract_common::quote::MrEnclave;
 
-use compute_client;
 use compute_client::create_client;
 
 use key_manager_api::create_client_api as create_key_manager_client_api;
@@ -34,7 +34,7 @@ impl KeyManager {
         let client = match key_manager::Client::new(
             backend,
             // TODO: Get MRENCLAVE from file generated during build.
-            compute_client::MrEnclave([0; 32]),
+            MrEnclave([0; 32]),
         ) {
             Ok(client) => client,
             _ => return Err(ContractError::new("Failed to create key manager client")),

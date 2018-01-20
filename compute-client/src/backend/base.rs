@@ -1,7 +1,9 @@
+use sodalite;
+
 use libcontract_common::api;
+use libcontract_common::quote::Quote;
 
 use super::super::errors::Error;
-use super::super::quote::Quote;
 
 /// Contract client backend.
 pub trait ContractClientBackend {
@@ -16,4 +18,15 @@ pub trait ContractClientBackend {
 
     /// Verify quote via IAS.
     fn verify_quote(&self, quote: Vec<u8>) -> Result<Quote, Error>;
+
+    /// Get quote of the local enclave for mutual attestation.
+    ///
+    /// This method can only be implemented by clients, which are running in enclaves
+    /// and should return an error otherwise.
+    fn get_quote(
+        &self,
+        spid: &Vec<u8>,
+        nonce: &Vec<u8>,
+        public_key: &sodalite::BoxPublicKey,
+    ) -> Result<Vec<u8>, Error>;
 }

@@ -30,6 +30,7 @@ macro_rules! create_enclave {
             name = $metadata_name: ident ;
             version = $metadata_version: expr ;
             state_type = $metadata_state_type: ty ;
+            client_attestation_required = $client_attestation_required: expr ;
         }
 
         $(
@@ -186,8 +187,7 @@ macro_rules! create_enclave {
         fn _channel_init(request: libcontract_common::api::ChannelInitRequest) ->
             Result<libcontract_common::api::ChannelInitResponse, libcontract_common::ContractError>
         {
-
-            $crate::secure_channel::channel_init(request)
+            $crate::secure_channel::channel_init(request, $client_attestation_required)
         }
     };
 }

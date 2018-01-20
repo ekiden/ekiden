@@ -2,9 +2,13 @@ use sgx_trts;
 use sgx_tse;
 use sgx_types::*;
 
-use libcontract_common::ContractError;
+use sodalite;
+
+use libcontract_common::{api, random, ContractError};
+use libcontract_common::client::ClientEndpoint;
 use libcontract_common::quote::*;
 
+use super::dispatcher;
 use super::untrusted;
 
 pub const REPORT_DATA_LEN: usize = SGX_REPORT_DATA_SIZE - QUOTE_CONTEXT_LEN;
@@ -25,6 +29,26 @@ macro_rules! sgx_call {
             _ => return Err(ContractError::new($error))
         };
     }
+}
+
+/// Create report containg a public key and a nonce.
+///
+/// This type of report is used when creating quotes for attestation of
+/// Ekiden enclaves.
+pub fn create_report_data_for_public_key(
+    nonce: &[u8],
+    public_key: &sodalite::BoxPublicKey,
+) -> Result<ReportData, ContractError> {
+    if nonce.len() != 16 {
+        return Err(ContractError::new("Invalid nonce"));
+    }
+
+    let mut report_data: ReportData = [0; REPORT_DATA_LEN];
+    let pkey_len = sodalite::BOX_PUBLIC_KEY_LEN;
+    report_data[..pkey_len].copy_from_slice(public_key);
+    report_data[pkey_len..pkey_len + 16].copy_from_slice(nonce);
+
+    Ok(report_data)
 }
 
 /// Generate a quote suitable for remote attestation.
@@ -115,4 +139,35 @@ pub fn get_quote(
     // lower 32Bytes in report.data = SHA256(qe_nonce||quote).
 
     Ok(quote)
+}
+
+/// Get SPID that can be used to verify the quote later.
+pub fn get_spid() -> Result<Vec<u8>, ContractError> {
+    let request = api::services::IasGetSpidRequest::new();
+    let mut response: api::services::IasGetSpidResponse =
+        dispatcher::untrusted_call_endpoint(&ClientEndpoint::IASProxyGetSpid, request)?;
+
+    Ok(response.take_spid())
+}
+
+/// Verify quote via IAS.
+///
+/// The quote must have been generated using an SPID returned by `get_spid`.
+pub fn verify_quote(quote: Vec<u8>) -> Result<Quote, ContractError> {
+    let decoded = Quote::decode(&quote)?;
+
+    let mut request = api::services::IasVerifyQuoteRequest::new();
+    request.set_quote(quote);
+
+    // Generate random nonce.
+    let mut nonce = vec![0u8; 16];
+    random::get_random_bytes(&mut nonce)?;
+    request.set_nonce(nonce.clone());
+
+    let response: api::services::IasVerifyQuoteResponse =
+        dispatcher::untrusted_call_endpoint(&ClientEndpoint::IASProxyVerifyQuote, request)?;
+
+    // TODO: Check response, verify signatures, verify nonce etc.
+
+    Ok(decoded)
 }
