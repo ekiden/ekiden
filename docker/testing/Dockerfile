@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM ekiden/rust-sgx-sdk
 
 # This is the release of tendermint to pull in.
 ENV TM_VERSION 0.13.0
@@ -13,8 +13,7 @@ ENV DATA_ROOT /tendermint
 ENV TMHOME $DATA_ROOT
 
 # Set user right away for determinism
-RUN addgroup tmuser && \
-    adduser -S -G tmuser tmuser
+RUN adduser --system --group tmuser
 
 # Create directory for persistence and give our user ownership
 RUN mkdir -p $DATA_ROOT && \
@@ -23,23 +22,13 @@ RUN mkdir -p $DATA_ROOT && \
 # jq and curl used for extracting `pub_key` from private validator while
 # deploying tendermint with Kubernetes. It is nice to have bash so the users
 # could execute bash commands.
-RUN apk add --no-cache bash curl jq
+RUN apt-get install -y jq
 
-RUN apk add --no-cache openssl && \
-    wget https://s3-us-west-2.amazonaws.com/tendermint/binaries/tendermint/v${TM_VERSION}/tendermint_${TM_VERSION}_linux_amd64.zip && \
+RUN wget https://s3-us-west-2.amazonaws.com/tendermint/binaries/tendermint/v${TM_VERSION}/tendermint_${TM_VERSION}_linux_amd64.zip && \
     echo "${TM_SHA256SUM}  tendermint_${TM_VERSION}_linux_amd64.zip" | sha256sum -c && \
     unzip -d /bin tendermint_${TM_VERSION}_linux_amd64.zip && \
-    apk del openssl && \
     rm -f tendermint_${TM_VERSION}_linux_amd64.zip
 
-# Expose the data directory as a volume since there's mutable state in there
-VOLUME $DATA_ROOT
+# Leave $DATA_ROOT in the ephemeral filesystem so that we start tests with a clean state.
 
-# p2p port
-EXPOSE 46656
-# rpc port
-EXPOSE 46657
-
-ENTRYPOINT ["tendermint"]
-
-CMD ["node", "--moniker=`hostname`"]
+# Don't expose services from testing instance.
