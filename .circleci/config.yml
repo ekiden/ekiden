@@ -1,0 +1,13 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: ekiden/rust-sgx-sdk
+    steps:
+      - checkout
+      - run:
+        name: Greeting
+        command: echo "Ekiden!"
+      - run:
+        name: Print the Current Time
+        command: date
