@@ -265,7 +265,7 @@ impl ClientSession {
     }
 
     /// Open cryptographic box with RPC request.
-    pub fn open_request_box(&mut self, request: &api::CryptoBox) -> Result<api::PlainRequest, ContractError> {
+    pub fn open_request_box(&mut self, request: &api::CryptoBox) -> Result<api::PlainClientRequest, ContractError> {
         let plain_request = secure_channel::open_box(
             &request,
             &secure_channel::NONCE_CONTEXT_REQUEST,
@@ -279,7 +279,7 @@ impl ClientSession {
     }
 
     /// Create cryptographic box with RPC response.
-    pub fn create_response_box(&mut self, response: &api::PlainResponse) -> Result<api::CryptoBox, ContractError> {
+    pub fn create_response_box(&mut self, response: &api::PlainClientResponse) -> Result<api::CryptoBox, ContractError> {
         Ok(secure_channel::create_box(
             &response.write_to_bytes()?,
             &secure_channel::NONCE_CONTEXT_RESPONSE,
@@ -450,7 +450,7 @@ pub fn channel_close(public_key: &[u8]) -> Result<(), ContractError> {
 }
 
 /// Open cryptographic box with RPC request.
-pub fn open_request_box(request: &api::CryptoBox) -> Result<api::PlainRequest, ContractError> {
+pub fn open_request_box(request: &api::CryptoBox) -> Result<api::PlainClientRequest, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
     Ok(channel.get_session(&request.get_public_key())?
@@ -459,7 +459,7 @@ pub fn open_request_box(request: &api::CryptoBox) -> Result<api::PlainRequest, C
 
 /// Create cryptographic box with RPC response.
 pub fn create_response_box(public_key: &[u8],
-                           response: &api::PlainResponse) -> Result<api::CryptoBox, ContractError> {
+                           response: &api::PlainClientResponse) -> Result<api::CryptoBox, ContractError> {
 
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 

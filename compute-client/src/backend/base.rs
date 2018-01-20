@@ -6,7 +6,7 @@ use super::super::errors::Error;
 /// Contract client backend.
 pub trait ContractClientBackend {
     /// Call contract.
-    fn call(&self, request: api::Request) -> Result<api::Response, Error>;
+    fn call(&self, client_request: api::ClientRequest) -> Result<api::ClientResponse, Error>;
 
     /// Get SPID that can be used to verify the quote later.
     fn get_spid(&self) -> Result<Vec<u8>, Error>;

@@ -32,21 +32,21 @@ impl Web3ContractClientBackend {
 }
 
 impl ContractClientBackend for Web3ContractClientBackend {
-    fn call(&self, request: api::Request) -> Result<api::Response, Error> {
-        let mut raw_request = CallContractRequest::new();
-        raw_request.set_payload(request.write_to_bytes()?);
+    fn call(&self, client_request: api::ClientRequest) -> Result<api::ClientResponse, Error> {
+        let mut rpc_request = CallContractRequest::new();
+        rpc_request.set_payload(client_request.write_to_bytes()?);
 
-        let response = match self.client.call_contract(
+        let rpc_response = match self.client.call_contract(
             grpc::RequestOptions::new(),
-            raw_request
+            rpc_request
         ).wait() {
-            Ok((_, response, _)) => response,
+            Ok((_, rpc_response, _)) => rpc_response,
             _ => return Err(Error::new("Failed to call contract"))
         };
 
-        let response: api::Response = protobuf::parse_from_bytes(response.get_payload())?;
+        let client_response: api::ClientResponse = protobuf::parse_from_bytes(rpc_response.get_payload())?;
 
-        Ok(response)
+        Ok(client_response)
     }
 
     fn get_spid(&self) -> Result<Vec<u8>, Error> {

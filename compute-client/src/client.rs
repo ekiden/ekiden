@@ -65,67 +65,45 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         Ok(client)
     }
 
-    /// Calls a contract method without state.
-    pub fn call_stateless<Rq, Rs>(&mut self, method: &str, request: Rq) -> Result<Rs, Error>
-        where Rq: Message,
-              Rs: Message + MessageStatic {
-
-        let (_state, response): (Option<Vec<u8>>, Rs) = self.call(&method, None, request)?;
-
-        Ok(response)
-    }
-
     /// Calls a contract method.
-    // TODO: have the compute node fetch and store the state
-    pub fn call<Rq, Rs>(&mut self, method: &str, state: Option<Vec<u8>>, request: Rq) -> Result<(Option<Vec<u8>>, Rs), Error>
+    pub fn call<Rq, Rs>(&mut self, method: &str, request: Rq) -> Result<Rs, Error>
         where Rq: Message,
               Rs: Message + MessageStatic {
 
-        let mut plain_request = api::PlainRequest::new();
+        let mut plain_request = api::PlainClientRequest::new();
         plain_request.set_method(method.to_string());
         plain_request.set_payload(request.write_to_bytes()?);
 
-        let mut enclave_request = api::Request::new();
+        let mut client_request = api::ClientRequest::new();
         if self.secure_channel.ready {
             // Encrypt request.
-            enclave_request.set_encrypted_request(
+            client_request.set_encrypted_request(
                 self.secure_channel.create_request_box(&plain_request)?
             );
         } else {
             // Plain-text request.
-            enclave_request.set_plain_request(plain_request);
+            client_request.set_plain_request(plain_request);
         }
 
-        if let Some(state) = state {
-            let state = protobuf::parse_from_bytes(&state)?;
-            enclave_request.set_encrypted_state(state);
-        }
+        let mut client_response = self.backend.call(client_request)?;
 
-        let mut response = self.backend.call(enclave_request)?;
-
-        let new_state = if response.has_encrypted_state() {
-            Some(response.get_encrypted_state().write_to_bytes()?)
-        } else {
-            None
-        };
-
-        if self.secure_channel.ready && !response.has_encrypted_response() {
+        if self.secure_channel.ready && !client_response.has_encrypted_response() {
             return Err(Error::new("Contract returned plain response for encrypted request"))
         }
 
         let mut plain_response = {
             if self.secure_channel.ready {
                 // Encrypted response.
-                self.secure_channel.open_response_box(&response.get_encrypted_response())?
+                self.secure_channel.open_response_box(&client_response.get_encrypted_response())?
             } else {
                 // Plain-text response.
-                response.take_plain_response()
+                client_response.take_plain_response()
             }
         };
 
         // Validate response code.
         match plain_response.get_code() {
-            api::PlainResponse_Code::SUCCESS => {},
+            api::PlainClientResponse_Code::SUCCESS => {},
             _ => {
                 // Deserialize error.
                 let mut error: api::Error = match protobuf::parse_from_bytes(&plain_response.take_payload()) {
@@ -139,7 +117,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
 
         let response: Rs = protobuf::parse_from_bytes(plain_response.get_payload())?;
 
-        Ok((new_state, response))
+        Ok(response)
     }
 
     /// Initialize a secure channel with the contract.
@@ -157,7 +135,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         request.set_spid(self.backend.get_spid()?);
         request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
 
-        let mut response: api::ChannelInitResponse = self.call_stateless("_channel_init", request)?;
+        let mut response: api::ChannelInitResponse = self.call("_channel_init", request)?;
 
         // Verify quote via IAS, verify nonce.
         let quote = self.backend.verify_quote(response.take_quote())?;
@@ -184,7 +162,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         // Send request to close channel.
         let request = api::ChannelCloseRequest::new();
 
-        let _response: api::ChannelCloseResponse = self.call_stateless("_channel_close", request)?;
+        let _response: api::ChannelCloseResponse = self.call("_channel_close", request)?;
 
         // Reset local part of the secure channel.
         self.secure_channel.reset()?;
@@ -247,7 +225,7 @@ impl SecureChannelContext {
     }
 
     /// Create cryptographic box with RPC request.
-    pub fn create_request_box(&mut self, request: &api::PlainRequest) -> Result<api::CryptoBox, Error> {
+    pub fn create_request_box(&mut self, request: &api::PlainClientRequest) -> Result<api::CryptoBox, Error> {
         let mut crypto_box = create_box(
             &request.write_to_bytes()?,
             &NONCE_CONTEXT_REQUEST,
@@ -264,7 +242,7 @@ impl SecureChannelContext {
     }
 
     /// Open cryptographic box with RPC response.
-    pub fn open_response_box(&mut self, response: &api::CryptoBox) -> Result<api::PlainResponse, Error> {
+    pub fn open_response_box(&mut self, response: &api::CryptoBox) -> Result<api::PlainClientResponse, Error> {
         let plain_response = open_box(
             &response,
             &NONCE_CONTEXT_RESPONSE,

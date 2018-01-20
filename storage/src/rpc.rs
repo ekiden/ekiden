@@ -27,12 +27,12 @@ impl Storage for StorageServerImpl {
     let s = self.state.lock().unwrap();
     match s.get_latest() {
       Some(val) => {
-	let mut response = GetResponse::new();
-      	response.set_payload(val);
-	grpc::SingleResponse::completed(response)
+        let mut response = GetResponse::new();
+        response.set_payload(val);
+        grpc::SingleResponse::completed(response)
       }
       None => {
-	grpc::SingleResponse::err(grpc::Error::Other("State not initialized."))
+        grpc::SingleResponse::err(grpc::Error::Other("State not initialized."))
       }
     }
   }
@@ -44,21 +44,20 @@ impl Storage for StorageServerImpl {
     // check attestation - early reject
     match State::check_tx(payload) {
       Ok(_) => {
-	// Create a one-shot channel for response 
-	let (tx, rx) = mpsc::channel();
-	let req = BroadcastRequest {
-	  chan: tx,
-	  payload: payload.to_vec(),
-	};
-	let broadcast_channel = self.tx.lock().unwrap();
-	broadcast_channel.send(req).unwrap();
-	match rx.recv().unwrap() {
-	  Ok(_result) => grpc::SingleResponse::completed(SetResponse::new()),
-	  Err(_error) => grpc::SingleResponse::err(grpc::Error::Other("Error forwarding to Tendermint")),
-	}
+        // Create a one-shot channel for response
+        let (tx, rx) = mpsc::channel();
+        let req = BroadcastRequest {
+          chan: tx,
+          payload: payload.to_vec(),
+        };
+        let broadcast_channel = self.tx.lock().unwrap();
+        broadcast_channel.send(req).unwrap();
+        match rx.recv().unwrap() {
+          Ok(_result) => grpc::SingleResponse::completed(SetResponse::new()),
+          Err(_error) => grpc::SingleResponse::err(grpc::Error::Other("Error forwarding to Tendermint")),
+        }
       },
       Err(_error) => grpc::SingleResponse::err(grpc::Error::Other("Invalid payload fails check_tx")),
     }
   }
 }
-

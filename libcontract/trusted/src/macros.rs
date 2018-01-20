@@ -70,7 +70,7 @@ macro_rules! create_enclave {
                     Ok(value) => Some(value),
                     _ => {
                         $crate::dispatcher::return_error(
-                            libcontract_common::api::PlainResponse_Code::ERROR_BAD_REQUEST,
+                            libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
                             "Unable to parse request state",
                             &raw_response
                         );
@@ -146,7 +146,7 @@ macro_rules! create_enclave {
 
             // If we are still here, the method could not be found.
             $crate::dispatcher::return_error(
-                libcontract_common::api::PlainResponse_Code::ERROR_METHOD_NOT_FOUND,
+                libcontract_common::api::PlainClientResponse_Code::ERROR_METHOD_NOT_FOUND,
                 "Method not found",
                 &raw_response
             );
@@ -196,7 +196,7 @@ macro_rules! create_enclave_method {
                 Some(value) => value,
                 None => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
                         "Request must come with state",
                         &$response
                     );
@@ -209,7 +209,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
                         "Unable to parse request payload",
                         &$response
                     );
@@ -222,7 +222,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR,
                         message.as_str(),
                         &$response
                     );
@@ -245,7 +245,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
                         "Unable to parse request payload",
                         &$response
                     );
@@ -258,7 +258,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR,
                         message.as_str(),
                         &$response
                     );
@@ -281,7 +281,7 @@ macro_rules! create_enclave_method {
                 Some(value) => value,
                 None => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
                         "Request must come with state",
                         &$response
                     );
@@ -294,7 +294,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
                         "Unable to parse request payload",
                         &$response
                     );
@@ -307,7 +307,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR,
                         message.as_str(),
                         &$response
                     );
@@ -330,7 +330,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 _ => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR_BAD_REQUEST,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
                         "Unable to parse request payload",
                         &$response
                     );
@@ -343,7 +343,7 @@ macro_rules! create_enclave_method {
                 Ok(value) => value,
                 Err(libcontract_common::ContractError { message }) => {
                     $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainResponse_Code::ERROR,
+                        libcontract_common::api::PlainClientResponse_Code::ERROR,
                         message.as_str(),
                         &$response
                     );

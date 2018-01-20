@@ -3,12 +3,12 @@ use std::error::Error as StdError;
 
 use protobuf;
 
-use libcontract_common::api::PlainResponse_Code;
+use libcontract_common::api::PlainClientResponse_Code;
 
 #[derive(Debug)]
 pub enum Error {
     ParseError,
-    ResponseError(PlainResponse_Code, String),
+    ResponseError(PlainClientResponse_Code, String),
     SgxError
 }
 
