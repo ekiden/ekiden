@@ -232,10 +232,14 @@ where
 /// in the untrusted part.
 pub fn untrusted_call_endpoint_raw(
     endpoint: &ClientEndpoint,
-    request: Vec<u8>,
+    mut request: Vec<u8>,
 ) -> Result<Vec<u8>, ContractError> {
     // Maximum size of serialized response is 16K.
     let mut response: Vec<u8> = Vec::with_capacity(16 * 1024);
+
+    // Ensure that request is actually allocated as the length of the actual request
+    // may be zero and in that case the OCALL will fail with SGX_ERROR_INVALID_PARAMETER.
+    request.reserve(1);
 
     let mut response_length = 0;
     let status = unsafe {
@@ -251,10 +255,11 @@ pub fn untrusted_call_endpoint_raw(
 
     match status {
         sgx_status_t::SGX_SUCCESS => {}
-        _ => {
-            return Err(ContractError::new(
-                "Outgoing enclave RPC call failed (error during OCALL)",
-            ));
+        status => {
+            return Err(ContractError::new(&format!(
+                "Enclave RPC OCALL failed: {:?}",
+                status
+            )));
         }
     }
 

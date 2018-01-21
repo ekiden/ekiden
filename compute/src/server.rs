@@ -93,7 +93,7 @@ impl ComputeServerImpl {
         enclave_request.set_client_request(client_request);
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
-        let enclave_response_bytes = self.get_contract().call_raw(&enclave_request_bytes)?;
+        let enclave_response_bytes = self.get_contract().call_raw(enclave_request_bytes)?;
 
         let enclave_response: libcontract_common::api::EnclaveResponse =
             protobuf::parse_from_bytes(&enclave_response_bytes)?;

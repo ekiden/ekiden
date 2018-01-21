@@ -63,7 +63,7 @@ impl EkidenEnclave {
         enclave_request.set_client_request(client_request);
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
-        let enclave_response_bytes = self.call_raw(&enclave_request_bytes)?;
+        let enclave_response_bytes = self.call_raw(enclave_request_bytes)?;
 
         let enclave_response: api::EnclaveResponse =
             match protobuf::parse_from_bytes(enclave_response_bytes.as_slice()) {
@@ -108,11 +108,15 @@ impl EkidenEnclave {
     }
 
     /// Perform a raw RPC call against the enclave.
-    pub fn call_raw(&self, request: &Vec<u8>) -> Result<Vec<u8>, errors::Error> {
+    pub fn call_raw(&self, mut request: Vec<u8>) -> Result<Vec<u8>, errors::Error> {
         // Maximum size of serialized response is 16K.
         let mut response: Vec<u8> = Vec::with_capacity(16 * 1024);
-        let mut response_length = 0;
 
+        // Ensure that request is actually allocated as the length of the actual request
+        // may be zero and in that case the OCALL will fail with SGX_ERROR_INVALID_PARAMETER.
+        request.reserve(1);
+
+        let mut response_length = 0;
         let status = unsafe {
             rpc_call(
                 self.enclave.geteid(),
