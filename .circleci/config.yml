@@ -2,12 +2,44 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ekiden/rust-sgx-sdk:latest
+      - image: ekiden/testing
     steps:
-      - run: git clone --depth=1 https://github.com/baidu/rust-sgx-sdk.git /sgx
+      # Set up
+      - run: echo 'PS1='"'"'\$ '"'"'; . /root/.bashrc' >> $BASH_ENV
       - checkout
-      - run: $HOME/.cargo/bin/cargo make build-flow
-      - run: $HOME/.cargo/bin/cargo make format
+      - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
+      - restore_cache:
+          keys:
+            - v1-omni-{{ .Branch }}-{{ .Revision }}
+            - v1-omni-{{ .Branch }}-
+            - v1-omni-master-
+
+      # Build
+      - run: cargo make build-flow
+
+      # Test: end-to-end token contract
+      - run:
+          command: ./target/debug/storage
+          background: true
+      - run: tendermint init
+      - run:
+          command: tendermint node --consensus.create_empty_blocks=false
+          background: true
+      - run: echo "$IAS_PKCS12" | base64 --decode --ignore-garbage > client.pfx
+      - run:
+          command: ./target/debug/compute target/enclave/token.signed.so --ias-pkcs12 client.pfx --ias-spid "$IAS_SPID"
+          background: true
+      - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
+
+      # Rustfmt
+      - run: cargo make format
+
+      # Save cache
+      - save_cache:
+          key: v1-omni-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - /root/.cargo
+            - target
 workflows:
   version: 2
   build:
