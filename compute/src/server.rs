@@ -13,9 +13,9 @@ use generated::compute_web3::{CallContractRequest, CallContractResponse, IasGetS
                               IasGetSpidResponse, IasVerifyQuoteRequest, IasVerifyQuoteResponse,
                               IasVerifyQuoteResponse_Status};
 use generated::compute_web3_grpc::Compute;
-use generated::storage;
-use generated::storage_grpc;
-use generated::storage_grpc::Storage;
+use generated::consensus;
+use generated::consensus_grpc;
+use generated::consensus_grpc::Consensus;
 
 use super::ias::{IASConfiguration, IAS};
 
@@ -66,24 +66,24 @@ impl ComputeServerImpl {
         &self,
         rpc_request: CallContractRequest,
     ) -> Result<CallContractResponse, Box<std::error::Error>> {
-        // Connect to storage node
-        // TODO: Let client select storage node.
+        // Connect to consensus node
+        // TODO: Let client select consensus node.
         // TODO: Use TLS client.
-        let storage_client =
-            storage_grpc::StorageClient::new_plain("localhost", 9002, Default::default())?;
+        let consensus_client =
+            consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default())?;
 
         //
         let mut enclave_request = libcontract_common::api::EnclaveRequest::new();
 
-        // Get state from storage
-        let storage_result = storage_client
-            .get(grpc::RequestOptions::new(), storage::GetRequest::new())
+        // Get state from consensus
+        let consensus_result = consensus_client
+            .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
             .wait();
-        if let Ok((_, storage_get_response, _)) = storage_result {
-            let encrypted_state = protobuf::parse_from_bytes(storage_get_response.get_payload())?;
+        if let Ok((_, consensus_get_response, _)) = consensus_result {
+            let encrypted_state = protobuf::parse_from_bytes(consensus_get_response.get_payload())?;
             enclave_request.set_encrypted_state(encrypted_state);
         };
-        // We should bail if there was an error other than the storage not being initialized.
+        // We should bail if there was an error other than the consensus not being initialized.
         // But don't go fixing this. There's another resolution planned in #95.
 
         //
@@ -97,13 +97,13 @@ impl ComputeServerImpl {
         let enclave_response: libcontract_common::api::EnclaveResponse =
             protobuf::parse_from_bytes(&enclave_response_bytes)?;
 
-        // Set state in storage
+        // Set state in consensus
         if enclave_response.has_encrypted_state() {
             let new_encrypted_state = enclave_response.get_encrypted_state();
-            let mut storage_set_request = storage::SetRequest::new();
-            storage_set_request.set_payload(new_encrypted_state.write_to_bytes()?);
-            storage_client
-                .set(grpc::RequestOptions::new(), storage_set_request)
+            let mut consensus_set_request = consensus::SetRequest::new();
+            consensus_set_request.set_payload(new_encrypted_state.write_to_bytes()?);
+            consensus_client
+                .set(grpc::RequestOptions::new(), consensus_set_request)
                 .wait()?;
         }
 
