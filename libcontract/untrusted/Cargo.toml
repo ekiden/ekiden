@@ -10,8 +10,8 @@ authors = [
 sgx-simulation = []
 
 [dependencies]
-sgx_types = { path = "/sgx/sgx_types" }
-sgx_urts = { path = "/sgx/sgx_urts" }
+sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+sgx_urts = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 protobuf = "1.4.2"
 libcontract-common = { path = "../common", features = ["no-sgx"], default-features = false }
 

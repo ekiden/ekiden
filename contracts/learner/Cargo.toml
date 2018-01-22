@@ -15,10 +15,10 @@ default = []
 learner-api = { path = "./api", features = ["sgx"], default-features = false }
 libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
 libcontract-trusted = { path = "../../libcontract/trusted" }
-protobuf-sgx = { path = "../../third_party/protobuf" }
-rusty-machine = { path = "/sgx/third_party/rusty-machine" }
-serde_cbor = { path = "../../third_party/serde_cbor" }
-sgx_tstd = { path = "/sgx/sgx_tstd" }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
+rusty-machine = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+serde_cbor = { git = "https://github.com/ekiden/cbor" }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 
 [build-dependencies]
 libcontract-utils = { path = "../../libcontract/utils" }

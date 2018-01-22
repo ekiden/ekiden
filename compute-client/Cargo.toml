@@ -16,11 +16,11 @@ httpbis  = { version = "0.4.1", optional = true }
 rand = { version = "0.4", optional = true }
 protobuf = { version = "1.4.2", optional = true }
 byteorder = { version = "1.2.1", optional = true }
-protobuf-sgx = { path = "../third_party/protobuf", optional = true }
-byteorder-sgx = { path = "../third_party/byteorder", optional = true }
-sgx_types = { path = "/sgx/sgx_types", optional = true }
-sgx_tstd = { path = "/sgx/sgx_tstd", optional = true }
-sgx_trts = { path = "/sgx/sgx_trts", optional = true }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true }
+byteorder-sgx = { git = "https://github.com/ekiden/byteorder", optional = true }
+sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
+sgx_trts = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
 sodalite = "0.3.0"
 libcontract-common = { path = "../libcontract/common", default-features = false }
 
