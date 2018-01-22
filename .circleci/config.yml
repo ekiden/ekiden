@@ -15,5 +15,6 @@ workflows:
       - build
 experimental:
   notify:
-    only:
-      - master
+    branches:
+      only:
+        - master
