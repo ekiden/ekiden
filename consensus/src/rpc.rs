@@ -1,29 +1,29 @@
 use grpc;
 use std::sync::{mpsc, Arc, Mutex};
 
-use generated::storage::{GetRequest, GetResponse, SetRequest, SetResponse};
-use generated::storage_grpc::Storage;
+use generated::consensus::{GetRequest, GetResponse, SetRequest, SetResponse};
+use generated::consensus_grpc::Consensus;
 use state::State;
 use tendermint::BroadcastRequest;
 
-pub struct StorageServerImpl {
+pub struct ConsensusServerImpl {
     state: Arc<Mutex<State>>,
     tx: Arc<Mutex<mpsc::Sender<BroadcastRequest>>>,
 }
 
-impl StorageServerImpl {
+impl ConsensusServerImpl {
     pub fn new(
         state: Arc<Mutex<State>>,
         tx: Arc<Mutex<mpsc::Sender<BroadcastRequest>>>,
-    ) -> StorageServerImpl {
-        StorageServerImpl {
+    ) -> ConsensusServerImpl {
+        ConsensusServerImpl {
             state: state,
             tx: tx,
         }
     }
 }
 
-impl Storage for StorageServerImpl {
+impl Consensus for ConsensusServerImpl {
     // Handle `get` requests to retrieve latest state
     fn get(
         &self,
