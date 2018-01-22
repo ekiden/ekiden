@@ -158,7 +158,7 @@ macro_rules! create_enclave {
         }
 
         // Meta method implementations.
-        fn _metadata(_request: libcontract_common::api::MetadataRequest) ->
+        fn _metadata(_request: &libcontract_common::api::MetadataRequest) ->
             Result<libcontract_common::api::MetadataResponse, libcontract_common::ContractError>
         {
             let mut response = libcontract_common::api::MetadataResponse::new();
@@ -168,14 +168,14 @@ macro_rules! create_enclave {
             Ok(response)
         }
 
-        fn _contract_init(request: libcontract_common::api::ContractInitRequest) ->
+        fn _contract_init(request: &libcontract_common::api::ContractInitRequest) ->
             Result<libcontract_common::api::ContractInitResponse, libcontract_common::ContractError>
         {
 
             $crate::secure_channel::contract_init(request)
         }
 
-        fn _contract_restore(request: libcontract_common::api::ContractRestoreRequest) ->
+        fn _contract_restore(request: &libcontract_common::api::ContractRestoreRequest) ->
             Result<
                 libcontract_common::api::ContractRestoreResponse,
                 libcontract_common::ContractError
@@ -184,12 +184,71 @@ macro_rules! create_enclave {
             $crate::secure_channel::contract_restore(request)
         }
 
-        fn _channel_init(request: libcontract_common::api::ChannelInitRequest) ->
+        fn _channel_init(request: &libcontract_common::api::ChannelInitRequest) ->
             Result<libcontract_common::api::ChannelInitResponse, libcontract_common::ContractError>
         {
             $crate::secure_channel::channel_init(request, $client_attestation_required)
         }
     };
+}
+
+#[macro_export]
+macro_rules! parse_enclave_method_state {
+    ( $state: ident, $response: ident, $state_type: ty ) => {{
+        // Ensure state provided.
+        let state: $state_type = match $state {
+            Some(value) => value,
+            None => {
+                $crate::dispatcher::return_error(
+                    libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
+                    "Request must come with state",
+                    &$response
+                );
+                return;
+            }
+        };
+
+        state
+    }}
+}
+
+#[macro_export]
+macro_rules! parse_enclave_method_request {
+    ( $request: ident, $response: ident, $request_type: ty ) => {{
+        use $crate::dispatcher::Request;
+        let payload: Request<$request_type> = match protobuf::parse_from_bytes(
+            &$request.get_payload()
+        ) {
+            Ok(value) => $request.copy_metadata_to(value),
+            _ => {
+                $crate::dispatcher::return_error(
+                    libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
+                    "Unable to parse request payload",
+                    &$response
+                );
+                return;
+            }
+        };
+
+        payload
+    }}
+}
+
+#[macro_export]
+macro_rules! handle_enclave_method_invocation {
+    ( $response: ident, $invocation: expr ) => {{
+        match $invocation {
+            Ok(value) => value,
+            Err(libcontract_common::ContractError { message }) => {
+                $crate::dispatcher::return_error(
+                    libcontract_common::api::PlainClientResponse_Code::ERROR,
+                    message.as_str(),
+                    &$response
+                );
+                return;
+            }
+        }
+    }}
 }
 
 /// Internal macro for creating method invocations.
@@ -201,45 +260,12 @@ macro_rules! create_enclave_method {
         $method_name: ident ( state , $request_type: ty ) -> ( state , $response_type: ty )
     ) => {
         if $request.method == stringify!($method_name) {
-            // Ensure state provided.
-            let state: $state_type = match $state {
-                Some(value) => value,
-                None => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                        "Request must come with state",
-                        &$response
-                    );
-                    return;
-                }
-            };
-
-            // Parse request payload.
-            let payload: $request_type = match protobuf::parse_from_bytes(&$request.get_payload()) {
-                Ok(value) => value,
-                _ => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                        "Unable to parse request payload",
-                        &$response
-                    );
-                    return;
-                }
-            };
+            let state = parse_enclave_method_state!($state, $response, $state_type);
+            let payload = parse_enclave_method_request!($request, $response, $request_type);
 
             // Invoke method implementation.
             let (new_state, response): ($state_type, $response_type) =
-                match $method_name(state, payload) {
-                    Ok(value) => value,
-                    Err(libcontract_common::ContractError { message }) => {
-                        $crate::dispatcher::return_error(
-                            libcontract_common::api::PlainClientResponse_Code::ERROR,
-                            message.as_str(),
-                            &$response
-                        );
-                        return;
-                    }
-                };
+                handle_enclave_method_invocation!($response, $method_name(&state, &payload));
 
             $crate::dispatcher::return_success(Some(new_state), response, &$response);
             return;
@@ -251,31 +277,11 @@ macro_rules! create_enclave_method {
         $method_name: ident ( $request_type: ty ) -> ( state , $response_type: ty )
     ) => {
         if $request.method == stringify!($method_name) {
-            // Parse request payload.
-            let payload: $request_type = match protobuf::parse_from_bytes(&$request.get_payload()) {
-                Ok(value) => value,
-                _ => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                        "Unable to parse request payload",
-                        &$response
-                    );
-                    return;
-                }
-            };
+            let payload = parse_enclave_method_request!($request, $response, $request_type);
 
             // Invoke method implementation.
-            let (new_state, response): ($state_type, $response_type) = match $method_name(payload) {
-                Ok(value) => value,
-                Err(libcontract_common::ContractError { message }) => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR,
-                        message.as_str(),
-                        &$response
-                    );
-                    return;
-                }
-            };
+            let (new_state, response): ($state_type, $response_type) =
+                handle_enclave_method_invocation!($response, $method_name(&payload));
 
             $crate::dispatcher::return_success(Some(new_state), response, &$response);
             return;
@@ -287,44 +293,12 @@ macro_rules! create_enclave_method {
         $method_name: ident ( state , $request_type: ty ) -> $response_type: ty
     ) => {
         if $request.method == stringify!($method_name) {
-            // Ensure state provided.
-            let state: $state_type = match $state {
-                Some(value) => value,
-                None => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                        "Request must come with state",
-                        &$response
-                    );
-                    return;
-                }
-            };
-
-            // Parse request payload.
-            let payload: $request_type = match protobuf::parse_from_bytes(&$request.get_payload()) {
-                Ok(value) => value,
-                _ => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                        "Unable to parse request payload",
-                        &$response
-                    );
-                    return;
-                }
-            };
+            let state = parse_enclave_method_state!($state, $response, $state_type);
+            let payload = parse_enclave_method_request!($request, $response, $request_type);
 
             // Invoke method implementation.
-            let response: $response_type = match $method_name(state, payload) {
-                Ok(value) => value,
-                Err(libcontract_common::ContractError { message }) => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR,
-                        message.as_str(),
-                        &$response
-                    );
-                    return;
-                }
-            };
+            let response: $response_type =
+                handle_enclave_method_invocation!($response, $method_name(&state, &payload));
 
             $crate::dispatcher::return_success(None::<$state_type>, response, &$response);
             return;
@@ -336,31 +310,11 @@ macro_rules! create_enclave_method {
         $method_name: ident ( $request_type: ty ) -> $response_type: ty
     ) => {
         if $request.method == stringify!($method_name) {
-            // Parse request payload.
-            let payload: $request_type = match protobuf::parse_from_bytes(&$request.get_payload()) {
-                Ok(value) => value,
-                _ => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                        "Unable to parse request payload",
-                        &$response
-                    );
-                    return;
-                }
-            };
+            let payload = parse_enclave_method_request!($request, $response, $request_type);
 
             // Invoke method implementation.
-            let response: $response_type = match $method_name(payload) {
-                Ok(value) => value,
-                Err(libcontract_common::ContractError { message }) => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR,
-                        message.as_str(),
-                        &$response
-                    );
-                    return;
-                }
-            };
+            let response: $response_type =
+                handle_enclave_method_invocation!($response, $method_name(&payload));
 
             $crate::dispatcher::return_success(None::<$state_type>, response, &$response);
             return;

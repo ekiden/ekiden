@@ -1,15 +1,81 @@
 use sgx_types::*;
 
 use std;
+use std::ops::{Deref, DerefMut};
 
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
 use libcontract_common::{api, ContractError};
 use libcontract_common::client::ClientEndpoint;
+use libcontract_common::quote::MrEnclave;
 
-use super::secure_channel;
+use super::secure_channel::{create_response_box, open_request_box};
 use super::untrusted;
+
+/// Wrapper for requests to provide additional request metadata.
+pub struct Request<T: Message> {
+    /// Underlying request message.
+    message: T,
+    /// Client short-term public key (if request is authenticated).
+    public_key: Option<Vec<u8>>,
+    /// Client MRENCLAVE (if channel is mutually authenticated).
+    mr_enclave: Option<MrEnclave>,
+}
+
+impl<T: Message> Request<T> {
+    /// Create new request wrapper from message.
+    fn new(message: T, public_key: Option<Vec<u8>>, mr_enclave: Option<MrEnclave>) -> Self {
+        Request {
+            message: message,
+            public_key: public_key,
+            mr_enclave: mr_enclave,
+        }
+    }
+
+    /// Copy metadata of the current request into a new request object.
+    ///
+    /// This method can be used when extracting a part of a request data (e.g. the
+    /// payload) and the caller would like to keep the associated metadata. The
+    /// metadata will be cloned and the given `message` will be wrapped into a
+    /// `Request` object.
+    pub fn copy_metadata_to<M: Message>(&self, message: M) -> Request<M> {
+        Request {
+            message: message,
+            public_key: self.public_key.clone(),
+            mr_enclave: self.mr_enclave.clone(),
+        }
+    }
+
+    /// Get short-term public key of the client making this request.
+    ///
+    /// If the request was made over a non-secure channel, this will be `None`.
+    pub fn get_client_public_key(&self) -> &Option<Vec<u8>> {
+        &self.public_key
+    }
+
+    /// Get MRENCLAVE of the client making this request.
+    ///
+    /// If the request was made over a channel without client attestation, this
+    /// will be `None`.
+    pub fn get_client_mr_enclave(&self) -> &Option<MrEnclave> {
+        &self.mr_enclave
+    }
+}
+
+impl<T: Message> Deref for Request<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.message
+    }
+}
+
+impl<T: Message> DerefMut for Request<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.message
+    }
+}
 
 /// Raw data needed to generate the response.
 pub struct RawResponse {
@@ -37,7 +103,13 @@ pub fn parse_request(
     request_data: *const u8,
     request_length: usize,
     raw_response: &mut RawResponse,
-) -> Result<(Option<api::CryptoSecretbox>, api::PlainClientRequest), ()> {
+) -> Result<
+    (
+        Option<api::CryptoSecretbox>,
+        Request<api::PlainClientRequest>,
+    ),
+    (),
+> {
     let raw_request = unsafe { std::slice::from_raw_parts(request_data, request_length) };
     let mut enclave_request: api::EnclaveRequest = match protobuf::parse_from_bytes(raw_request) {
         Ok(enclave_request) => enclave_request,
@@ -59,13 +131,16 @@ pub fn parse_request(
 
     let mut client_request = enclave_request.take_client_request();
 
-    let plain_request = if client_request.has_encrypted_request() {
+    if client_request.has_encrypted_request() {
         // Encrypted request.
-        raw_response.public_key = client_request
+        let public_key = client_request
             .get_encrypted_request()
             .get_public_key()
             .to_vec();
-        match secure_channel::open_request_box(&client_request.get_encrypted_request()) {
+
+        raw_response.public_key = public_key.clone();
+
+        let plain_request = match open_request_box(&client_request.get_encrypted_request()) {
             Ok(plain_request) => plain_request,
             _ => {
                 return_error(
@@ -75,7 +150,13 @@ pub fn parse_request(
                 );
                 return Err(());
             }
-        }
+        };
+
+        // TODO: MRENCLAVE if mutually authenticated.
+        Ok((
+            encrypted_state,
+            Request::new(plain_request, Some(public_key), None),
+        ))
     } else {
         // Plain request.
         let plain_request = client_request.take_plain_request();
@@ -95,10 +176,8 @@ pub fn parse_request(
             }
         };
 
-        plain_request
-    };
-
-    Ok((encrypted_state, plain_request))
+        Ok((encrypted_state, Request::new(plain_request, None, None)))
+    }
 }
 
 /// Serialize and return an RPC response.
@@ -119,7 +198,7 @@ pub fn return_response(
         client_response.set_plain_response(plain_response);
     } else {
         // Encrypted response.
-        match secure_channel::create_response_box(&raw_response.public_key, &plain_response) {
+        match create_response_box(&raw_response.public_key, &plain_response) {
             Ok(response_box) => client_response.set_encrypted_response(response_box),
             _ => {
                 // Failed to create a cryptographic box for the response. This could

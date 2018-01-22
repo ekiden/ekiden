@@ -53,15 +53,15 @@ fn unpack_examples(examples: &[Example]) -> Result<(Matrix<f64>, Vector<f64>), C
     Ok((xs, ys))
 }
 
-fn create(request: CreateRequest) -> Result<(LearnerState, CreateResponse), ContractError> {
+fn create(request: &CreateRequest) -> Result<(LearnerState, CreateResponse), ContractError> {
     let learner = Learner::new(Address::from(request.get_requester().to_string()));
 
     Ok((learner.get_state(), CreateResponse::new()))
 }
 
 fn train(
-    state: LearnerState,
-    request: TrainingRequest,
+    state: &LearnerState,
+    request: &TrainingRequest,
 ) -> Result<(LearnerState, TrainingResponse), ContractError> {
     let mut learner = Learner::from_state(&state);
 
@@ -78,8 +78,8 @@ fn train(
 }
 
 fn infer(
-    state: LearnerState,
-    request: InferenceRequest,
+    state: &LearnerState,
+    request: &InferenceRequest,
 ) -> Result<InferenceResponse, ContractError> {
     let learner = Learner::from_state(&state);
 

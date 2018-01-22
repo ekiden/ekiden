@@ -346,7 +346,7 @@ lazy_static! {
 
 /// Initialize contract.
 pub fn contract_init(
-    _request: api::ContractInitRequest,
+    _request: &api::ContractInitRequest,
 ) -> Result<api::ContractInitResponse, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
@@ -372,7 +372,7 @@ pub fn contract_init(
 
 /// Restore contract from sealed state.
 pub fn contract_restore(
-    request: api::ContractRestoreRequest,
+    request: &api::ContractRestoreRequest,
 ) -> Result<api::ContractRestoreResponse, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
@@ -392,7 +392,7 @@ pub fn contract_restore(
 /// enclave and will need to provide attestation for the channel to be considered
 /// established.
 pub fn channel_init(
-    request: api::ChannelInitRequest,
+    request: &api::ChannelInitRequest,
     client_attestation_required: bool,
 ) -> Result<api::ChannelInitResponse, ContractError> {
     // Validate request.

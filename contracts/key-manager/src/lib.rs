@@ -23,7 +23,7 @@ use libcontract_common::ContractError;
 
 create_enclave_api!();
 
-fn hello_world(request: HelloWorldRequest) -> Result<HelloWorldResponse, ContractError> {
+fn hello_world(request: &HelloWorldRequest) -> Result<HelloWorldResponse, ContractError> {
     println!("hello world called");
 
     let mut response = HelloWorldResponse::new();
