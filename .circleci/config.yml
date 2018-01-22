@@ -6,10 +6,6 @@ jobs:
     steps:
       - run: git clone --depth=1 https://github.com/baidu/rust-sgx-sdk.git /sgx
       - checkout
-      - run: git submodule sync
-      - run: git submodule update --init
-      # the following line is needed to patch rust-sgx-sdk rusty machine
-      - run: git config --global user.email "ci@ekiden.org" && git config --global user.name "CircleCI"
       - run: $HOME/.cargo/bin/cargo make build-flow
       - run: $HOME/.cargo/bin/cargo make format
 workflows:
@@ -21,4 +17,3 @@ experimental:
   notify:
     only:
       - master
-
