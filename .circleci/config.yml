@@ -8,6 +8,11 @@ jobs:
       - checkout:
           path: /code
       - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
+      - restore_cache:
+          keys:
+            - experimental-v1-omni-{{ .Branch }}-{{ .Revision }}
+            - experimental-v1-omni-{{ .Branch }}-
+            - experimental-v1-omni-master-
       - run: cd /code && cargo make
       - run:
           command: /code/target/debug/storage
@@ -21,3 +26,8 @@ jobs:
           command: /code/target/debug/compute /code/target/enclave/token.signed.so --ias-pkcs12 client.pfx --ias-spid "$IAS_SPID"
           background: true
       - run: /code/target/debug/token-client --mr-enclave $(python /code/scripts/parse_enclave.py /code/target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
+      - save_cache:
+          key: experimental-v1-omni-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - /root/.cargo
+            - /code/target
