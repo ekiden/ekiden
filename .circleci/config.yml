@@ -6,11 +6,7 @@ jobs:
     steps:
       - run: echo 'PS1='"'"'\$ '"'"'; . /root/.bashrc' >> $BASH_ENV
       - checkout
-      - run: git submodule sync
-      - run: git submodule update --init
       - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
-      # the following line is needed to patch rust-sgx-sdk rusty machine
-      - run: git config --global user.email "ci@ekiden.org" && git config --global user.name "CircleCI"
       - restore_cache:
           keys:
             - experimental-v1-omni-{{ .Branch }}-{{ .Revision }}
@@ -42,5 +38,6 @@ workflows:
       - build
 experimental:
   notify:
-    only:
-      - master
+    branches:
+      only:
+        - master
