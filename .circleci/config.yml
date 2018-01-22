@@ -5,17 +5,20 @@ jobs:
       - image: docker.io/wh00/ekiden-meta-testing
     steps:
       - run: echo 'PS1='"'"'\$ '"'"'; . /root/.bashrc' >> $BASH_ENV
-      - checkout:
-          path: /code
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
       - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
+      # the following line is needed to patch rust-sgx-sdk rusty machine
+      - run: git config --global user.email "ci@ekiden.org" && git config --global user.name "CircleCI"
       - restore_cache:
           keys:
             - experimental-v1-omni-{{ .Branch }}-{{ .Revision }}
             - experimental-v1-omni-{{ .Branch }}-
             - experimental-v1-omni-master-
-      - run: cd /code && cargo make
+      - run: cargo make build-flow
       - run:
-          command: /code/target/debug/storage
+          command: ./target/debug/storage
           background: true
       - run: tendermint init
       - run:
@@ -23,11 +26,21 @@ jobs:
           background: true
       - run: echo "$IAS_PKCS12" | base64 --decode --ignore-garbage > client.pfx
       - run:
-          command: /code/target/debug/compute /code/target/enclave/token.signed.so --ias-pkcs12 client.pfx --ias-spid "$IAS_SPID"
+          command: ./target/debug/compute target/enclave/token.signed.so --ias-pkcs12 client.pfx --ias-spid "$IAS_SPID"
           background: true
-      - run: /code/target/debug/token-client --mr-enclave $(python /code/scripts/parse_enclave.py /code/target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
+      - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
+      - run: cargo make format
       - save_cache:
           key: experimental-v1-omni-{{ .Branch }}-{{ .Revision }}
           paths:
             - /root/.cargo
-            - /code/target
+            - target
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+experimental:
+  notify:
+    only:
+      - master

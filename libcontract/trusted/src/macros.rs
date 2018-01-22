@@ -66,17 +66,19 @@ macro_rules! create_enclave {
             // Decrypt starting state.
             #[allow(unused)]
             let state: Option<$metadata_state_type> = match encrypted_state {
-                Some(encrypted_state) => match $crate::state_crypto::decrypt_state(&encrypted_state) {
-                    Ok(value) => Some(value),
-                    _ => {
-                        $crate::dispatcher::return_error(
-                            libcontract_common::api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                            "Unable to parse request state",
-                            &raw_response
-                        );
-                        return;
-                    }
-                },
+                Some(encrypted_state) =>
+                    match $crate::state_crypto::decrypt_state(&encrypted_state) {
+                        Ok(value) => Some(value),
+                        _ => {
+                            $crate::dispatcher::return_error(
+                                libcontract_common::api::
+                                    PlainClientResponse_Code::ERROR_BAD_REQUEST,
+                                "Unable to parse request state",
+                                &raw_response
+                            );
+                            return;
+                        }
+                    },
                 None => None,
             };
 
@@ -87,7 +89,9 @@ macro_rules! create_enclave {
                 "_channel_close" => {
                     // Prepare response before closing the channel.
                     let response = api::ChannelCloseResponse::new();
-                    $crate::dispatcher::return_success(None::<$metadata_state_type>, response, &raw_response);
+                    $crate::dispatcher::return_success(
+                        None::<$metadata_state_type>, response, &raw_response
+                    );
 
                     match $crate::secure_channel::channel_close(&raw_response.public_key) {
                         Ok(_) => {},
@@ -153,8 +157,9 @@ macro_rules! create_enclave {
         }
 
         // Meta method implementations.
-        fn _metadata(_request: libcontract_common::api::MetadataRequest)
-            -> Result<libcontract_common::api::MetadataResponse, libcontract_common::ContractError> {
+        fn _metadata(_request: libcontract_common::api::MetadataRequest) ->
+            Result<libcontract_common::api::MetadataResponse, libcontract_common::ContractError>
+        {
             let mut response = libcontract_common::api::MetadataResponse::new();
             response.set_name(String::from(stringify!($metadata_name)));
             response.set_version(String::from($metadata_version));
@@ -162,20 +167,25 @@ macro_rules! create_enclave {
             Ok(response)
         }
 
-        fn _contract_init(request: libcontract_common::api::ContractInitRequest)
-            -> Result<libcontract_common::api::ContractInitResponse, libcontract_common::ContractError> {
+        fn _contract_init(request: libcontract_common::api::ContractInitRequest) ->
+            Result<libcontract_common::api::ContractInitResponse, libcontract_common::ContractError>
+        {
 
             $crate::secure_channel::contract_init(request)
         }
 
-        fn _contract_restore(request: libcontract_common::api::ContractRestoreRequest)
-            -> Result<libcontract_common::api::ContractRestoreResponse, libcontract_common::ContractError> {
-
+        fn _contract_restore(request: libcontract_common::api::ContractRestoreRequest) ->
+            Result<
+                libcontract_common::api::ContractRestoreResponse,
+                libcontract_common::ContractError
+            >
+        {
             $crate::secure_channel::contract_restore(request)
         }
 
-        fn _channel_init(request: libcontract_common::api::ChannelInitRequest)
-            -> Result<libcontract_common::api::ChannelInitResponse, libcontract_common::ContractError> {
+        fn _channel_init(request: libcontract_common::api::ChannelInitRequest) ->
+            Result<libcontract_common::api::ChannelInitResponse, libcontract_common::ContractError>
+        {
 
             $crate::secure_channel::channel_init(request)
         }
@@ -218,17 +228,18 @@ macro_rules! create_enclave_method {
             };
 
             // Invoke method implementation.
-            let (new_state, response): ($state_type, $response_type) = match $method_name(state, payload) {
-                Ok(value) => value,
-                Err(libcontract_common::ContractError { message }) => {
-                    $crate::dispatcher::return_error(
-                        libcontract_common::api::PlainClientResponse_Code::ERROR,
-                        message.as_str(),
-                        &$response
-                    );
-                    return;
-                }
-            };
+            let (new_state, response): ($state_type, $response_type) =
+                match $method_name(state, payload) {
+                    Ok(value) => value,
+                    Err(libcontract_common::ContractError { message }) => {
+                        $crate::dispatcher::return_error(
+                            libcontract_common::api::PlainClientResponse_Code::ERROR,
+                            message.as_str(),
+                            &$response
+                        );
+                        return;
+                    }
+                };
 
             $crate::dispatcher::return_success(Some(new_state), response, &$response);
             return;

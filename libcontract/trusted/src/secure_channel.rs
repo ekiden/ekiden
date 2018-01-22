@@ -1,17 +1,17 @@
-use sgx_types::*;
 use sgx_trts;
 use sgx_tse;
 use sgx_tseal::SgxSealedData;
+use sgx_types::*;
 
 use protobuf;
 use protobuf::Message;
 use sodalite;
 
-use std::sync::SgxMutex;
 use std::collections::HashMap;
+use std::sync::SgxMutex;
 
 use libcontract_common::{api, secure_channel, ContractError};
-use libcontract_common::secure_channel::{RandomNonceGenerator, MonotonicNonceGenerator};
+use libcontract_common::secure_channel::{MonotonicNonceGenerator, RandomNonceGenerator};
 
 use super::untrusted;
 
@@ -80,11 +80,7 @@ impl SecureChannelContext {
             return Err(ContractError::new("Secure channel already initialized"));
         }
 
-        sodalite::box_keypair_seed(
-            &mut self.public_key,
-            &mut self.private_key,
-            &seed
-        );
+        sodalite::box_keypair_seed(&mut self.public_key, &mut self.private_key, &seed);
         self.seed = seed.clone();
         self.ready = true;
 
@@ -95,8 +91,8 @@ impl SecureChannelContext {
     pub fn generate_keypair(&mut self) -> Result<(), ContractError> {
         let mut seed: SecretSeed = [0; SECRET_SEED_LEN];
         match sgx_trts::rsgx_read_rand(&mut seed) {
-            Ok(_) => {},
-            Err(_) => return Err(ContractError::new("Keypair generation failed"))
+            Ok(_) => {}
+            Err(_) => return Err(ContractError::new("Keypair generation failed")),
         }
 
         self.set_keypair(&seed)?;
@@ -108,23 +104,23 @@ impl SecureChannelContext {
     pub fn unseal_keypair(&mut self, sealed_keys: &[u8]) -> Result<(), ContractError> {
         let sealed_data = unsafe {
             SgxSealedData::<SecretSeed>::from_raw_sealed_data_t(
-                sealed_keys.as_ptr() as * mut sgx_sealed_data_t,
-                sealed_keys.len() as u32
+                sealed_keys.as_ptr() as *mut sgx_sealed_data_t,
+                sealed_keys.len() as u32,
             )
         };
 
         match sealed_data {
             Some(data) => {
                 let unsealed_data = match data.unseal_data() {
-                    Ok(data) =>  data,
-                    Err(_) =>  return Err(ContractError::new("Failed to unseal keypair"))
+                    Ok(data) => data,
+                    Err(_) => return Err(ContractError::new("Failed to unseal keypair")),
                 };
 
                 self.set_keypair(unsealed_data.get_decrypt_txt())?;
 
                 Ok(())
-            },
-            None => Err(ContractError::new("Failed to unseal keypair"))
+            }
+            None => Err(ContractError::new("Failed to unseal keypair")),
         }
     }
 
@@ -140,28 +136,26 @@ impl SecureChannelContext {
             0x01, // KEYPOLICY_MRENCLAVE
             sgx_attributes_t {
                 flags: 0xfffffffffffffff3,
-                xfrm: 0
+                xfrm: 0,
             },
             0xF0000000,
             &void,
-            &self.seed
+            &self.seed,
         ) {
             Ok(data) => data,
-            Err(_) => return Err(ContractError::new("Failed to seal keypair"))
+            Err(_) => return Err(ContractError::new("Failed to seal keypair")),
         };
 
         let raw_data_len = SgxSealedData::<SecretSeed>::calc_raw_sealed_data_size(
             sealed_data.get_add_mac_txt_len(),
-            sealed_data.get_encrypt_txt_len()
+            sealed_data.get_encrypt_txt_len(),
         );
         let mut raw_data: Vec<u8> = vec![];
         raw_data.resize(raw_data_len as usize, 0);
 
         unsafe {
-            sealed_data.to_raw_sealed_data_t(
-                raw_data.as_ptr() as * mut sgx_sealed_data_t,
-                raw_data_len
-            )
+            sealed_data
+                .to_raw_sealed_data_t(raw_data.as_ptr() as *mut sgx_sealed_data_t, raw_data_len)
         };
 
         Ok(raw_data)
@@ -218,7 +212,7 @@ impl SecureChannelContext {
 
         match self.sessions.get_mut(&key) {
             Some(session) => Ok(session),
-            None => Err(ContractError::new("Client session not found"))
+            None => Err(ContractError::new("Client session not found")),
         }
     }
 
@@ -241,14 +235,14 @@ impl ClientSession {
         // Generate new keypair.
         let mut seed: SecretSeed = [0; SECRET_SEED_LEN];
         match sgx_trts::rsgx_read_rand(&mut seed) {
-            Ok(_) => {},
-            Err(_) => return Err(ContractError::new("Keypair generation failed"))
+            Ok(_) => {}
+            Err(_) => return Err(ContractError::new("Keypair generation failed")),
         }
 
         sodalite::box_keypair_seed(
             &mut session.contract_public_key,
             &mut session.contract_private_key,
-            &seed
+            &seed,
         );
 
         Ok(session)
@@ -265,7 +259,10 @@ impl ClientSession {
     }
 
     /// Open cryptographic box with RPC request.
-    pub fn open_request_box(&mut self, request: &api::CryptoBox) -> Result<api::PlainClientRequest, ContractError> {
+    pub fn open_request_box(
+        &mut self,
+        request: &api::CryptoBox,
+    ) -> Result<api::PlainClientRequest, ContractError> {
         let plain_request = secure_channel::open_box(
             &request,
             &secure_channel::NONCE_CONTEXT_REQUEST,
@@ -279,7 +276,10 @@ impl ClientSession {
     }
 
     /// Create cryptographic box with RPC response.
-    pub fn create_response_box(&mut self, response: &api::PlainClientResponse) -> Result<api::CryptoBox, ContractError> {
+    pub fn create_response_box(
+        &mut self,
+        response: &api::PlainClientResponse,
+    ) -> Result<api::CryptoBox, ContractError> {
         Ok(secure_channel::create_box(
             &response.write_to_bytes()?,
             &secure_channel::NONCE_CONTEXT_RESPONSE,
@@ -293,21 +293,26 @@ impl ClientSession {
 
 lazy_static! {
     // Global secure channel context.
-    static ref SECURE_CHANNEL_CTX: SgxMutex<SecureChannelContext> = SgxMutex::new(SecureChannelContext::new());
+    static ref SECURE_CHANNEL_CTX: SgxMutex<SecureChannelContext> =
+        SgxMutex::new(SecureChannelContext::new());
 }
 
 /// Initialize contract.
-pub fn contract_init(_request: api::ContractInitRequest) -> Result<api::ContractInitResponse, ContractError> {
-
+pub fn contract_init(
+    _request: api::ContractInitRequest,
+) -> Result<api::ContractInitResponse, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
     // Generate a new keypair.
     channel.generate_keypair()?;
 
     // Generate non-verifiable report, so we can extract enclave metadata (MRENCLAVE).
-    let report = match sgx_tse::rsgx_create_report(&sgx_target_info_t::default(), &sgx_report_data_t::default()) {
+    let report = match sgx_tse::rsgx_create_report(
+        &sgx_target_info_t::default(),
+        &sgx_report_data_t::default(),
+    ) {
         Ok(report) => report,
-        _ => return Err(ContractError::new("Failed to create report"))
+        _ => return Err(ContractError::new("Failed to create report")),
     };
 
     let mut response = api::ContractInitResponse::new();
@@ -319,8 +324,9 @@ pub fn contract_init(_request: api::ContractInitRequest) -> Result<api::Contract
 }
 
 /// Restore contract from sealed state.
-pub fn contract_restore(request: api::ContractRestoreRequest) -> Result<api::ContractRestoreResponse, ContractError> {
-
+pub fn contract_restore(
+    request: api::ContractRestoreRequest,
+) -> Result<api::ContractRestoreResponse, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
     // Unseal existing keypair.
@@ -349,8 +355,9 @@ macro_rules! sgx_call {
 }
 
 /// Initialize secure channel.
-pub fn channel_init(request: api::ChannelInitRequest) -> Result<api::ChannelInitResponse, ContractError> {
-
+pub fn channel_init(
+    request: api::ChannelInitRequest,
+) -> Result<api::ChannelInitResponse, ContractError> {
     // Validate request.
     if request.get_nonce().len() != 16 {
         return Err(ContractError::new("Invalid nonce"));
@@ -370,8 +377,8 @@ pub fn channel_init(request: api::ChannelInitRequest) -> Result<api::ChannelInit
     sgx_call!("Failed to initialize quote", result, {
         untrusted::untrusted_init_quote(
             &mut result,
-            &mut target_info as * mut sgx_target_info_t,
-            &mut epid_group as * mut sgx_epid_group_id_t
+            &mut target_info as *mut sgx_target_info_t,
+            &mut epid_group as *mut sgx_epid_group_id_t,
         )
     });
 
@@ -383,7 +390,7 @@ pub fn channel_init(request: api::ChannelInitRequest) -> Result<api::ChannelInit
 
     let report = match sgx_tse::rsgx_create_report(&target_info, &report_data) {
         Ok(report) => report,
-        _ => return Err(ContractError::new("Failed to create report"))
+        _ => return Err(ContractError::new("Failed to create report")),
     };
 
     // Request the quoting enclave to generate a quote from our report.
@@ -398,27 +405,27 @@ pub fn channel_init(request: api::ChannelInitRequest) -> Result<api::ChannelInit
     spid.id.copy_from_slice(&request.get_spid()[..16]);
 
     match sgx_trts::rsgx_read_rand(&mut qe_nonce.rand) {
-        Ok(_) => {},
-        _ => return Err(ContractError::new("Failed to generate random nonce"))
+        Ok(_) => {}
+        _ => return Err(ContractError::new("Failed to generate random nonce")),
     };
 
     sgx_call!("Failed to get quote", result, {
         untrusted::untrusted_get_quote(
             &mut result,
-            &report as * const sgx_report_t,
+            &report as *const sgx_report_t,
             sgx_quote_sign_type_t::SGX_UNLINKABLE_SIGNATURE,
-            &spid as * const sgx_spid_t,
-            &qe_nonce as * const sgx_quote_nonce_t,
-            &mut qe_report as * mut sgx_report_t,
-            quote.as_mut_ptr() as * mut u8,
+            &spid as *const sgx_spid_t,
+            &qe_nonce as *const sgx_quote_nonce_t,
+            &mut qe_report as *mut sgx_report_t,
+            quote.as_mut_ptr() as *mut u8,
             quote.capacity() as u32,
-            &mut quote_size
+            &mut quote_size,
         )
     });
 
     match sgx_tse::rsgx_verify_report(&qe_report) {
-        Ok(_) => {},
-        _ => return Err(ContractError::new("Failed to get quote"))
+        Ok(_) => {}
+        _ => return Err(ContractError::new("Failed to get quote")),
     };
 
     unsafe {
@@ -450,19 +457,24 @@ pub fn channel_close(public_key: &[u8]) -> Result<(), ContractError> {
 }
 
 /// Open cryptographic box with RPC request.
-pub fn open_request_box(request: &api::CryptoBox) -> Result<api::PlainClientRequest, ContractError> {
+pub fn open_request_box(
+    request: &api::CryptoBox,
+) -> Result<api::PlainClientRequest, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
-    Ok(channel.get_session(&request.get_public_key())?
-              .open_request_box(&request)?)
+    Ok(channel
+        .get_session(&request.get_public_key())?
+        .open_request_box(&request)?)
 }
 
 /// Create cryptographic box with RPC response.
-pub fn create_response_box(public_key: &[u8],
-                           response: &api::PlainClientResponse) -> Result<api::CryptoBox, ContractError> {
-
+pub fn create_response_box(
+    public_key: &[u8],
+    response: &api::PlainClientResponse,
+) -> Result<api::CryptoBox, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
-    Ok(channel.get_session(&public_key)?
-              .create_response_box(&response)?)
+    Ok(channel
+        .get_session(&public_key)?
+        .create_response_box(&response)?)
 }

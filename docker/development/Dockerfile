@@ -1,6 +1,10 @@
 FROM docker.io/baiduxlab/sgx-rust-experimental
 
+ENV HOME="/root"
+ENV PATH="${HOME}/.cargo/bin:${PATH}"
+
 RUN apt-get update -q -q && \
     apt-get install -y pkg-config python-pyelftools && \
-    /root/.cargo/bin/cargo install cargo-make
-
+    rustup update nightly && \
+    cargo +nightly install rustfmt-nightly --version 0.3.6 --force && \
+    cargo install cargo-make

@@ -5,6 +5,7 @@ members = [
   "compute-client",
   "contracts/dummy",
   "contracts/token",
+  "contracts/learner",
   "libcontract/common",
   "libcontract/trusted",
   "libcontract/untrusted",
@@ -12,3 +13,4 @@ members = [
   "clients/token",
   "storage",
 ]
+exclude = ["third_party"]

@@ -1,11 +1,11 @@
 use protobuf;
 
-use std::io;
 use std::error::Error as StdError;
+use std::io;
 
 #[derive(Debug)]
 pub struct ContractError {
-    pub message: String
+    pub message: String,
 }
 
 impl ContractError {

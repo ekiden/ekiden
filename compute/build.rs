@@ -1,7 +1,7 @@
-extern crate protoc_rust_grpc;
 extern crate libcontract_utils;
+extern crate protoc_rust_grpc;
 
-fn main () {
+fn main() {
     // Generate module file.
     // Must be done first to create src/generated directory
     libcontract_utils::generate_mod(
@@ -11,15 +11,12 @@ fn main () {
             "compute_web3_grpc",
             "storage",
             "storage_grpc",
-        ]
+        ],
     );
 
     protoc_rust_grpc::run(protoc_rust_grpc::Args {
         out_dir: "src/generated/",
-        includes: &[
-            "src",
-            "../storage/src",
-        ],
+        includes: &["src", "../storage/src"],
         input: &[
             "src/compute_web3.proto",
             "../storage/src/storage.proto", // TODO: Move this to a proper location.

@@ -1,6 +1,6 @@
-use std::io;
-use std::fmt;
 use std::error::Error as StdError;
+use std::fmt;
+use std::io;
 
 use protobuf;
 
@@ -14,7 +14,7 @@ pub struct Error {
 impl Error {
     pub fn new(message: &str) -> Self {
         Error {
-            message: message.to_string()
+            message: message.to_string(),
         }
     }
 }

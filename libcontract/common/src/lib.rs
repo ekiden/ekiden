@@ -1,9 +1,9 @@
 #![cfg_attr(feature = "sgx", no_std)]
 #![cfg_attr(feature = "sgx", feature(prelude_import))]
 
+extern crate byteorder;
 extern crate protobuf;
 extern crate sodalite;
-extern crate byteorder;
 
 #[cfg(feature = "sgx")]
 #[cfg_attr(feature = "sgx", macro_use)]
