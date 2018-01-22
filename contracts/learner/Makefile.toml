@@ -1,14 +1,1 @@
 extend = "../Makefile.toml"
-
-[tasks.pre-build]
-script_runner = "bash"
-script = [
-'''
-P3="$(git rev-parse --show-toplevel)/third_party"
-pushd /sgx
-if [ "$(git log -1 --format="%s")" != "rusty-machine serde" ]; then
-  git am "$P3/rusty_machine_serde.patch"
-fi
-popd
-'''
-]
