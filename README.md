@@ -73,15 +73,15 @@ You will need to pass both SPID and the PKCS#12 bundle when starting the compute
 The easiest way to run Ekiden is through the provided scripts,
 which set up the Docker containers for you.
 
-### Storage node
+### Consensus node
 
-To build and run a storage node:
+To build and run a consensus node:
 ```bash
 $ bash scripts/sgx-enter.sh
-$ cargo run -p storage
+$ cargo run -p consensus
 ```
 
-The storage node depends on a local instance of Tendermint
+The consensus node depends on a local instance of Tendermint
 To start a Tendermint docker container that is linked to the container above:
 ```bash
 $ bash ./scripts/tendermint-start.sh
@@ -94,7 +94,7 @@ $ bash ./scripts/tendermint-clear.sh
 
 ### Compute node
 
-Currently, the 3 processes (compute, storage, tendermint) look for each other on `localhost`.
+Currently, the 3 processes (compute, consensus, tendermint) look for each other on `localhost`.
 In order to attach secondary shells to an existing container, use this helper script:
 ```bash
 $ bash scripts/sgx-attach.sh
@@ -134,6 +134,6 @@ CONTRACT=token; cargo run -p $CONTRACT-client -- --mr-enclave $(python scripts/p
 - `libcontract/trusted`: `libcontract` packaging for SGX environment
 - `libcontract/untrusted`: `libcontract` packaging for non-SGX environment
 - `libcontract/utils`: Utilities for easier builds with SGX enclaves
-- `storage`: Ekiden storage node
+- `consensus`: Ekiden consensus node
 - `scripts`: Bash scripts for development
 - `third_party`: Forks of third-party packages, with modifications that enable their use with the SGX standard library (`sgx_tstd`).
