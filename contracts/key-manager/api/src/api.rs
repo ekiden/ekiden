@@ -6,5 +6,5 @@ contract_api! {
         client_attestation_required = true;
     }
 
-    rpc hello_world(HelloWorldRequest) -> HelloWorldResponse;
+    rpc get_or_create_key(GetOrCreateKeyRequest) -> GetOrCreateKeyResponse;
 }

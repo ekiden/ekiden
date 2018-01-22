@@ -4,6 +4,10 @@
 #[macro_use]
 extern crate sgx_tstd as std;
 
+#[macro_use]
+extern crate lazy_static;
+extern crate protobuf;
+
 extern crate libcontract_common;
 #[macro_use]
 extern crate libcontract_trusted;
@@ -11,23 +15,36 @@ extern crate libcontract_trusted;
 #[macro_use]
 extern crate key_manager_api;
 
-extern crate protobuf;
-
 #[allow(unused)]
 #[prelude_import]
 use std::prelude::v1::*;
 
-use key_manager_api::{HelloWorldRequest, HelloWorldResponse};
+mod key_store;
+
+use key_manager_api::{GetOrCreateKeyRequest, GetOrCreateKeyResponse};
 
 use libcontract_common::ContractError;
+use libcontract_trusted::dispatcher::Request;
+
+use key_store::KeyStore;
 
 create_enclave_api!();
 
-fn hello_world(request: &HelloWorldRequest) -> Result<HelloWorldResponse, ContractError> {
-    println!("hello world called");
+fn get_or_create_key(
+    request: &Request<GetOrCreateKeyRequest>,
+) -> Result<GetOrCreateKeyResponse, ContractError> {
+    let mut response = GetOrCreateKeyResponse::new();
 
-    let mut response = HelloWorldResponse::new();
-    response.set_world(format!("enclave says {}", request.hello));
+    // Query the key store.
+    {
+        let mut key_store = KeyStore::get();
+        response.set_key(key_store.get_or_create_key(
+            // Unwrap here is safe as this contract requires mutual authentication.
+            &request.get_client_mr_enclave().as_ref().unwrap(),
+            request.get_name(),
+            request.get_size() as usize,
+        )?);
+    }
 
     Ok(response)
 }

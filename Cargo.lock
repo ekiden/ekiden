@@ -425,6 +425,7 @@ name = "key-manager"
 version = "0.1.0"
 dependencies = [
  "key-manager-api 0.1.0",
+ "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcontract-common 0.1.0",
  "libcontract-trusted 0.1.0",
  "libcontract-utils 0.1.0",
@@ -522,6 +523,7 @@ dependencies = [
  "key-manager-api 0.1.0",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcontract-common 0.1.0",
+ "libcontract-utils 0.1.0",
  "protobuf-sgx 1.4.1",
  "sgx_trts 0.9.1",
  "sgx_tse 0.9.1",

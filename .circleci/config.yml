@@ -29,6 +29,9 @@ jobs:
       - run:
           command: ./target/debug/compute target/enclave/token.signed.so --ias-pkcs12 client.pfx --ias-spid "$IAS_SPID"
           background: true
+      - run:
+          command: ./target/debug/compute target/enclave/key-manager.signed.so -p 9003 --disable-key-manager --ias-pkcs12 client.pfx --ias-spid "$IAS_SPID"
+          background: true
       - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
 
       # Rustfmt

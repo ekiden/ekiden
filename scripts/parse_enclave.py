@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Copyright (c) 2016 Nagravision S.A.
 """
+import argparse
 
 from binascii import hexlify
 from struct import unpack
@@ -161,7 +162,7 @@ class Parser(object):
     def find_ecalls_elf(self):
         t_section = None
         t_vaddr = None
-        elf = ELFFile(open(self.filename, 'rb')) 
+        elf = ELFFile(open(self.filename, 'rb'))
         # find the symbols table(s)
         for section in elf.iter_sections():
             if section.header['sh_type'] == 'SHT_SYMTAB':
@@ -175,7 +176,7 @@ class Parser(object):
                 break
 
         if t_section and t_vaddr:
-            # we got it, go calculate the table address 
+            # we got it, go calculate the table address
             section = elf.get_section(t_section)
             # calculate the symbol offset from the section start
             sym_offset = t_vaddr - section.header['sh_addr']
@@ -183,7 +184,7 @@ class Parser(object):
             return section.header['sh_offset'] + sym_offset
 
         return None
-            
+
 
     def find_ecall_table(self):
         heuristics = [
@@ -236,7 +237,7 @@ class Parser(object):
             bits = 32
         elif self.blob[0x4] == '\x02':
             bits = 64
-        return bits 
+        return bits
 
     def get_arch_pe(self):
         bits = None
@@ -395,11 +396,8 @@ class Parser(object):
         q2bytes = arr[1424:1424+384][::-1]
         q2 = int(hexlify(q2bytes), 16)
 
-        if rsa_check(n, s, q1, q2):
-            print('RSA parameters valid')
-        else:
+        if not rsa_check(n, s, q1, q2):
             print('RSA parameters invalid')
-        print('')
 
         values.append(('q1', q1))
         values.append(('q2', q2))
@@ -424,12 +422,23 @@ class Parser(object):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print('usage: %s <enclave.signed.dll>' % sys.argv[0])
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description=None)
+    parser.add_argument('filename', type=str,
+                        help="Signed enclave filename")
+    parser.add_argument('--only-mr-enclave', action='store_true',
+                        help="Only output MRENCLAVE")
+    args = parser.parse_args()
 
-    fname = sys.argv[1]
+    fname = args.filename
     p = Parser(fname)
+
+    if args.only_mr_enclave:
+        # Only output MRENCLAVE.
+        sigstruct_pos = p.find_sigstruct_header()
+        sigstruct = p.sigstruct(sigstruct_pos)
+        mr_enclave = [v for k, v in sigstruct if k == 'enclavehash'][0]
+        sys.stdout.write(mr_enclave)
+        sys.exit(0)
 
     print('Enclave file: %s' % fname)
     print('Enclave size: %d bytes' % p.size())

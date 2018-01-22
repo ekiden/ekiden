@@ -82,6 +82,7 @@ fn main() {
                 .takes_value(true)
                 .default_value("9003"),
         )
+        .arg(Arg::with_name("disable-key-manager").long("disable-key-manager"))
         .get_matches();
 
     let port = value_t!(matches, "port", u16).unwrap_or(9001);
@@ -100,12 +101,15 @@ fn main() {
 
         // IAS proxy endpoints.
         router.add_handler(handlers::IASProxy::new(ias.clone()));
+
         // Key manager endpoint.
-        router.add_handler(handlers::ContractForwarder::new(
-            ClientEndpoint::KeyManager,
-            matches.value_of("key-manager-host").unwrap().to_string(),
-            value_t!(matches, "key-manager-port", u16).unwrap_or(9003),
-        ));
+        if !matches.is_present("disable-key-manager") {
+            router.add_handler(handlers::ContractForwarder::new(
+                ClientEndpoint::KeyManager,
+                matches.value_of("key-manager-host").unwrap().to_string(),
+                value_t!(matches, "key-manager-port", u16).unwrap_or(9003),
+            ));
+        }
     }
 
     // Start the gRPC server.
