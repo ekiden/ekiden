@@ -10,9 +10,9 @@ jobs:
       - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
       - restore_cache:
           keys:
-            - experimental-v1-omni-{{ .Branch }}-{{ .Revision }}
-            - experimental-v1-omni-{{ .Branch }}-
-            - experimental-v1-omni-master-
+            - v1-omni-{{ .Branch }}-{{ .Revision }}
+            - v1-omni-{{ .Branch }}-
+            - v1-omni-master-
 
       # Build
       - run: cargo make build-flow
@@ -36,7 +36,7 @@ jobs:
 
       # Save cache
       - save_cache:
-          key: experimental-v1-omni-{{ .Branch }}-{{ .Revision }}
+          key: v1-omni-{{ .Branch }}-{{ .Revision }}
           paths:
             - /root/.cargo
             - target
