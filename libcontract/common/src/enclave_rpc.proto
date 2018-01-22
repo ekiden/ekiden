@@ -162,12 +162,12 @@ message ChannelInitResponse {
     CryptoBox response_box = 2;
 }
 
-message ChannelClientAttestationRequest {
+message ChannelAttestClientRequest {
     // Client attestation response.
     AttestationResponse client_attestation_response = 1;
 }
 
-message ChannelClientAttestationResponse {
+message ChannelAttestClientResponse {
 }
 
 message ChannelCloseRequest {

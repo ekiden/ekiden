@@ -112,7 +112,9 @@ macro_rules! impl_handler {
 
                 match *endpoint {
                     $(
-                        ClientEndpoint::$endpoint => self.$method(parse_from_bytes(&request)?),
+                        ClientEndpoint::$endpoint => {
+                            Ok(self.$method(parse_from_bytes(&request)?)?.write_to_bytes()?)
+                        },
                     )*
                     _ => Err(Error::RpcRouterInvalidEndpoint)
                 }

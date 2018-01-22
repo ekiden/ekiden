@@ -22,6 +22,8 @@ message CallContractResponse {
     bytes payload = 1;
 }
 
+// TODO: Unify IAS messages with enclave_services.proto.
+
 message IasGetSpidRequest {
 }
 

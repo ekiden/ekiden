@@ -44,7 +44,8 @@ macro_rules! create_enclave {
 
             use $crate::dispatcher::{parse_request, return_error, return_success, RawResponse,
                                      Request};
-            use $crate::secure_channel::{channel_init, contract_init, contract_restore};
+            use $crate::secure_channel::{channel_attest_client, channel_init, contract_init,
+                                         contract_restore};
             use $crate::state_crypto::decrypt_state;
 
             use super::*;
@@ -145,6 +146,15 @@ macro_rules! create_enclave {
                     $metadata_state_type,
                     _channel_init(api::ChannelInitRequest) -> api::ChannelInitResponse
                 );
+                create_enclave_method!(
+                    state,
+                    request,
+                    raw_response,
+                    $metadata_state_type,
+                    _channel_attest_client(
+                        api::ChannelAttestClientRequest
+                    ) -> api::ChannelAttestClientResponse
+                );
 
                 // User-defined methods.
                 $(
@@ -196,6 +206,12 @@ macro_rules! create_enclave {
                 Result<api::ChannelInitResponse, ContractError>
             {
                 channel_init(request, $client_attestation_required)
+            }
+
+            fn _channel_attest_client(request: &Request<api::ChannelAttestClientRequest>) ->
+                Result<api::ChannelAttestClientResponse, ContractError>
+            {
+                channel_attest_client(request)
             }
         }
 

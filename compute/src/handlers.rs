@@ -2,6 +2,8 @@
 /// which are registered using RpcRouter.
 use std::sync::Arc;
 
+use protobuf::Message;
+
 use libcontract_common::api::services::*;
 use libcontract_common::client::ClientEndpoint;
 use libcontract_untrusted::errors::Error;
@@ -24,15 +26,46 @@ impl IASProxy {
     }
 
     /// Handle get SPID request.
-    fn get_spid(&self, _request: IasGetSpidRequest) -> Result<Vec<u8>, Error> {
-        // TODO.
-        Ok(vec![])
+    fn get_spid(&self, _request: IasGetSpidRequest) -> Result<IasGetSpidResponse, Error> {
+        // TODO: Unify this with server (requires unified messages).
+        let mut response = IasGetSpidResponse::new();
+        response.set_spid(self.ias.get_spid().to_vec());
+
+        Ok(response)
     }
 
     /// Handle verify quote request.
-    fn verify_quote(&self, request: IasVerifyQuoteRequest) -> Result<Vec<u8>, Error> {
-        // TODO.
-        Ok(vec![])
+    fn verify_quote(
+        &self,
+        request: IasVerifyQuoteRequest,
+    ) -> Result<IasVerifyQuoteResponse, Error> {
+        // TODO: Unify this with server (requires unified messages).
+        let mut response = IasVerifyQuoteResponse::new();
+
+        match self.ias
+            .verify_quote(request.get_nonce(), request.get_quote())
+        {
+            Ok(report) => {
+                response.set_status(match report.status {
+                    200 => IasVerifyQuoteResponse_Status::SUCCESS,
+                    400 => IasVerifyQuoteResponse_Status::ERROR_BAD_REQUEST,
+                    401 => IasVerifyQuoteResponse_Status::ERROR_UNAUTHORIZED,
+                    500 => IasVerifyQuoteResponse_Status::ERROR_INTERNAL_SERVER_ERROR,
+                    503 => IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE,
+                    _ => IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE,
+                });
+
+                response.set_body(report.body);
+                response.set_signature(report.signature);
+                response.set_certificates(report.certificates);
+            }
+            _ => {
+                // Verification failed due to IAS communication error.
+                response.set_status(IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE);
+            }
+        }
+
+        Ok(response)
     }
 }
 

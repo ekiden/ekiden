@@ -182,7 +182,11 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
                 &self.secure_channel.get_client_public_key(),
             )?;
 
-            // TODO: Send quote via _channel_attest_client.
+            let mut request = api::ChannelAttestClientRequest::new();
+            request.mut_client_attestation_response().set_quote(quote);
+
+            let _response: api::ChannelAttestClientResponse =
+                self.call("_channel_attest_client", request)?;
         }
 
         Ok(())

@@ -25,7 +25,7 @@ pub struct Request<T: Message> {
 
 impl<T: Message> Request<T> {
     /// Create new request wrapper from message.
-    fn new(message: T, public_key: Option<Vec<u8>>, mr_enclave: Option<MrEnclave>) -> Self {
+    pub fn new(message: T, public_key: Option<Vec<u8>>, mr_enclave: Option<MrEnclave>) -> Self {
         Request {
             message: message,
             public_key: public_key,
@@ -152,11 +152,7 @@ pub fn parse_request(
             }
         };
 
-        // TODO: MRENCLAVE if mutually authenticated.
-        Ok((
-            encrypted_state,
-            Request::new(plain_request, Some(public_key), None),
-        ))
+        Ok((encrypted_state, plain_request))
     } else {
         // Plain request.
         let plain_request = client_request.take_plain_request();
