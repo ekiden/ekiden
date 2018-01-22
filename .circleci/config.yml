@@ -16,7 +16,8 @@ jobs:
       - run:
           command: tendermint node --consensus.create_empty_blocks=false
           background: true
+      - run: echo "$IAS_PKCS12" | base64 --decode --ignore-garbage > client.pfx
       - run:
-          command: /code/target/debug/compute /code/target/enclave/token.signed.so --ias-pkcs12 client.pfx --ias-spid 00000000
+          command: /code/target/debug/compute /code/target/enclave/token.signed.so --ias-pkcs12 client.pfx --ias-spid "$IAS_SPID"
           background: true
-      - run: /code/target/debug/token --mr-enclave $(python /code/scripts/parse_enclave.py /code/target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
+      - run: /code/target/debug/token-client --mr-enclave $(python /code/scripts/parse_enclave.py /code/target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
