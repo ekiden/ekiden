@@ -19,7 +19,7 @@ jobs:
 
       # Test: end-to-end token contract
       - run:
-          command: ./target/debug/storage
+          command: ./target/debug/consensus
           background: true
       - run: tendermint init
       - run:
