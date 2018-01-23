@@ -36,7 +36,8 @@ impl ComputeServerImpl {
     pub fn new(contract_filename: &str, ias: IASConfiguration) -> Self {
         let contract = Self::get_contract(&contract_filename);
         let (request_sender, request_receiver) = std::sync::mpsc::channel();
-        std::thread::spawn(move || { // contract, request_receiver
+        std::thread::spawn(move || {
+            // contract, request_receiver
             // Block for the next call.
             // When ComputeServerImpl is dropped, the request_sender closes, and the thread will exit.
             while let Ok(queued_call) = request_receiver.recv() {
@@ -78,7 +79,17 @@ impl ComputeServerImpl {
         contract
     }
 
-    fn call_contract_fallible(contract: &enclave::EkidenEnclave, encrypted_state_opt: Option<libcontract_common::api::CryptoSecretbox>, rpc_request: &CallContractRequest) -> Result<(Option<libcontract_common::api::CryptoSecretbox>, CallContractResponse), Box<std::error::Error>> {
+    fn call_contract_fallible(
+        contract: &enclave::EkidenEnclave,
+        encrypted_state_opt: Option<libcontract_common::api::CryptoSecretbox>,
+        rpc_request: &CallContractRequest,
+    ) -> Result<
+        (
+            Option<libcontract_common::api::CryptoSecretbox>,
+            CallContractResponse,
+        ),
+        Box<std::error::Error>,
+    > {
         let mut enclave_request = libcontract_common::api::EnclaveRequest::new();
         let client_request = protobuf::parse_from_bytes(rpc_request.get_payload())?;
         enclave_request.set_client_request(client_request);
@@ -127,16 +138,20 @@ impl ComputeServerImpl {
 
         // Process the requests.
         for ref mut queued_call in call_batch {
-            queued_call.grpc_response = match Self::call_contract_fallible(contract, encrypted_state_opt.clone(), &queued_call.rpc_request) {
+            queued_call.grpc_response = match Self::call_contract_fallible(
+                contract,
+                encrypted_state_opt.clone(),
+                &queued_call.rpc_request,
+            ) {
                 Ok((new_encrypted_state_opt, rpc_response)) => {
                     if let Some(new_encrypted_state) = new_encrypted_state_opt {
                         encrypted_state_opt = Some(new_encrypted_state);
                     }
                     grpc::SingleResponse::completed(rpc_response)
-                },
+                }
                 Err(e) => {
                     grpc::SingleResponse::err(grpc::Error::Panic(String::from(e.description())))
-                },
+                }
             };
         }
 
@@ -152,17 +167,17 @@ impl ComputeServerImpl {
         Ok(())
     }
 
-    fn call_contract_batch(
-        contract: &enclave::EkidenEnclave,
-        mut call_batch: Vec<QueuedCall>,
-    ) {
+    fn call_contract_batch(contract: &enclave::EkidenEnclave, mut call_batch: Vec<QueuedCall>) {
         match Self::call_contract_batch_fallible(contract, &mut call_batch) {
             Ok(_) => {
                 // No batch-wide errors. Successful calls can go out.
                 for queued_call in call_batch {
-                    queued_call.response_sender.send(queued_call.grpc_response).unwrap();
+                    queued_call
+                        .response_sender
+                        .send(queued_call.grpc_response)
+                        .unwrap();
                 }
-            },
+            }
             Err(e) => {
                 // Send batch-wide error to all clients.
                 let desc = String::from(e.description());
@@ -170,7 +185,7 @@ impl ComputeServerImpl {
                     let grpc_response = grpc::SingleResponse::err(grpc::Error::Panic(desc.clone()));
                     queued_call.response_sender.send(grpc_response).unwrap();
                 }
-            },
+            }
         }
     }
 }
@@ -184,7 +199,15 @@ impl Compute for ComputeServerImpl {
         let (response_sender, response_receiver) = std::sync::mpsc::sync_channel(0);
         {
             let request_sender = self.request_sender.lock().unwrap();
-            request_sender.send(QueuedCall { rpc_request, grpc_response: grpc::SingleResponse::err(grpc::Error::Other("Call did not run")), response_sender }).unwrap();
+            request_sender
+                .send(QueuedCall {
+                    rpc_request,
+                    grpc_response: grpc::SingleResponse::err(grpc::Error::Other(
+                        "Call did not run",
+                    )),
+                    response_sender,
+                })
+                .unwrap();
         }
         response_receiver.recv().unwrap()
     }
