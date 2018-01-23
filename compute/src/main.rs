@@ -76,7 +76,7 @@ fn main() {
             pkcs12_archive: matches.value_of("ias-pkcs12").unwrap().to_string(),
         },
     )));
-    server.http.set_cpu_pool_threads(1);
+    server.http.set_cpu_pool_threads(16);
     let _server = server.build().expect("server");
 
     println!("Compute node listening at {}", port);
