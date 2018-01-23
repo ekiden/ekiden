@@ -46,6 +46,7 @@ macro_rules! create_enclave {
                                      Request};
             use $crate::secure_channel::{channel_attest_client, channel_init, contract_init,
                                          contract_restore};
+            #[allow(unused)]
             use $crate::state_crypto::decrypt_state;
 
             use super::*;
@@ -65,6 +66,7 @@ macro_rules! create_enclave {
                 };
 
                 // Parse request.
+                #[allow(unused)]
                 let (encrypted_state, request) = match parse_request(
                     request_data,
                     request_length,
@@ -75,24 +77,6 @@ macro_rules! create_enclave {
                         // Parsing failed, and a suitable error response has been sent.
                         return;
                     }
-                };
-
-                // Decrypt starting state.
-                #[allow(unused)]
-                let state: Option<$metadata_state_type> = match encrypted_state {
-                    Some(encrypted_state) =>
-                        match decrypt_state(&encrypted_state) {
-                            Ok(value) => Some(value),
-                            _ => {
-                                return_error(
-                                    api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                                    "Unable to parse request state",
-                                    &raw_response
-                                );
-                                return;
-                            }
-                        },
-                    None => None,
                 };
 
                 // Special handling methods.
@@ -119,35 +103,35 @@ macro_rules! create_enclave {
 
                 // Meta methods.
                 create_enclave_method!(
-                    state,
+                    encrypted_state,
                     request,
                     raw_response,
                     $metadata_state_type,
                     _metadata(api::MetadataRequest) -> api::MetadataResponse
                 );
                 create_enclave_method!(
-                    state,
+                    encrypted_state,
                     request,
                     raw_response,
                     $metadata_state_type,
                     _contract_init(api::ContractInitRequest) -> api::ContractInitResponse
                 );
                 create_enclave_method!(
-                    state,
+                    encrypted_state,
                     request,
                     raw_response,
                     $metadata_state_type,
                     _contract_restore(api::ContractRestoreRequest) -> api::ContractRestoreResponse
                 );
                 create_enclave_method!(
-                    state,
+                    encrypted_state,
                     request,
                     raw_response,
                     $metadata_state_type,
                     _channel_init(api::ChannelInitRequest) -> api::ChannelInitResponse
                 );
                 create_enclave_method!(
-                    state,
+                    encrypted_state,
                     request,
                     raw_response,
                     $metadata_state_type,
@@ -159,7 +143,7 @@ macro_rules! create_enclave {
                 // User-defined methods.
                 $(
                     create_enclave_method!(
-                        state,
+                        encrypted_state,
                         request,
                         raw_response,
                         $metadata_state_type,
@@ -223,9 +207,20 @@ macro_rules! create_enclave {
 #[macro_export]
 macro_rules! parse_enclave_method_state {
     ( $state: ident, $response: ident, $state_type: ty ) => {{
-        // Ensure state provided.
+        // Decrypt starting state.
         let state: $state_type = match $state {
-            Some(value) => value,
+            Some(encrypted_state) =>
+                match decrypt_state(&encrypted_state) {
+                    Ok(value) => value,
+                    _ => {
+                        return_error(
+                            api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
+                            "Unable to parse request state",
+                            &$response
+                        );
+                        return;
+                    }
+                },
             None => {
                 return_error(
                     api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
@@ -233,7 +228,7 @@ macro_rules! parse_enclave_method_state {
                     &$response
                 );
                 return;
-            }
+            },
         };
 
         state
