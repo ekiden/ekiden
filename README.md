@@ -95,9 +95,9 @@ $ bash ./scripts/tendermint-clear.sh
 ### Compute node
 
 Currently, the 3 processes (compute, consensus, tendermint) look for each other on `localhost`.
-In order to attach secondary shells to an existing container, use this helper script:
+In order to attach secondary shells to an existing container, run
 ```bash
-$ bash scripts/sgx-attach.sh
+$ bash scripts/sgx-enter.sh
 ```
 
 The generic compute binary takes a signed contract enclave as a parameter:
