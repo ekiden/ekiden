@@ -3,6 +3,7 @@ members = [
   "abci",
   "compute",
   "compute-client",
+  "consensus",
   "contracts/dummy",
   "contracts/token",
   "contracts/learner",
@@ -11,6 +12,5 @@ members = [
   "libcontract/untrusted",
   "libcontract/utils",
   "clients/token",
-  "storage",
 ]
 exclude = ["third_party"]

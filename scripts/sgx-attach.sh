@@ -5,6 +5,6 @@ which docker >/dev/null || {
   exit 1
 }
 
-# Attach to the existing storage container
+# Attach to the existing `ekiden` container
 docker exec -i -t \
   ekiden bash
