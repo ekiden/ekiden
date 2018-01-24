@@ -21,15 +21,26 @@ use generated::consensus_grpc::Consensus;
 
 use super::ias::{IASConfiguration, IAS};
 
-struct QueuedCall {
+/// This struct describes a call sent to the worker thread.
+struct QueuedRequest {
+    /// This is the request from the client.
     rpc_request: CallContractRequest,
-    grpc_response: grpc::SingleResponse<CallContractResponse>,
+    /// This is a channel where the worker should send the response.
     response_sender: SyncSender<grpc::SingleResponse<CallContractResponse>>,
+}
+
+/// This struct associates a response with a request.
+struct QueuedResponse<'a> {
+    /// This is the request. Notably, it owns the channel where we
+    /// will be sending the response.
+    queued_request: &'a QueuedRequest,
+    /// This is the response.
+    grpc_response: grpc::SingleResponse<CallContractResponse>,
 }
 
 pub struct ComputeServerImpl {
     // Channel for submitting requests to the worker.
-    request_sender: Mutex<Sender<QueuedCall>>,
+    request_sender: Mutex<Sender<QueuedRequest>>,
     // IAS service.
     ias: IAS,
 }
@@ -44,15 +55,15 @@ impl ComputeServerImpl {
             let contract = Self::get_contract(&contract_filename_owned);
             // Block for the next call.
             // When ComputeServerImpl is dropped, the request_sender closes, and the thread will exit.
-            while let Ok(queued_call) = request_receiver.recv() {
-                let mut call_batch = Vec::new();
-                call_batch.push(queued_call);
+            while let Ok(queued_request) = request_receiver.recv() {
+                let mut request_batch = Vec::new();
+                request_batch.push(queued_request);
                 // Additionally dequeue any remaining requests.
-                while let Ok(queued_call) = request_receiver.try_recv() {
-                    call_batch.push(queued_call);
+                while let Ok(queued_request) = request_receiver.try_recv() {
+                    request_batch.push(queued_request);
                 }
                 // Process the requests.
-                Self::call_contract_batch(&contract, call_batch);
+                Self::call_contract_batch(&contract, request_batch);
             }
         });
         ComputeServerImpl {
@@ -117,10 +128,10 @@ impl ComputeServerImpl {
         Ok((new_encrypted_state_opt, rpc_response))
     }
 
-    fn call_contract_batch_fallible(
+    fn call_contract_batch_fallible<'a>(
         contract: &enclave::EkidenEnclave,
-        call_batch: &mut [QueuedCall],
-    ) -> Result<(), Box<std::error::Error>> {
+        request_batch: &'a [QueuedRequest],
+    ) -> Result<Vec<QueuedResponse<'a>>, Box<std::error::Error>> {
         // Connect to consensus node
         // TODO: Know the consensus node location other than having it hard-coded.
         // TODO: Use TLS client.
@@ -142,11 +153,11 @@ impl ComputeServerImpl {
 
         // Process the requests.
         let mut ever_update_state = false;
-        for ref mut queued_call in call_batch {
-            queued_call.grpc_response = match Self::call_contract_fallible(
+        let response_batch = request_batch.iter().map(|ref queued_request| {
+            let grpc_response = match Self::call_contract_fallible(
                 contract,
                 encrypted_state_opt.clone(),
-                &queued_call.rpc_request,
+                &queued_request.rpc_request,
             ) {
                 Ok((new_encrypted_state_opt, rpc_response)) => {
                     if let Some(new_encrypted_state) = new_encrypted_state_opt {
@@ -160,7 +171,8 @@ impl ComputeServerImpl {
                     grpc::SingleResponse::err(grpc::Error::Panic(String::from(e.description())))
                 }
             };
-        }
+            QueuedResponse { queued_request, grpc_response }
+        }).collect();
 
         // Set state in consensus
         if let Some(encrypted_state) = encrypted_state_opt {
@@ -173,17 +185,18 @@ impl ComputeServerImpl {
             }
         }
 
-        Ok(())
+        Ok(response_batch)
     }
 
-    fn call_contract_batch(contract: &enclave::EkidenEnclave, mut call_batch: Vec<QueuedCall>) {
-        match Self::call_contract_batch_fallible(contract, &mut call_batch) {
-            Ok(_) => {
-                // No batch-wide errors. Successful calls can go out.
-                for queued_call in call_batch {
-                    queued_call
+    fn call_contract_batch(contract: &enclave::EkidenEnclave, request_batch: Vec<QueuedRequest>) {
+        match Self::call_contract_batch_fallible(contract, &request_batch) {
+            Ok(response_batch) => {
+                // No batch-wide errors. Send out per-call responses.
+                for queued_response in response_batch {
+                    queued_response
+                        .queued_request
                         .response_sender
-                        .send(queued_call.grpc_response)
+                        .send(queued_response.grpc_response)
                         .unwrap();
                 }
             }
@@ -191,9 +204,9 @@ impl ComputeServerImpl {
                 eprintln!("compute: batch-wide error {:?}", e);
                 // Send batch-wide error to all clients.
                 let desc = String::from(e.description());
-                for queued_call in call_batch {
+                for queued_request in &request_batch {
                     let grpc_response = grpc::SingleResponse::err(grpc::Error::Panic(desc.clone()));
-                    queued_call.response_sender.send(grpc_response).unwrap();
+                    queued_request.response_sender.send(grpc_response).unwrap();
                 }
             }
         }
@@ -210,11 +223,8 @@ impl Compute for ComputeServerImpl {
         {
             let request_sender = self.request_sender.lock().unwrap();
             request_sender
-                .send(QueuedCall {
+                .send(QueuedRequest {
                     rpc_request,
-                    grpc_response: grpc::SingleResponse::err(grpc::Error::Other(
-                        "Call did not run",
-                    )),
                     response_sender,
                 })
                 .unwrap();
