@@ -148,7 +148,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
 
         request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
 
-        let mut response: api::ChannelInitResponse = self.call("_channel_init", request)?;
+        let mut response: api::ChannelInitResponse = self.call(api::METHOD_CHANNEL_INIT, request)?;
 
         // Verify quote via IAS, verify nonce.
         let quote = self.backend
@@ -186,7 +186,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
             request.mut_client_attestation_response().set_quote(quote);
 
             let _response: api::ChannelAttestClientResponse =
-                self.call("_channel_attest_client", request)?;
+                self.call(api::METHOD_CHANNEL_ATTEST_CLIENT, request)?;
         }
 
         Ok(())
@@ -202,7 +202,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         // Send request to close channel.
         let request = api::ChannelCloseRequest::new();
 
-        let _response: api::ChannelCloseResponse = self.call("_channel_close", request)?;
+        let _response: api::ChannelCloseResponse = self.call(api::METHOD_CHANNEL_CLOSE, request)?;
 
         // Reset local part of the secure channel.
         self.secure_channel.reset()?;

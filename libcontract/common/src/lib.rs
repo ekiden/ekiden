@@ -37,12 +37,15 @@ mod generated;
 #[macro_use]
 mod macros;
 
+mod protocol;
+
 pub use address::Address;
 pub use contract::*;
 pub use contract_error::ContractError;
 
 pub mod api {
     pub use generated::enclave_rpc::*;
+    pub use protocol::*;
 
     pub mod services {
         pub use generated::enclave_services::*;

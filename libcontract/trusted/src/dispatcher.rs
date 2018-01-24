@@ -95,7 +95,7 @@ const PLAIN_METHODS: &'static [&'static str] = &[
     "_metadata",
     "_contract_init",
     "_contract_restore",
-    "_channel_init",
+    api::METHOD_CHANNEL_INIT,
 ];
 
 /// Parse an RPC request message.

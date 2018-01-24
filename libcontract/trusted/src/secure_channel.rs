@@ -309,8 +309,8 @@ impl ClientSession {
                 // Client attestation is required, so the client is only allowed to
                 // call the _channel_attest_client or _channel_close.
                 match plain_request.get_method() {
-                    "_channel_attest_client" => {}
-                    "_channel_close" => {}
+                    api::METHOD_CHANNEL_ATTEST_CLIENT => {}
+                    api::METHOD_CHANNEL_CLOSE => {}
                     _ => return Err(ContractError::new("Invalid method call in this state")),
                 }
             }
