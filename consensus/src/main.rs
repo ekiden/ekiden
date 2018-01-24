@@ -77,7 +77,8 @@ mod tests {
     #[test]
     fn exercise1() {
         let consensus_client =
-            consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default()).unwrap();
+            consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default())
+                .unwrap();
 
         // Set state to `helloworld`
         let mut consensus_set_request = consensus::SetRequest::new();
