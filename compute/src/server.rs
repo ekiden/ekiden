@@ -39,9 +39,9 @@ struct QueuedResponse<'a> {
 }
 
 pub struct ComputeServerImpl {
-    // Channel for submitting requests to the worker.
+    /// Channel for submitting requests to the worker.
     request_sender: Mutex<Sender<QueuedRequest>>,
-    // IAS service.
+    /// IAS service.
     ias: IAS,
 }
 
