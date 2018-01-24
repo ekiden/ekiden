@@ -153,6 +153,7 @@ impl ComputeServerImpl {
                     grpc::SingleResponse::completed(rpc_response)
                 }
                 Err(e) => {
+                    eprintln!("compute: error in call {:?}", e);
                     grpc::SingleResponse::err(grpc::Error::Panic(String::from(e.description())))
                 }
             };
@@ -184,6 +185,7 @@ impl ComputeServerImpl {
                 }
             }
             Err(e) => {
+                eprintln!("compute: batch-wide error {:?}", e);
                 // Send batch-wide error to all clients.
                 let desc = String::from(e.description());
                 for queued_call in call_batch {
