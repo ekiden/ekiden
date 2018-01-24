@@ -138,6 +138,7 @@ impl ComputeServerImpl {
         };
 
         // Process the requests.
+        let mut ever_update_state = false;
         for ref mut queued_call in call_batch {
             queued_call.grpc_response = match Self::call_contract_fallible(
                 contract,
@@ -147,6 +148,7 @@ impl ComputeServerImpl {
                 Ok((new_encrypted_state_opt, rpc_response)) => {
                     if let Some(new_encrypted_state) = new_encrypted_state_opt {
                         encrypted_state_opt = Some(new_encrypted_state);
+                        ever_update_state = true;
                     }
                     grpc::SingleResponse::completed(rpc_response)
                 }
@@ -158,11 +160,13 @@ impl ComputeServerImpl {
 
         // Set state in storage
         if let Some(encrypted_state) = encrypted_state_opt {
-            let mut storage_set_request = storage::SetRequest::new();
-            storage_set_request.set_payload(encrypted_state.write_to_bytes()?);
-            storage_client
-                .set(grpc::RequestOptions::new(), storage_set_request)
-                .wait()?;
+            if ever_update_state {
+                let mut storage_set_request = storage::SetRequest::new();
+                storage_set_request.set_payload(encrypted_state.write_to_bytes()?);
+                storage_client
+                    .set(grpc::RequestOptions::new(), storage_set_request)
+                    .wait()?;
+            }
         }
 
         Ok(())
