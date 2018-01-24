@@ -153,26 +153,32 @@ impl ComputeServerImpl {
 
         // Process the requests.
         let mut ever_update_state = false;
-        let response_batch = request_batch.iter().map(|ref queued_request| {
-            let grpc_response = match Self::call_contract_fallible(
-                contract,
-                encrypted_state_opt.clone(),
-                &queued_request.rpc_request,
-            ) {
-                Ok((new_encrypted_state_opt, rpc_response)) => {
-                    if let Some(new_encrypted_state) = new_encrypted_state_opt {
-                        encrypted_state_opt = Some(new_encrypted_state);
-                        ever_update_state = true;
+        let response_batch = request_batch
+            .iter()
+            .map(|ref queued_request| {
+                let grpc_response = match Self::call_contract_fallible(
+                    contract,
+                    encrypted_state_opt.clone(),
+                    &queued_request.rpc_request,
+                ) {
+                    Ok((new_encrypted_state_opt, rpc_response)) => {
+                        if let Some(new_encrypted_state) = new_encrypted_state_opt {
+                            encrypted_state_opt = Some(new_encrypted_state);
+                            ever_update_state = true;
+                        }
+                        grpc::SingleResponse::completed(rpc_response)
                     }
-                    grpc::SingleResponse::completed(rpc_response)
+                    Err(e) => {
+                        eprintln!("compute: error in call {:?}", e);
+                        grpc::SingleResponse::err(grpc::Error::Panic(String::from(e.description())))
+                    }
+                };
+                QueuedResponse {
+                    queued_request,
+                    grpc_response,
                 }
-                Err(e) => {
-                    eprintln!("compute: error in call {:?}", e);
-                    grpc::SingleResponse::err(grpc::Error::Panic(String::from(e.description())))
-                }
-            };
-            QueuedResponse { queued_request, grpc_response }
-        }).collect();
+            })
+            .collect();
 
         // Set state in consensus
         if let Some(encrypted_state) = encrypted_state_opt {
