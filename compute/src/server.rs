@@ -34,10 +34,11 @@ pub struct ComputeServerImpl {
 impl ComputeServerImpl {
     /// Create new compute server instance.
     pub fn new(contract_filename: &str, ias: IASConfiguration) -> Self {
-        let contract = Self::get_contract(&contract_filename);
+        let contract_filename_owned = String::from(contract_filename);
         let (request_sender, request_receiver) = std::sync::mpsc::channel();
+        // move request_receiver
         std::thread::spawn(move || {
-            // contract, request_receiver
+            let contract = Self::get_contract(&contract_filename_owned);
             // Block for the next call.
             // When ComputeServerImpl is dropped, the request_sender closes, and the thread will exit.
             while let Ok(queued_call) = request_receiver.recv() {
