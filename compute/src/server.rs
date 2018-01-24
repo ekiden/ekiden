@@ -52,7 +52,7 @@ impl ComputeServerImpl {
         let (request_sender, request_receiver) = std::sync::mpsc::channel();
         // move request_receiver
         std::thread::spawn(move || {
-            let contract = Self::get_contract(&contract_filename_owned);
+            let contract = Self::create_contract(&contract_filename_owned);
             // Block for the next call.
             // When ComputeServerImpl is dropped, the request_sender closes, and the thread will exit.
             while let Ok(queued_request) = request_receiver.recv() {
@@ -72,8 +72,8 @@ impl ComputeServerImpl {
         }
     }
 
-    /// Get thread-local instance of the contract.
-    fn get_contract(contract_filename: &str) -> enclave::EkidenEnclave {
+    /// Create an instance of the contract.
+    fn create_contract(contract_filename: &str) -> enclave::EkidenEnclave {
         // TODO: Handle contract initialization errors.
         let contract = enclave::EkidenEnclave::new(contract_filename).unwrap();
 
