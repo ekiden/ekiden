@@ -15,7 +15,7 @@ impl State {
 
     pub fn get_latest(&self) -> Option<Vec<u8>> {
         match self.latest {
-            // storage_grpc requires moving the Vec.
+            // consensus_grpc requires moving the Vec.
             // @todo replace with Arc?
             Some(ref val) => Some(val.clone()),
             _ => None,

@@ -25,12 +25,12 @@ use std::sync::mpsc;
 use std::thread;
 use tokio_proto::TcpServer;
 
-use generated::storage_grpc::StorageServer;
-use rpc::StorageServerImpl;
+use generated::consensus_grpc::ConsensusServer;
+use rpc::ConsensusServerImpl;
 use state::State;
 
 fn main() {
-    println!("Ekiden Storage starting... ");
+    println!("Ekiden Consensus starting... ");
     // Create a shared State object
     let s = Arc::new(Mutex::new(State::new()));
 
@@ -49,12 +49,12 @@ fn main() {
     let mut rpc_server = grpc::ServerBuilder::new_plain();
     rpc_server.http.set_port(port);
     rpc_server.http.set_cpu_pool_threads(1);
-    rpc_server.add_service(StorageServer::new_service_def(StorageServerImpl::new(
+    rpc_server.add_service(ConsensusServer::new_service_def(ConsensusServerImpl::new(
         Arc::clone(&s),
         Arc::clone(&tx),
     )));
     let _server = rpc_server.build().expect("rpc_server");
-    println!("Storage node listening at {}", port);
+    println!("Consensus node listening at {}", port);
 
     // Start the Tendermint ABCI listener
     let abci_listen_addr = "127.0.0.1:46658".parse().unwrap();
@@ -69,49 +69,49 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::generated::storage;
-    use super::generated::storage_grpc;
-    use super::generated::storage_grpc::Storage;
+    use super::generated::consensus;
+    use super::generated::consensus_grpc;
+    use super::generated::consensus_grpc::Consensus;
     use grpc;
 
     #[test]
     fn exercise1() {
-        let storage_client =
-            storage_grpc::StorageClient::new_plain("localhost", 9002, Default::default()).unwrap();
+        let consensus_client =
+            consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default()).unwrap();
 
         // Set state to `helloworld`
-        let mut storage_set_request = storage::SetRequest::new();
-        storage_set_request.set_payload(String::from("helloworld").into_bytes());
-        storage_client
-            .set(grpc::RequestOptions::new(), storage_set_request)
+        let mut consensus_set_request = consensus::SetRequest::new();
+        consensus_set_request.set_payload(String::from("helloworld").into_bytes());
+        consensus_client
+            .set(grpc::RequestOptions::new(), consensus_set_request)
             .wait()
             .unwrap();
 
-        let storage_get_request = storage::GetRequest::new();
-        let (_, storage_get_response, _) = storage_client
-            .get(grpc::RequestOptions::new(), storage_get_request)
+        let consensus_get_request = consensus::GetRequest::new();
+        let (_, consensus_get_response, _) = consensus_client
+            .get(grpc::RequestOptions::new(), consensus_get_request)
             .wait()
             .unwrap();
         assert_eq!(
-            storage_get_response.get_payload(),
+            consensus_get_response.get_payload(),
             String::from("helloworld").as_bytes()
         );
 
         // Set state to `successor`
-        let mut storage_set_request = storage::SetRequest::new();
-        storage_set_request.set_payload(String::from("successor").into_bytes());
-        storage_client
-            .set(grpc::RequestOptions::new(), storage_set_request)
+        let mut consensus_set_request = consensus::SetRequest::new();
+        consensus_set_request.set_payload(String::from("successor").into_bytes());
+        consensus_client
+            .set(grpc::RequestOptions::new(), consensus_set_request)
             .wait()
             .unwrap();
 
-        let storage_get_request = storage::GetRequest::new();
-        let (_, storage_get_response, _) = storage_client
-            .get(grpc::RequestOptions::new(), storage_get_request)
+        let consensus_get_request = consensus::GetRequest::new();
+        let (_, consensus_get_response, _) = consensus_client
+            .get(grpc::RequestOptions::new(), consensus_get_request)
             .wait()
             .unwrap();
         assert_eq!(
-            storage_get_response.get_payload(),
+            consensus_get_response.get_payload(),
             String::from("successor").as_bytes()
         );
 
@@ -121,18 +121,18 @@ mod tests {
             scale[i] = i as u8;
         }
 
-        let mut storage_set_request = storage::SetRequest::new();
-        storage_set_request.set_payload(scale.clone());
-        storage_client
-            .set(grpc::RequestOptions::new(), storage_set_request)
+        let mut consensus_set_request = consensus::SetRequest::new();
+        consensus_set_request.set_payload(scale.clone());
+        consensus_client
+            .set(grpc::RequestOptions::new(), consensus_set_request)
             .wait()
             .unwrap();
 
-        let storage_get_request = storage::GetRequest::new();
-        let (_, storage_get_response, _) = storage_client
-            .get(grpc::RequestOptions::new(), storage_get_request)
+        let consensus_get_request = consensus::GetRequest::new();
+        let (_, consensus_get_response, _) = consensus_client
+            .get(grpc::RequestOptions::new(), consensus_get_request)
             .wait()
             .unwrap();
-        assert_eq!(storage_get_response.get_payload(), &scale[..]);
+        assert_eq!(consensus_get_response.get_payload(), &scale[..]);
     }
 }
