@@ -62,6 +62,13 @@ fn main() {
                 .takes_value(true)
                 .required(true),
         )
+        .arg(
+            Arg::with_name("grpc-threads")
+                .long("grpc-threads")
+                .help("Number of threads to use in the GRPC server's HTTP server. Multiple threads only allow requests to be batched up. Requests will not be processed concurrently.")
+                .default_value("1")
+                .takes_value(true),
+        )
         .get_matches();
 
     let port = value_t!(matches, "port", u16).unwrap_or(9001);
@@ -76,7 +83,8 @@ fn main() {
             pkcs12_archive: matches.value_of("ias-pkcs12").unwrap().to_string(),
         },
     )));
-    server.http.set_cpu_pool_threads(16);
+    let num_threads = value_t!(matches, "grpc-threads", usize).unwrap();
+    server.http.set_cpu_pool_threads(num_threads);
     let _server = server.build().expect("server");
 
     println!("Compute node listening at {}", port);
