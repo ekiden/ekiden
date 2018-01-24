@@ -4,6 +4,9 @@ use protobuf::Message;
 use std;
 
 use std::fmt::Write;
+use std::sync::Mutex;
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::SyncSender;
 
 use libcontract_common;
 use libcontract_untrusted::enclave;
@@ -21,12 +24,12 @@ use super::ias::{IASConfiguration, IAS};
 struct QueuedCall {
     rpc_request: CallContractRequest,
     grpc_response: grpc::SingleResponse<CallContractResponse>,
-    response_sender: std::sync::mpsc::SyncSender<grpc::SingleResponse<CallContractResponse>>,
+    response_sender: SyncSender<grpc::SingleResponse<CallContractResponse>>,
 }
 
 pub struct ComputeServerImpl {
     // Channel for submitting requests to the worker.
-    request_sender: std::sync::Mutex<std::sync::mpsc::Sender<QueuedCall>>,
+    request_sender: Mutex<Sender<QueuedCall>>,
     // IAS service.
     ias: IAS,
 }
@@ -53,7 +56,7 @@ impl ComputeServerImpl {
             }
         });
         ComputeServerImpl {
-            request_sender: std::sync::Mutex::new(request_sender),
+            request_sender: Mutex::new(request_sender),
             ias: IAS::new(ias).unwrap(),
         }
     }
