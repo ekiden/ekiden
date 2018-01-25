@@ -6,8 +6,8 @@ build = "build.rs"
 
 [features]
 default = ["no-sgx"]
-no-sgx = ["protobuf", "byteorder", "rand", "grpc", "tls-api", "httpbis", "byteorder/std", "libcontract-common/no-sgx"]
-sgx = ["protobuf-sgx", "byteorder-sgx", "sgx_types", "sgx_tstd", "sgx_trts", "libcontract-common/sgx"]
+no-sgx = ["protobuf", "rand", "grpc", "tls-api", "httpbis", "libcontract-common/no-sgx"]
+sgx = ["protobuf-sgx", "sgx_types", "sgx_tstd", "sgx_trts", "libcontract-common/sgx"]
 
 [dependencies]
 grpc = { version = "0.2.1", optional = true }

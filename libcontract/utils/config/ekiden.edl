@@ -9,7 +9,7 @@ enclave {
 
     trusted {
         /**
-         * RPC call interface.
+         * Incoming RPC call interface (client -> enclave).
          */
         public void rpc_call(
             [in, size=request_length] const uint8_t *request_data,
@@ -35,6 +35,18 @@ enclave {
             [out, size=quote_capacity] uint8_t *p_quote,
             uint32_t quote_capacity,
             [out] uint32_t *quote_size
+        );
+
+        /**
+         * Outgoing RPC call interface (enclave -> {enclave, service}).
+         */
+        void untrusted_rpc_call(
+            uint16_t endpoint,
+            [in, size=request_length] const uint8_t *request_data,
+            size_t request_length,
+            [out, size=response_capacity] uint8_t *response_data,
+            size_t response_capacity,
+            [out] size_t *response_length
         );
     };
 };

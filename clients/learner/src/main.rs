@@ -7,6 +7,7 @@ extern crate rulinalg;
 extern crate client_utils;
 #[macro_use]
 extern crate compute_client;
+extern crate libcontract_common;
 
 #[macro_use]
 extern crate learner_api;

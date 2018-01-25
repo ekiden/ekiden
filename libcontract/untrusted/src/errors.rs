@@ -8,6 +8,8 @@ use libcontract_common::api::PlainClientResponse_Code;
 #[derive(Debug)]
 pub enum Error {
     ParseError,
+    RpcRouterInvalidEndpoint,
+    RpcRouterCallFailed,
     ResponseError(PlainClientResponse_Code, String),
     SgxError,
 }
@@ -19,6 +21,8 @@ impl fmt::Display for Error {
             Error::ResponseError(code, ref message) => {
                 f.write_str(format!("ResponseError({:?}, {})", code, message).as_str())
             }
+            Error::RpcRouterInvalidEndpoint => f.write_str("RpcRouterInvalidEndpoint"),
+            Error::RpcRouterCallFailed => f.write_str("RpcRouterCallFailed"),
             Error::SgxError => f.write_str("SgxError"),
         }
     }
@@ -28,6 +32,8 @@ impl StdError for Error {
     fn description(&self) -> &str {
         match *self {
             Error::ParseError => "RPC message parse error",
+            Error::RpcRouterInvalidEndpoint => "RPC router: invalid endpoint",
+            Error::RpcRouterCallFailed => "RPC router: call failed",
             Error::ResponseError(_, _) => "RPC call returned an error",
             Error::SgxError => "SGX execution error",
         }

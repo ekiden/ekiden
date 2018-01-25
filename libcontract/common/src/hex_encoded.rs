@@ -54,7 +54,7 @@ macro_rules! hex_encoded_struct {
     ($type: ident, $length_id: ident, $length: expr) => {
         pub const $length_id: usize = $length;
 
-        #[derive(Default, Debug, Clone, PartialEq)]
+        #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $type(pub [u8; $length]);
 
         impl $crate::hex_encoded::HexEncoded for $type {

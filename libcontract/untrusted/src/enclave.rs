@@ -1,8 +1,6 @@
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 
-use std::ptr;
-
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
@@ -10,19 +8,6 @@ use libcontract_common::api;
 
 use super::errors;
 
-extern "C" {
-    /// Enclave RPC call API.
-    fn rpc_call(
-        eid: sgx_enclave_id_t,
-        request_data: *const u8,
-        request_length: usize,
-        response_data: *const u8,
-        response_capacity: usize,
-        response_length: *mut usize,
-    ) -> sgx_status_t;
-}
-
-#[derive(Debug)]
 pub struct EkidenEnclave {
     /// Enclave instance.
     enclave: SgxEnclave,
@@ -78,7 +63,7 @@ impl EkidenEnclave {
         enclave_request.set_client_request(client_request);
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
-        let enclave_response_bytes = self.call_raw(&enclave_request_bytes)?;
+        let enclave_response_bytes = self.call_raw(enclave_request_bytes)?;
 
         let enclave_response: api::EnclaveResponse =
             match protobuf::parse_from_bytes(enclave_response_bytes.as_slice()) {
@@ -123,9 +108,13 @@ impl EkidenEnclave {
     }
 
     /// Perform a raw RPC call against the enclave.
-    pub fn call_raw(&self, request: &Vec<u8>) -> Result<Vec<u8>, errors::Error> {
+    pub fn call_raw(&self, mut request: Vec<u8>) -> Result<Vec<u8>, errors::Error> {
         // Maximum size of serialized response is 16K.
         let mut response: Vec<u8> = Vec::with_capacity(16 * 1024);
+
+        // Ensure that request is actually allocated as the length of the actual request
+        // may be zero and in that case the OCALL will fail with SGX_ERROR_INVALID_PARAMETER.
+        request.reserve(1);
 
         let mut response_length = 0;
         let status = unsafe {
@@ -183,45 +172,14 @@ impl EkidenEnclave {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn untrusted_init_quote(
-    p_target_info: *mut sgx_target_info_t,
-    p_gid: *mut sgx_epid_group_id_t,
-) -> sgx_status_t {
-    unsafe { sgx_init_quote(p_target_info, p_gid) }
-}
-
-#[no_mangle]
-pub extern "C" fn untrusted_get_quote(
-    p_report: *const sgx_report_t,
-    quote_type: sgx_quote_sign_type_t,
-    p_spid: *const sgx_spid_t,
-    p_nonce: *const sgx_quote_nonce_t,
-    p_qe_report: *mut sgx_report_t,
-    p_quote: *mut u8,
-    _quote_capacity: u32,
-    quote_size: *mut u32,
-) -> sgx_status_t {
-    // Calculate quote size.
-    let status = unsafe { sgx_calc_quote_size(ptr::null(), 0, quote_size) };
-
-    match status {
-        sgx_status_t::SGX_SUCCESS => {}
-        _ => return status,
-    };
-
-    // Get quote from the quoting enclave.
-    unsafe {
-        sgx_get_quote(
-            p_report,
-            quote_type,
-            p_spid,
-            p_nonce,
-            ptr::null(),
-            0,
-            p_qe_report,
-            p_quote as *mut sgx_quote_t,
-            *quote_size,
-        )
-    }
+extern "C" {
+    /// Enclave RPC call API.
+    fn rpc_call(
+        eid: sgx_enclave_id_t,
+        request_data: *const u8,
+        request_length: usize,
+        response_data: *const u8,
+        response_capacity: usize,
+        response_length: *mut usize,
+    ) -> sgx_status_t;
 }

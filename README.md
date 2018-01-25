@@ -110,6 +110,15 @@ To get a list of built enclaves:
 $ ls ./target/enclave/*.signed.so
 ```
 
+### Key manager
+
+The key manager contract is special and must be run in a compute node listening on port `9003`
+by default. Run it as you would run any other compute node, but specifying the key manager
+contract and changing the port:
+```bash
+$ cargo run -p compute ./target/enclave/key-manager.signed.so -p 9003 -- --disable-key-manager --ias-spid <spid> --ias-pkcs12 client.pfx
+```
+
 ### Contract client
 
 To run the token contract client:

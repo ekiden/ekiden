@@ -4,11 +4,17 @@ members = [
   "compute",
   "compute-client",
   "consensus",
+
+  # Key manager is special and must be built before libcontract-trusted in
+  # order for libcontract-trusted to include its MRENCLAVE.
+  "contracts/key-manager",
+  "libcontract/trusted",
+
   "contracts/dummy",
   "contracts/token",
   "contracts/learner",
+
   "libcontract/common",
-  "libcontract/trusted",
   "libcontract/untrusted",
   "libcontract/utils",
   "clients/token",

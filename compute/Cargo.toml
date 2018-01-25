@@ -10,6 +10,7 @@ build = "build.rs"
 [dependencies]
 libcontract-common = { path = "../libcontract/common" }
 libcontract-untrusted = { path = "../libcontract/untrusted" }
+compute-client = { path = "../compute-client" }
 protobuf = "1.4.2"
 grpc = "0.2.1"
 futures = "0.1.17"

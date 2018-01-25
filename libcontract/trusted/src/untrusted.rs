@@ -21,4 +21,14 @@ extern "C" {
         quote_capacity: u32,
         quote_size: *mut u32,
     ) -> sgx_status_t;
+
+    /// Interface for outgoing RPC calls (to other enclaves or services).
+    pub fn untrusted_rpc_call(
+        endpoint: u16,
+        request_data: *const u8,
+        request_length: usize,
+        response_data: *mut u8,
+        response_capacity: usize,
+        response_length: *mut usize,
+    ) -> sgx_status_t;
 }

@@ -4,6 +4,7 @@ use protobuf::Message;
 use std;
 
 use std::fmt::Write;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::SyncSender;
@@ -19,7 +20,7 @@ use generated::consensus;
 use generated::consensus_grpc;
 use generated::consensus_grpc::Consensus;
 
-use super::ias::{IASConfiguration, IAS};
+use super::ias::IAS;
 
 /// This struct describes a call sent to the worker thread.
 struct QueuedRequest {
@@ -42,12 +43,12 @@ pub struct ComputeServerImpl {
     /// Channel for submitting requests to the worker.
     request_sender: Mutex<Sender<QueuedRequest>>,
     /// IAS service.
-    ias: IAS,
+    ias: Arc<IAS>,
 }
 
 impl ComputeServerImpl {
     /// Create new compute server instance.
-    pub fn new(contract_filename: &str, ias: IASConfiguration) -> Self {
+    pub fn new(contract_filename: &str, ias: Arc<IAS>) -> Self {
         let contract_filename_owned = String::from(contract_filename);
         let (request_sender, request_receiver) = std::sync::mpsc::channel();
         // move request_receiver
@@ -68,7 +69,7 @@ impl ComputeServerImpl {
         });
         ComputeServerImpl {
             request_sender: Mutex::new(request_sender),
-            ias: IAS::new(ias).unwrap(),
+            ias: ias,
         }
     }
 
@@ -113,7 +114,7 @@ impl ComputeServerImpl {
         }
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
-        let enclave_response_bytes = contract.call_raw(&enclave_request_bytes)?;
+        let enclave_response_bytes = contract.call_raw(enclave_request_bytes)?;
 
         let mut enclave_response: libcontract_common::api::EnclaveResponse =
             protobuf::parse_from_bytes(&enclave_response_bytes)?;

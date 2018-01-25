@@ -5,6 +5,7 @@ extern crate clap;
 extern crate client_utils;
 #[macro_use]
 extern crate compute_client;
+extern crate libcontract_common;
 
 #[macro_use]
 extern crate token_api;
