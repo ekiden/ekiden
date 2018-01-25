@@ -35,7 +35,7 @@ jobs:
       - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
 
       # Rustfmt
-      - run: cargo make format
+      - run: cargo make checkstyle
 
       # Save cache
       - save_cache:

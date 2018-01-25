@@ -19,3 +19,9 @@ dependencies = [
 
 [tasks.test-flow]
 alias = "empty"
+
+[tasks.checkstyle]
+condition = { channels = [ "nightly" ] }
+install_crate = "rustfmt-nightly"
+command = "cargo"
+args = ["fmt", "--", "--write-mode=diff"]
