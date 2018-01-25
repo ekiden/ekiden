@@ -44,7 +44,7 @@ fn main() {
     let mut client = contract_client!(learner);
     let user = "benbitdiddle".to_string();
 
-    let (state, _create_res) = client
+    let _create_res = client
         .create({
             let mut req = CreateRequest::new();
             req.set_requester(user.clone());
@@ -52,39 +52,39 @@ fn main() {
         })
         .expect("error: create");
 
-    let (state, _train_res) = client
-        .train(state, {
-            let mut req = learner::TrainingRequest::new();
-            req.set_requester(user.clone());
-            req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
-            req
-        })
-        .expect("error: train");
-
-    let infer_res = client
-        .infer(state, {
-            let mut req = learner::InferenceRequest::new();
-            req.set_requester(user.clone());
-            req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
-            req
-        })
-        .expect("error: infer");
-
-    let ground_truth: Vector<f64> = examples
-        .iter()
-        .filter_map(|example| unpack_val!(&example.get_features().feature, next_temp))
-        .collect();
-
-    let preds: Vector<f64> = infer_res
-        .get_predictions()
-        .iter()
-        .filter_map(|example| unpack_val!(&example.get_features().feature, next_temp))
-        .collect();
-
-    assert!(preds.size() == ground_truth.size());
-
-    println!(
-        "Training loss: {:?}",
-        (preds - ground_truth).norm(Euclidean)
-    );
+    // let _train_res = client
+    //     .train({
+    //         let mut req = learner::TrainingRequest::new();
+    //         req.set_requester(user.clone());
+    //         req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
+    //         req
+    //     })
+    //     .expect("error: train");
+    //
+    // let infer_res = client
+    //     .infer({
+    //         let mut req = learner::InferenceRequest::new();
+    //         req.set_requester(user.clone());
+    //         req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
+    //         req
+    //     })
+    //     .expect("error: infer");
+    //
+    // let ground_truth: Vector<f64> = examples
+    //     .iter()
+    //     .filter_map(|example| unpack_val!(&example.get_features().feature, next_temp))
+    //     .collect();
+    //
+    // let preds: Vector<f64> = infer_res
+    //     .get_predictions()
+    //     .iter()
+    //     .filter_map(|example| unpack_val!(&example.get_features().feature, next_temp))
+    //     .collect();
+    //
+    // assert!(preds.size() == ground_truth.size());
+    //
+    // println!(
+    //     "Training loss: {:?}",
+    //     (preds - ground_truth).norm(Euclidean)
+    // );
 }

@@ -17,6 +17,8 @@ members = [
   "libcontract/common",
   "libcontract/untrusted",
   "libcontract/utils",
+
   "clients/token",
+  "clients/learner",
 ]
 exclude = ["third_party"]
