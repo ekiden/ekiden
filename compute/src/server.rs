@@ -2,10 +2,12 @@ use grpc;
 use protobuf;
 use protobuf::Message;
 use std;
-use thread_local::ThreadLocal;
 
 use std::fmt::Write;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::SyncSender;
 
 use libcontract_common;
 use libcontract_untrusted::enclave;
@@ -20,100 +22,201 @@ use generated::consensus_grpc::Consensus;
 
 use super::ias::IAS;
 
+/// This struct describes a call sent to the worker thread.
+struct QueuedRequest {
+    /// This is the request from the client.
+    rpc_request: CallContractRequest,
+    /// This is a channel where the worker should send the response.
+    response_sender: SyncSender<grpc::SingleResponse<CallContractResponse>>,
+}
+
+/// This struct associates a response with a request.
+struct QueuedResponse<'a> {
+    /// This is the request. Notably, it owns the channel where we
+    /// will be sending the response.
+    queued_request: &'a QueuedRequest,
+    /// This is the response.
+    grpc_response: grpc::SingleResponse<CallContractResponse>,
+}
+
 pub struct ComputeServerImpl {
-    // Filename of the enclave implementing the contract.
-    contract_filename: String,
-    // Contract running in an enclave.
-    contract: ThreadLocal<enclave::EkidenEnclave>,
-    // IAS service.
+    /// Channel for submitting requests to the worker.
+    request_sender: Mutex<Sender<QueuedRequest>>,
+    /// IAS service.
     ias: Arc<IAS>,
 }
 
 impl ComputeServerImpl {
     /// Create new compute server instance.
     pub fn new(contract_filename: &str, ias: Arc<IAS>) -> Self {
+        let contract_filename_owned = String::from(contract_filename);
+        let (request_sender, request_receiver) = std::sync::mpsc::channel();
+        // move request_receiver
+        std::thread::spawn(move || {
+            let contract = Self::create_contract(&contract_filename_owned);
+            // Block for the next call.
+            // When ComputeServerImpl is dropped, the request_sender closes, and the thread will exit.
+            while let Ok(queued_request) = request_receiver.recv() {
+                let mut request_batch = Vec::new();
+                request_batch.push(queued_request);
+                // Additionally dequeue any remaining requests.
+                while let Ok(queued_request) = request_receiver.try_recv() {
+                    request_batch.push(queued_request);
+                }
+                // Process the requests.
+                Self::call_contract_batch(&contract, request_batch);
+            }
+        });
         ComputeServerImpl {
-            contract_filename: contract_filename.to_string(),
-            contract: ThreadLocal::new(),
+            request_sender: Mutex::new(request_sender),
             ias: ias,
         }
     }
 
-    /// Get thread-local instance of the contract.
-    fn get_contract(&self) -> &enclave::EkidenEnclave {
-        self.contract.get_or(|| {
-            // TODO: Handle contract initialization errors.
-            let contract = enclave::EkidenEnclave::new(&self.contract_filename).unwrap();
+    /// Create an instance of the contract.
+    fn create_contract(contract_filename: &str) -> enclave::EkidenEnclave {
+        // TODO: Handle contract initialization errors.
+        let contract = enclave::EkidenEnclave::new(contract_filename).unwrap();
 
-            // Initialize contract.
-            // TODO: Support contract restore.
-            let response = contract
-                .initialize()
-                .expect("Failed to initialize contract");
+        // Initialize contract.
+        // TODO: Support contract restore.
+        let response = contract
+            .initialize()
+            .expect("Failed to initialize contract");
 
-            // Show contract MRENCLAVE in hex format.
-            let mut mr_enclave = String::new();
-            for &byte in response.get_mr_enclave() {
-                write!(&mut mr_enclave, "{:02x}", byte).unwrap();
-            }
+        // Show contract MRENCLAVE in hex format.
+        let mut mr_enclave = String::new();
+        for &byte in response.get_mr_enclave() {
+            write!(&mut mr_enclave, "{:02x}", byte).unwrap();
+        }
 
-            println!("Loaded contract with MRENCLAVE: {}", mr_enclave);
+        println!("Loaded contract with MRENCLAVE: {}", mr_enclave);
 
-            Box::new(contract)
-        })
+        contract
     }
 
     fn call_contract_fallible(
-        &self,
-        rpc_request: CallContractRequest,
-    ) -> Result<CallContractResponse, Box<std::error::Error>> {
+        contract: &enclave::EkidenEnclave,
+        encrypted_state_opt: Option<libcontract_common::api::CryptoSecretbox>,
+        rpc_request: &CallContractRequest,
+    ) -> Result<
+        (
+            Option<libcontract_common::api::CryptoSecretbox>,
+            CallContractResponse,
+        ),
+        Box<std::error::Error>,
+    > {
+        let mut enclave_request = libcontract_common::api::EnclaveRequest::new();
+        let client_request = protobuf::parse_from_bytes(rpc_request.get_payload())?;
+        enclave_request.set_client_request(client_request);
+        if let Some(encrypted_state) = encrypted_state_opt {
+            enclave_request.set_encrypted_state(encrypted_state);
+        }
+
+        let enclave_request_bytes = enclave_request.write_to_bytes()?;
+        let enclave_response_bytes = contract.call_raw(enclave_request_bytes)?;
+
+        let mut enclave_response: libcontract_common::api::EnclaveResponse =
+            protobuf::parse_from_bytes(&enclave_response_bytes)?;
+        let mut rpc_response = CallContractResponse::new();
+        rpc_response.set_payload(enclave_response.get_client_response().write_to_bytes()?);
+        let new_encrypted_state_opt = if enclave_response.has_encrypted_state() {
+            Some(enclave_response.take_encrypted_state())
+        } else {
+            None
+        };
+
+        Ok((new_encrypted_state_opt, rpc_response))
+    }
+
+    fn call_contract_batch_fallible<'a>(
+        contract: &enclave::EkidenEnclave,
+        request_batch: &'a [QueuedRequest],
+    ) -> Result<Vec<QueuedResponse<'a>>, Box<std::error::Error>> {
         // Connect to consensus node
-        // TODO: Let client select consensus node.
+        // TODO: Know the consensus node location other than having it hard-coded.
         // TODO: Use TLS client.
         let consensus_client =
             consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default())?;
-
-        //
-        let mut enclave_request = libcontract_common::api::EnclaveRequest::new();
 
         // Get state from consensus
         let consensus_result = consensus_client
             .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
             .wait();
-        if let Ok((_, consensus_get_response, _)) = consensus_result {
+        let mut encrypted_state_opt = if let Ok((_, consensus_get_response, _)) = consensus_result {
             let encrypted_state = protobuf::parse_from_bytes(consensus_get_response.get_payload())?;
-            enclave_request.set_encrypted_state(encrypted_state);
+            Some(encrypted_state)
+        } else {
+            // We should bail if there was an error other than the state not being initialized.
+            // But don't go fixing this. There's another resolution planned in #95.
+            None
         };
-        // We should bail if there was an error other than the consensus not being initialized.
-        // But don't go fixing this. There's another resolution planned in #95.
 
-        //
-        let client_request: libcontract_common::api::ClientRequest =
-            protobuf::parse_from_bytes(rpc_request.get_payload())?;
-        enclave_request.set_client_request(client_request);
-
-        let enclave_request_bytes = enclave_request.write_to_bytes()?;
-        let enclave_response_bytes = self.get_contract().call_raw(enclave_request_bytes)?;
-
-        let enclave_response: libcontract_common::api::EnclaveResponse =
-            protobuf::parse_from_bytes(&enclave_response_bytes)?;
+        // Process the requests.
+        let mut ever_update_state = false;
+        let response_batch = request_batch
+            .iter()
+            .map(|ref queued_request| {
+                let grpc_response = match Self::call_contract_fallible(
+                    contract,
+                    encrypted_state_opt.clone(),
+                    &queued_request.rpc_request,
+                ) {
+                    Ok((new_encrypted_state_opt, rpc_response)) => {
+                        if let Some(new_encrypted_state) = new_encrypted_state_opt {
+                            encrypted_state_opt = Some(new_encrypted_state);
+                            ever_update_state = true;
+                        }
+                        grpc::SingleResponse::completed(rpc_response)
+                    }
+                    Err(e) => {
+                        eprintln!("compute: error in call {:?}", e);
+                        grpc::SingleResponse::err(grpc::Error::Panic(String::from(e.description())))
+                    }
+                };
+                QueuedResponse {
+                    queued_request,
+                    grpc_response,
+                }
+            })
+            .collect();
 
         // Set state in consensus
-        if enclave_response.has_encrypted_state() {
-            let new_encrypted_state = enclave_response.get_encrypted_state();
-            let mut consensus_set_request = consensus::SetRequest::new();
-            consensus_set_request.set_payload(new_encrypted_state.write_to_bytes()?);
-            consensus_client
-                .set(grpc::RequestOptions::new(), consensus_set_request)
-                .wait()?;
+        if let Some(encrypted_state) = encrypted_state_opt {
+            if ever_update_state {
+                let mut consensus_set_request = consensus::SetRequest::new();
+                consensus_set_request.set_payload(encrypted_state.write_to_bytes()?);
+                consensus_client
+                    .set(grpc::RequestOptions::new(), consensus_set_request)
+                    .wait()?;
+            }
         }
 
-        //
-        let client_response = enclave_response.get_client_response();
+        Ok(response_batch)
+    }
 
-        let mut rpc_response = CallContractResponse::new();
-        rpc_response.set_payload(client_response.write_to_bytes()?);
-        Ok(rpc_response)
+    fn call_contract_batch(contract: &enclave::EkidenEnclave, request_batch: Vec<QueuedRequest>) {
+        match Self::call_contract_batch_fallible(contract, &request_batch) {
+            Ok(response_batch) => {
+                // No batch-wide errors. Send out per-call responses.
+                for queued_response in response_batch {
+                    queued_response
+                        .queued_request
+                        .response_sender
+                        .send(queued_response.grpc_response)
+                        .unwrap();
+                }
+            }
+            Err(e) => {
+                eprintln!("compute: batch-wide error {:?}", e);
+                // Send batch-wide error to all clients.
+                let desc = String::from(e.description());
+                for queued_request in &request_batch {
+                    let grpc_response = grpc::SingleResponse::err(grpc::Error::Panic(desc.clone()));
+                    queued_request.response_sender.send(grpc_response).unwrap();
+                }
+            }
+        }
     }
 }
 
@@ -123,12 +226,17 @@ impl Compute for ComputeServerImpl {
         _options: grpc::RequestOptions,
         rpc_request: CallContractRequest,
     ) -> grpc::SingleResponse<CallContractResponse> {
-        match self.call_contract_fallible(rpc_request) {
-            Ok(rpc_response) => grpc::SingleResponse::completed(rpc_response),
-            Err(_) => {
-                return grpc::SingleResponse::err(grpc::Error::Other("Failed to call contract"))
-            }
+        let (response_sender, response_receiver) = std::sync::mpsc::sync_channel(0);
+        {
+            let request_sender = self.request_sender.lock().unwrap();
+            request_sender
+                .send(QueuedRequest {
+                    rpc_request,
+                    response_sender,
+                })
+                .unwrap();
         }
+        response_receiver.recv().unwrap()
     }
 
     fn ias_get_spid(

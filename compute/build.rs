@@ -25,7 +25,10 @@ fn main() {
     }).expect("protoc-rust-grpc");
 
     println!("cargo:rerun-if-changed={}", "src/compute_web3.proto");
-    println!("cargo:rerun-if-changed={}", "../consensus/src/consensus.proto");
+    println!(
+        "cargo:rerun-if-changed={}",
+        "../consensus/src/consensus.proto"
+    );
 
     libcontract_utils::build_untrusted();
 }
