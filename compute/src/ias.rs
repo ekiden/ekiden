@@ -30,6 +30,7 @@ pub struct IASConfiguration {
 }
 
 /// IAS (Intel Attestation Service) interface.
+#[derive(Clone)]
 pub struct IAS {
     /// SPID assigned by Intel.
     spid: SPID,

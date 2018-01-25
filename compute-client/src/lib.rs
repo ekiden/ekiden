@@ -20,11 +20,9 @@ extern crate sgx_trts;
 #[cfg(feature = "sgx")]
 use std::prelude::v1::*;
 
-extern crate byteorder;
 extern crate protobuf;
 extern crate sodalite;
 
-#[macro_use]
 extern crate libcontract_common;
 
 #[cfg(not(feature = "sgx"))]
@@ -33,7 +31,6 @@ mod generated;
 pub mod backend;
 mod client;
 mod errors;
-mod quote;
 
 #[macro_use]
 mod macros;
@@ -41,4 +38,3 @@ mod macros;
 // Re-export.
 pub use client::ContractClient;
 pub use errors::Error;
-pub use quote::{MrEnclave, MRENCLAVE_LEN};

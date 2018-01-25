@@ -2,10 +2,17 @@ extern crate protobuf;
 extern crate sgx_types;
 extern crate sgx_urts;
 
+#[macro_use]
+extern crate lazy_static;
+
 extern crate libcontract_common;
 
 pub mod enclave;
 pub mod errors;
+pub mod ocall_proxy;
+
+#[macro_use]
+pub mod router;
 
 // For the below link statements to work, the library paths need to be correctly
 // configured. The easiest way to achieve that is to use the build_untrusted

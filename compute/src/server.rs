@@ -5,6 +5,7 @@ use std;
 use thread_local::ThreadLocal;
 
 use std::fmt::Write;
+use std::sync::Arc;
 
 use libcontract_common;
 use libcontract_untrusted::enclave;
@@ -17,7 +18,7 @@ use generated::consensus;
 use generated::consensus_grpc;
 use generated::consensus_grpc::Consensus;
 
-use super::ias::{IASConfiguration, IAS};
+use super::ias::IAS;
 
 pub struct ComputeServerImpl {
     // Filename of the enclave implementing the contract.
@@ -25,16 +26,16 @@ pub struct ComputeServerImpl {
     // Contract running in an enclave.
     contract: ThreadLocal<enclave::EkidenEnclave>,
     // IAS service.
-    ias: IAS,
+    ias: Arc<IAS>,
 }
 
 impl ComputeServerImpl {
     /// Create new compute server instance.
-    pub fn new(contract_filename: &str, ias: IASConfiguration) -> Self {
+    pub fn new(contract_filename: &str, ias: Arc<IAS>) -> Self {
         ComputeServerImpl {
             contract_filename: contract_filename.to_string(),
             contract: ThreadLocal::new(),
-            ias: IAS::new(ias).unwrap(),
+            ias: ias,
         }
     }
 
@@ -92,7 +93,7 @@ impl ComputeServerImpl {
         enclave_request.set_client_request(client_request);
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
-        let enclave_response_bytes = self.get_contract().call_raw(&enclave_request_bytes)?;
+        let enclave_response_bytes = self.get_contract().call_raw(enclave_request_bytes)?;
 
         let enclave_response: libcontract_common::api::EnclaveResponse =
             protobuf::parse_from_bytes(&enclave_response_bytes)?;

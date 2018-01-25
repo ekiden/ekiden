@@ -25,14 +25,19 @@ pub mod contract;
 pub mod contract_error;
 pub mod secure_channel;
 pub mod random;
+pub mod client;
 
 #[macro_use]
 pub mod hex_encoded;
+
+pub mod quote;
 
 mod generated;
 
 #[macro_use]
 mod macros;
+
+mod protocol;
 
 pub use address::Address;
 pub use contract::*;
@@ -40,4 +45,9 @@ pub use contract_error::ContractError;
 
 pub mod api {
     pub use generated::enclave_rpc::*;
+    pub use protocol::*;
+
+    pub mod services {
+        pub use generated::enclave_services::*;
+    }
 }

@@ -1,10 +1,11 @@
 use grpc;
-use rand::{OsRng, Rng};
+use sodalite;
 
 use protobuf;
 use protobuf::Message;
 
-use libcontract_common::api;
+use libcontract_common::{api, random};
+use libcontract_common::quote::Quote;
 
 use super::super::generated::compute_web3::{CallContractRequest, IasGetSpidRequest,
                                             IasVerifyQuoteRequest};
@@ -12,7 +13,6 @@ use super::super::generated::compute_web3_grpc::{Compute, ComputeClient};
 
 use super::ContractClientBackend;
 use super::super::errors::Error;
-use super::super::quote::Quote;
 
 pub struct Web3ContractClientBackend {
     /// gRPC client instance.
@@ -33,24 +33,36 @@ impl Web3ContractClientBackend {
 }
 
 impl ContractClientBackend for Web3ContractClientBackend {
+    /// Call contract.
     fn call(&self, client_request: api::ClientRequest) -> Result<api::ClientResponse, Error> {
-        let mut rpc_request = CallContractRequest::new();
-        rpc_request.set_payload(client_request.write_to_bytes()?);
-
-        let rpc_response = match self.client
-            .call_contract(grpc::RequestOptions::new(), rpc_request)
-            .wait()
-        {
-            Ok((_, rpc_response, _)) => rpc_response,
-            _ => return Err(Error::new("Failed to call contract")),
-        };
-
-        let client_response: api::ClientResponse =
-            protobuf::parse_from_bytes(rpc_response.get_payload())?;
+        let client_response = self.call_raw(client_request.write_to_bytes()?)?;
+        let client_response: api::ClientResponse = protobuf::parse_from_bytes(&client_response)?;
 
         Ok(client_response)
     }
 
+    /// Call contract with raw data.
+    fn call_raw(&self, client_request: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let mut rpc_request = CallContractRequest::new();
+        rpc_request.set_payload(client_request);
+
+        let mut rpc_response = match self.client
+            .call_contract(grpc::RequestOptions::new(), rpc_request)
+            .wait()
+        {
+            Ok((_, rpc_response, _)) => rpc_response,
+            Err(error) => {
+                return Err(Error::new(&format!(
+                    "Failed to call contract (gRPC error: {:?})",
+                    error
+                )))
+            }
+        };
+
+        Ok(rpc_response.take_payload())
+    }
+
+    /// Get SPID that can be used to verify the quote later.
     fn get_spid(&self) -> Result<Vec<u8>, Error> {
         // TODO: Cache SPID.
 
@@ -65,6 +77,7 @@ impl ContractClientBackend for Web3ContractClientBackend {
         Ok(response.take_spid())
     }
 
+    /// Verify quote via IAS.
     fn verify_quote(&self, quote: Vec<u8>) -> Result<Quote, Error> {
         let decoded = Quote::decode(&quote)?;
 
@@ -73,7 +86,7 @@ impl ContractClientBackend for Web3ContractClientBackend {
 
         // Generate random nonce.
         let mut nonce = vec![0u8; 16];
-        OsRng::new()?.fill_bytes(&mut nonce);
+        random::get_random_bytes(&mut nonce)?;
         request.set_nonce(nonce.clone());
 
         let response = match self.client
@@ -87,5 +100,17 @@ impl ContractClientBackend for Web3ContractClientBackend {
         // TODO: Check response, verify signatures, verify nonce etc.
 
         Ok(decoded)
+    }
+
+    /// Get quote of the local enclave for mutual attestation.
+    fn get_quote(
+        &self,
+        _spid: &Vec<u8>,
+        _nonce: &Vec<u8>,
+        _public_key: &sodalite::BoxPublicKey,
+    ) -> Result<Vec<u8>, Error> {
+        Err(Error::new(
+            "This backend does not support mutual attestation",
+        ))
     }
 }

@@ -7,6 +7,7 @@ macro_rules! create_client {
             name = $metadata_name: ident ;
             version = $metadata_version: expr ;
             state_type = $metadata_state_type: ty ;
+            client_attestation_required = $client_attestation_required: expr ;
         }
 
         $(
@@ -14,8 +15,11 @@ macro_rules! create_client {
         )*
     ) => {
         mod $metadata_name {
+            use libcontract_common::quote::MrEnclave;
+
             use compute_client::*;
             use compute_client::backend::ContractClientBackend;
+
             pub use $api_module::*;
 
             pub struct Client<Backend: ContractClientBackend> {

@@ -1,0 +1,10 @@
+extend = "../Makefile.toml"
+
+[tasks.pre-build]
+script = ['''
+    # Ensure that the previously signed key manager is removed if it exists,
+    # so that the key manager contract itself will have the all-zero MRENCLAVE
+    # configured for the key manager client. This way the client can know that
+    # it is itself running in the key manager.
+    rm -f ${TARGET_DIR}/key-manager.signed.so
+''']

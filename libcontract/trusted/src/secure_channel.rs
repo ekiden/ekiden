@@ -10,10 +10,13 @@ use sodalite;
 use std::collections::HashMap;
 use std::sync::SgxMutex;
 
-use libcontract_common::{api, secure_channel, ContractError};
-use libcontract_common::secure_channel::{MonotonicNonceGenerator, RandomNonceGenerator};
+use libcontract_common::{api, random, secure_channel, ContractError};
+use libcontract_common::quote::{MrEnclave, QUOTE_CONTEXT_SC_CLIENT_TO_CONTRACT,
+                                QUOTE_CONTEXT_SC_CONTRACT_TO_CLIENT};
+use libcontract_common::secure_channel::{MonotonicNonceGenerator, RandomNonceGenerator,
+                                         SessionState};
 
-use super::untrusted;
+use super::dispatcher::Request;
 
 // Secret seed used for generating private and public keys.
 const SECRET_SEED_LEN: usize = 32;
@@ -33,6 +36,12 @@ struct ClientSession {
     shared_response_key: Option<sodalite::SecretboxKey>,
     /// Short-term nonce generator.
     nonce_generator: MonotonicNonceGenerator,
+    /// Session state.
+    state: SessionState,
+    /// Client attestation nonce.
+    client_attestation_nonce: [u8; 16],
+    /// Client MRENCLAVE (if attested).
+    client_mr_enclave: Option<MrEnclave>,
 }
 
 /// Secure channel context.
@@ -177,7 +186,11 @@ impl SecureChannelContext {
     ///
     /// Returns a cryptographic box, encrypted to the client short-term key and
     /// authenticated by the contract long-term key.
-    pub fn create_session(&mut self, public_key: &[u8]) -> Result<api::CryptoBox, ContractError> {
+    pub fn create_session(
+        &mut self,
+        public_key: &[u8],
+        client_attestation_required: bool,
+    ) -> Result<api::CryptoBox, ContractError> {
         self.ensure_ready()?;
 
         let key = SecureChannelContext::get_session_key(&public_key)?;
@@ -186,10 +199,25 @@ impl SecureChannelContext {
             return Err(ContractError::new("Session already exists"));
         }
 
-        let session = ClientSession::new(key.clone())?;
+        let mut session = ClientSession::new(key.clone())?;
+        let mut response_box = api::ChannelInitResponseBox::new();
+        response_box.set_short_term_public_key(session.get_contract_public_key().to_vec());
+
+        if client_attestation_required {
+            // Request client attestation.
+            let attestation_request = response_box.mut_client_attestation_request();
+            random::get_random_bytes(&mut session.client_attestation_nonce)?;
+            attestation_request.set_nonce(session.client_attestation_nonce.to_vec());
+            attestation_request.set_spid(super::quote::get_spid()?);
+
+            session.transition_to(SessionState::ClientAttestationRequired)?;
+        } else {
+            session.transition_to(SessionState::Established)?;
+        }
+
         let mut shared_key: Option<sodalite::SecretboxKey> = None;
         let crypto_box = secure_channel::create_box(
-            session.get_contract_public_key(),
+            response_box.write_to_bytes()?.as_slice(),
             &secure_channel::NONCE_CONTEXT_INIT,
             &mut self.nonce_generator,
             session.get_client_public_key(),
@@ -262,7 +290,7 @@ impl ClientSession {
     pub fn open_request_box(
         &mut self,
         request: &api::CryptoBox,
-    ) -> Result<api::PlainClientRequest, ContractError> {
+    ) -> Result<Request<api::PlainClientRequest>, ContractError> {
         let plain_request = secure_channel::open_box(
             &request,
             &secure_channel::NONCE_CONTEXT_REQUEST,
@@ -272,7 +300,30 @@ impl ClientSession {
             &mut self.shared_request_key,
         )?;
 
-        Ok(protobuf::parse_from_bytes(&plain_request)?)
+        let plain_request: api::PlainClientRequest = protobuf::parse_from_bytes(&plain_request)?;
+
+        // Check if this request is allowed based on current channel state.
+        match self.state {
+            SessionState::Established => {}
+            SessionState::ClientAttestationRequired => {
+                // Client attestation is required, so the client is only allowed to
+                // call the _channel_attest_client or _channel_close.
+                match plain_request.get_method() {
+                    api::METHOD_CHANNEL_ATTEST_CLIENT => {}
+                    api::METHOD_CHANNEL_CLOSE => {}
+                    _ => return Err(ContractError::new("Invalid method call in this state")),
+                }
+            }
+            _ => {
+                return Err(ContractError::new("Invalid method call in this state"));
+            }
+        }
+
+        Ok(Request::new(
+            plain_request,
+            Some(self.client_public_key.to_vec()),
+            self.client_mr_enclave.clone(),
+        ))
     }
 
     /// Create cryptographic box with RPC response.
@@ -289,6 +340,49 @@ impl ClientSession {
             &mut self.shared_response_key,
         )?)
     }
+
+    /// Verify client attestation.
+    ///
+    /// This method must be called when the client presents an attestation
+    /// response. The session must be in `ClientAttestationRequired` state.
+    pub fn verify_client_attestation(&mut self, quote: Vec<u8>) -> Result<(), ContractError> {
+        if self.state != SessionState::ClientAttestationRequired {
+            return Err(ContractError::new("Invalid method call in this state"));
+        }
+
+        // Verify quote.
+        let quote = super::quote::verify_quote(quote)?;
+
+        if quote.get_quote_context() != QUOTE_CONTEXT_SC_CLIENT_TO_CONTRACT {
+            return Err(ContractError::new(
+                "Client attestation failed: invalid context",
+            ));
+        }
+
+        if quote.get_public_key() != self.client_public_key {
+            return Err(ContractError::new(
+                "Client attestation failed: invalid public key",
+            ));
+        }
+
+        if quote.get_nonce() != self.client_attestation_nonce {
+            return Err(ContractError::new(
+                "Client attestation failed: invalid nonce",
+            ));
+        }
+
+        // TODO: Verify enclave attributes.
+
+        // Extract MRENCLAVE.
+        self.client_mr_enclave = Some(quote.get_mr_enclave().clone());
+
+        Ok(self.transition_to(SessionState::Established)?)
+    }
+
+    /// Transition secure channel to a new state.
+    pub fn transition_to(&mut self, new_state: SessionState) -> Result<(), ContractError> {
+        Ok(self.state.transition_to(new_state)?)
+    }
 }
 
 lazy_static! {
@@ -299,7 +393,7 @@ lazy_static! {
 
 /// Initialize contract.
 pub fn contract_init(
-    _request: api::ContractInitRequest,
+    _request: &api::ContractInitRequest,
 ) -> Result<api::ContractInitResponse, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
@@ -325,7 +419,7 @@ pub fn contract_init(
 
 /// Restore contract from sealed state.
 pub fn contract_restore(
-    request: api::ContractRestoreRequest,
+    request: &api::ContractRestoreRequest,
 ) -> Result<api::ContractRestoreResponse, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
@@ -338,111 +432,49 @@ pub fn contract_restore(
     Ok(response)
 }
 
-macro_rules! sgx_call {
-    ($error: expr, $result: ident, $block: block) => {
-        let status = unsafe { $block };
-
-        match status {
-            sgx_status_t::SGX_SUCCESS => {
-                match $result {
-                    sgx_status_t::SGX_SUCCESS => {},
-                    _ => return Err(ContractError::new($error))
-                };
-            },
-            _ => return Err(ContractError::new($error))
-        };
-    }
-}
-
 /// Initialize secure channel.
+///
+/// If the `client_attestation_required` is set to `true`, then the response
+/// box will contain an attestation request, so the client will need to be an
+/// enclave and will need to provide attestation for the channel to be considered
+/// established.
 pub fn channel_init(
-    request: api::ChannelInitRequest,
+    request: &api::ChannelInitRequest,
+    client_attestation_required: bool,
 ) -> Result<api::ChannelInitResponse, ContractError> {
     // Validate request.
-    if request.get_nonce().len() != 16 {
+    let attestation_request = request.get_contract_attestation_request();
+
+    if attestation_request.get_nonce().len() != 16 {
         return Err(ContractError::new("Invalid nonce"));
-    } else if request.get_spid().len() != 16 {
-        return Err(ContractError::new("Invalid SPID"));
     }
 
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
     channel.ensure_ready()?;
 
-    // Initialize target suitable for use by the quoting enclave.
-    let mut result = sgx_status_t::SGX_ERROR_UNEXPECTED;
-    let mut target_info = sgx_target_info_t::default();
-    let mut epid_group = sgx_epid_group_id_t::default();
-
-    sgx_call!("Failed to initialize quote", result, {
-        untrusted::untrusted_init_quote(
-            &mut result,
-            &mut target_info as *mut sgx_target_info_t,
-            &mut epid_group as *mut sgx_epid_group_id_t,
-        )
-    });
-
-    // Generate report for the quoting enclave (include channel public key in report data).
-    let mut report_data = sgx_report_data_t::default();
-    let pkey_len = sodalite::BOX_PUBLIC_KEY_LEN;
-    report_data.d[..pkey_len].copy_from_slice(channel.get_public_key());
-    report_data.d[pkey_len..pkey_len + 16].copy_from_slice(&request.get_nonce()[..16]);
-
-    let report = match sgx_tse::rsgx_create_report(&target_info, &report_data) {
-        Ok(report) => report,
-        _ => return Err(ContractError::new("Failed to create report")),
-    };
-
-    // Request the quoting enclave to generate a quote from our report.
-    let mut qe_report = sgx_report_t::default();
-    let mut qe_nonce = sgx_quote_nonce_t { rand: [0; 16] };
-    let mut spid = sgx_spid_t { id: [0; 16] };
-
-    // Maximum quote size is 16K.
-    let mut quote: Vec<u8> = Vec::with_capacity(16 * 1024);
-    let mut quote_size = 0;
-
-    spid.id.copy_from_slice(&request.get_spid()[..16]);
-
-    match sgx_trts::rsgx_read_rand(&mut qe_nonce.rand) {
-        Ok(_) => {}
-        _ => return Err(ContractError::new("Failed to generate random nonce")),
-    };
-
-    sgx_call!("Failed to get quote", result, {
-        untrusted::untrusted_get_quote(
-            &mut result,
-            &report as *const sgx_report_t,
-            sgx_quote_sign_type_t::SGX_UNLINKABLE_SIGNATURE,
-            &spid as *const sgx_spid_t,
-            &qe_nonce as *const sgx_quote_nonce_t,
-            &mut qe_report as *mut sgx_report_t,
-            quote.as_mut_ptr() as *mut u8,
-            quote.capacity() as u32,
-            &mut quote_size,
-        )
-    });
-
-    match sgx_tse::rsgx_verify_report(&qe_report) {
-        Ok(_) => {}
-        _ => return Err(ContractError::new("Failed to get quote")),
-    };
-
-    unsafe {
-        quote.set_len(quote_size as usize);
-    }
-
-    // TODO: Verify QE signature. Note that this may not be the QE enclave at all as
-    // untrusted_init_quote can provide an arbitrary enclave target. Is there a way
-    // to get the QE identity in a secure way?
-    // lower 32Bytes in report.data = SHA256(qe_nonce||quote).
+    // Generate quote.
+    let quote = super::quote::get_quote(
+        &attestation_request.get_spid(),
+        &QUOTE_CONTEXT_SC_CONTRACT_TO_CLIENT,
+        super::quote::create_report_data_for_public_key(
+            &attestation_request.get_nonce(),
+            &channel.get_public_key(),
+        )?,
+    )?;
 
     // Create new session.
-    let crypto_box = channel.create_session(request.get_short_term_public_key())?;
+    let mut attestation_response = api::AttestationResponse::new();
+    attestation_response.set_quote(quote);
+
+    let response_box = channel.create_session(
+        request.get_short_term_public_key(),
+        client_attestation_required,
+    )?;
 
     let mut response = api::ChannelInitResponse::new();
-    response.set_quote(quote);
-    response.set_short_term_public_key(crypto_box);
+    response.set_contract_attestation_response(attestation_response);
+    response.set_response_box(response_box);
 
     Ok(response)
 }
@@ -456,10 +488,31 @@ pub fn channel_close(public_key: &[u8]) -> Result<(), ContractError> {
     Ok(())
 }
 
+/// Validate client attestation.
+pub fn channel_attest_client(
+    request: &Request<api::ChannelAttestClientRequest>,
+) -> Result<api::ChannelAttestClientResponse, ContractError> {
+    let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
+
+    let session = channel.get_session(match request.get_client_public_key() {
+        &Some(ref public_key) => public_key,
+        &None => return Err(ContractError::new("Attestation over insecure channel")),
+    })?;
+
+    session.verify_client_attestation(
+        request
+            .get_client_attestation_response()
+            .get_quote()
+            .to_vec(),
+    )?;
+
+    Ok(api::ChannelAttestClientResponse::new())
+}
+
 /// Open cryptographic box with RPC request.
 pub fn open_request_box(
     request: &api::CryptoBox,
-) -> Result<api::PlainClientRequest, ContractError> {
+) -> Result<Request<api::PlainClientRequest>, ContractError> {
     let mut channel = SECURE_CHANNEL_CTX.lock().unwrap();
 
     Ok(channel
