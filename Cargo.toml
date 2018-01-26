@@ -14,6 +14,8 @@ members = [
   "contracts/ethtoken",
   "contracts/token",
   "contracts/dp_credit_scoring",
+  "contracts/learner",
+  "contracts/iot_learner",
 
   "libcontract/common",
   "libcontract/untrusted",
