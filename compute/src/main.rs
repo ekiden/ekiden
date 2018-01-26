@@ -11,6 +11,9 @@ extern crate tls_api;
 
 #[macro_use]
 extern crate clap;
+extern crate hyper;
+#[macro_use]
+extern crate prometheus;
 
 extern crate compute_client;
 #[macro_use]
@@ -30,7 +33,33 @@ use libcontract_untrusted::router::RpcRouter;
 
 use clap::{App, Arg};
 use generated::compute_web3_grpc::ComputeServer;
+use prometheus::Encoder;
 use server::ComputeServerImpl;
+
+struct MetricsService;
+
+impl hyper::server::Service for MetricsService {
+    // boilerplate hooking up hyper's server types
+    type Request = hyper::server::Request;
+    type Response = hyper::server::Response;
+    type Error = hyper::Error;
+    // The future representing the eventual Response your call will
+    // resolve to. This can change to whatever Future you need.
+    type Future = Box<futures::future::Future<Item=Self::Response, Error=Self::Error>>;
+
+    fn call(&self, _req: Self::Request) -> Self::Future {
+        let enc = prometheus::TextEncoder::new();
+        let type_mime = enc.format_type().parse().unwrap();
+        let mut buf = Vec::new();
+        // If this can practically fail, forward the error to the response.
+        enc.encode(&prometheus::gather(), &mut buf).unwrap();
+        Box::new(futures::future::ok(
+            Self::Response::new()
+                .with_header(hyper::header::ContentType(type_mime))
+                .with_body(buf)
+        ))
+    }
+}
 
 fn main() {
     let matches = App::new("Ekiden Compute Node")
@@ -90,6 +119,12 @@ fn main() {
                 .default_value("1")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("metrics-addr")
+                .long("metrics-addr")
+                .help("A SocketAddr (as a string) from which to serve metrics to Prometheus.")
+                .takes_value(true)
+        )
         .get_matches();
 
     let port = value_t!(matches, "port", u16).unwrap_or(9001);
@@ -131,6 +166,14 @@ fn main() {
     let _server = server.build().expect("server");
 
     println!("Compute node listening at {}", port);
+
+    // Start the Prometheus metrics endpoint.
+    if let Ok(metrics_addr) = value_t!(matches, "metrics-addr", std::net::SocketAddr) {
+        std::thread::spawn(move || { // move metrics_addr
+            let metrics_server = hyper::server::Http::new().bind(&metrics_addr, || Ok(MetricsService)).unwrap();
+            metrics_server.run().unwrap();
+        });
+    }
 
     loop {
         thread::park();

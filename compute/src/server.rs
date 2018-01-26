@@ -1,4 +1,5 @@
 use grpc;
+use prometheus;
 use protobuf;
 use protobuf::Message;
 use std;
@@ -39,11 +40,29 @@ struct QueuedResponse<'a> {
     grpc_response: grpc::SingleResponse<CallContractResponse>,
 }
 
+struct ComputeServerWorkerInstrumentation {
+    /// Incremented in each batch of requests.
+    reqs_batches_started: prometheus::Counter,
+    /// Time spent by worker thread in an entire batch of requests.
+    req_time_batch: prometheus::Histogram,
+    /// Time spent by worker thread in a single request.
+    req_time_enclave: prometheus::Histogram,
+    /// Time spent getting state from consensus.
+    consensus_get_time: prometheus::Histogram,
+    /// Time spent setting state in consensus.
+    consensus_set_time: prometheus::Histogram,
+}
+
 pub struct ComputeServerImpl {
     /// Channel for submitting requests to the worker.
     request_sender: Mutex<Sender<QueuedRequest>>,
     /// IAS service.
     ias: Arc<IAS>,
+    // Instrumentation objects.
+    /// Incremented in each request.
+    ins_reqs_received: prometheus::Counter,
+    /// Time spent by grpc thread handling a request.
+    ins_req_time_client: prometheus::Histogram,
 }
 
 impl ComputeServerImpl {
@@ -54,9 +73,18 @@ impl ComputeServerImpl {
         // move request_receiver
         std::thread::spawn(move || {
             let contract = Self::create_contract(&contract_filename_owned);
+            let instrumentation = ComputeServerWorkerInstrumentation {
+                reqs_batches_started: register_counter!("reqs_batches_started", "Incremented in each batch of requests.").unwrap(),
+                req_time_batch: register_histogram!("req_time_batch", "Time spent by worker thread in an entire batch of requests.").unwrap(),
+                req_time_enclave: register_histogram!("req_time_enclave", "Time spent by worker thread in a single request.").unwrap(),
+                consensus_get_time: register_histogram!("consensus_get_time", "Time spent getting state from consensus.").unwrap(),
+                consensus_set_time: register_histogram!("consensus_set_time", "Time spent setting state in consensus.").unwrap(),
+            };
             // Block for the next call.
             // When ComputeServerImpl is dropped, the request_sender closes, and the thread will exit.
             while let Ok(queued_request) = request_receiver.recv() {
+                instrumentation.reqs_batches_started.inc();
+                let _batch_timer = instrumentation.req_time_batch.start_timer();
                 let mut request_batch = Vec::new();
                 request_batch.push(queued_request);
                 // Additionally dequeue any remaining requests.
@@ -64,12 +92,14 @@ impl ComputeServerImpl {
                     request_batch.push(queued_request);
                 }
                 // Process the requests.
-                Self::call_contract_batch(&contract, request_batch);
+                Self::call_contract_batch(&contract, request_batch, &instrumentation);
             }
         });
         ComputeServerImpl {
             request_sender: Mutex::new(request_sender),
             ias: ias,
+            ins_reqs_received: register_counter!("reqs_received", "Incremented in each request.").unwrap(),
+            ins_req_time_client: register_histogram!("req_time_client", "Time spent by grpc thread handling a request.").unwrap(),
         }
     }
 
@@ -99,6 +129,7 @@ impl ComputeServerImpl {
         contract: &enclave::EkidenEnclave,
         encrypted_state_opt: Option<libcontract_common::api::CryptoSecretbox>,
         rpc_request: &CallContractRequest,
+        instrumentation: &ComputeServerWorkerInstrumentation,
     ) -> Result<
         (
             Option<libcontract_common::api::CryptoSecretbox>,
@@ -114,7 +145,10 @@ impl ComputeServerImpl {
         }
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
-        let enclave_response_bytes = contract.call_raw(enclave_request_bytes)?;
+        let enclave_response_bytes = {
+            let _enclave_timer = instrumentation.req_time_enclave.start_timer();
+            contract.call_raw(enclave_request_bytes)
+        }?;
 
         let mut enclave_response: libcontract_common::api::EnclaveResponse =
             protobuf::parse_from_bytes(&enclave_response_bytes)?;
@@ -132,6 +166,7 @@ impl ComputeServerImpl {
     fn call_contract_batch_fallible<'a>(
         contract: &enclave::EkidenEnclave,
         request_batch: &'a [QueuedRequest],
+        instrumentation: &ComputeServerWorkerInstrumentation,
     ) -> Result<Vec<QueuedResponse<'a>>, Box<std::error::Error>> {
         // Connect to consensus node
         // TODO: Know the consensus node location other than having it hard-coded.
@@ -140,16 +175,19 @@ impl ComputeServerImpl {
             consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default())?;
 
         // Get state from consensus
-        let consensus_result = consensus_client
-            .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
-            .wait();
-        let mut encrypted_state_opt = if let Ok((_, consensus_get_response, _)) = consensus_result {
-            let encrypted_state = protobuf::parse_from_bytes(consensus_get_response.get_payload())?;
-            Some(encrypted_state)
-        } else {
-            // We should bail if there was an error other than the state not being initialized.
-            // But don't go fixing this. There's another resolution planned in #95.
-            None
+        let mut encrypted_state_opt = {
+            let _consensus_get_timer = instrumentation.consensus_get_time.start_timer();
+            let consensus_result = consensus_client
+                .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
+                .wait();
+            if let Ok((_, consensus_get_response, _)) = consensus_result {
+                let encrypted_state = protobuf::parse_from_bytes(consensus_get_response.get_payload())?;
+                Some(encrypted_state)
+            } else {
+                // We should bail if there was an error other than the state not being initialized.
+                // But don't go fixing this. There's another resolution planned in #95.
+                None
+            }
         };
 
         // Process the requests.
@@ -161,6 +199,7 @@ impl ComputeServerImpl {
                     contract,
                     encrypted_state_opt.clone(),
                     &queued_request.rpc_request,
+                    instrumentation,
                 ) {
                     Ok((new_encrypted_state_opt, rpc_response)) => {
                         if let Some(new_encrypted_state) = new_encrypted_state_opt {
@@ -184,6 +223,7 @@ impl ComputeServerImpl {
         // Set state in consensus
         if let Some(encrypted_state) = encrypted_state_opt {
             if ever_update_state {
+                let _consensus_set_timer = instrumentation.consensus_set_time.start_timer();
                 let mut consensus_set_request = consensus::SetRequest::new();
                 consensus_set_request.set_payload(encrypted_state.write_to_bytes()?);
                 consensus_client
@@ -195,8 +235,8 @@ impl ComputeServerImpl {
         Ok(response_batch)
     }
 
-    fn call_contract_batch(contract: &enclave::EkidenEnclave, request_batch: Vec<QueuedRequest>) {
-        match Self::call_contract_batch_fallible(contract, &request_batch) {
+    fn call_contract_batch(contract: &enclave::EkidenEnclave, request_batch: Vec<QueuedRequest>, instrumentation: &ComputeServerWorkerInstrumentation) {
+        match Self::call_contract_batch_fallible(contract, &request_batch, instrumentation) {
             Ok(response_batch) => {
                 // No batch-wide errors. Send out per-call responses.
                 for queued_response in response_batch {
@@ -226,6 +266,8 @@ impl Compute for ComputeServerImpl {
         _options: grpc::RequestOptions,
         rpc_request: CallContractRequest,
     ) -> grpc::SingleResponse<CallContractResponse> {
+        self.ins_reqs_received.inc();
+        let _client_timer = self.ins_req_time_client.start_timer();
         let (response_sender, response_receiver) = std::sync::mpsc::sync_channel(0);
         {
             let request_sender = self.request_sender.lock().unwrap();
