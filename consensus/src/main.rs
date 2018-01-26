@@ -27,8 +27,8 @@ use std::sync::mpsc;
 use std::thread;
 
 use abci::server::{AbciProto, AbciService};
-use tokio_proto::TcpServer;
 use clap::{App, Arg};
+use tokio_proto::TcpServer;
 
 use generated::consensus_grpc::ConsensusServer;
 use rpc::ConsensusServerImpl;
@@ -42,25 +42,25 @@ fn main() {
             Arg::with_name("tendermint-host")
                 .long("tendermint-host")
                 .takes_value(true)
-                .default_value("localhost")
+                .default_value("localhost"),
         )
         .arg(
             Arg::with_name("tendermint-port")
                 .long("tendermint-port")
                 .takes_value(true)
-                .default_value("46657")
+                .default_value("46657"),
         )
         .arg(
             Arg::with_name("tendermint-abci-port")
                 .long("tendermint-abci-port")
                 .takes_value(true)
-                .default_value("46658")
+                .default_value("46658"),
         )
         .arg(
             Arg::with_name("grpc-port")
                 .long("grpc-port")
                 .takes_value(true)
-                .default_value("9002")
+                .default_value("9002"),
         )
         .get_matches();
 
@@ -98,7 +98,7 @@ fn main() {
     // Start the Tendermint ABCI listener
     let abci_listen_addr = SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-        value_t!(matches, "tendermint-abci-port", u16).unwrap_or_else(|e| e.exit())
+        value_t!(matches, "tendermint-abci-port", u16).unwrap_or_else(|e| e.exit()),
     );
     let mut app_server = TcpServer::new(AbciProto, abci_listen_addr);
     app_server.threads(1);
