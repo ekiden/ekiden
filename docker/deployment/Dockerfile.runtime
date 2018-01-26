@@ -1,0 +1,5 @@
+FROM tozd/sgx:ubuntu-xenial
+
+ENV PATH="/ekiden/bin:${PATH}"
+
+ADD . /ekiden
