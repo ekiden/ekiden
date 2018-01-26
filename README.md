@@ -100,12 +100,15 @@ In order to attach secondary shells to an existing container, run
 $ bash scripts/sgx-enter.sh
 ```
 
-The generic compute binary takes a signed contract enclave as a parameter:
+To run a contract on a compute node:
 ```bash
-$ cargo run -p compute ./target/enclave/token.signed.so -- --ias-spid <spid> --ias-pkcs12 client.pfx
+# optionally set the following env vars
+export IAS_SPID="<IAS SPID>"
+export IAS_PKCS="client.pfx"
+scripts/run_contract.sh CONTRACT
 ```
 
-To get a list of built enclaves:
+To get a list of built contract enclaves:
 ```bash
 $ ls ./target/enclave/*.signed.so
 ```
@@ -123,13 +126,7 @@ $ cargo run -p compute ./target/enclave/key-manager.signed.so -p 9003 -- --disab
 
 To run the token contract client:
 ```bash
-$ cargo run -p token-client -- --mr-enclave <mr-enclave>
-```
-
-For convenience, you may choose to use the following command, which combines the above step of obtaining
-a MRENCLAVE and passing it to the client:
-```
-CONTRACT=token; cargo run -p $CONTRACT-client -- --mr-enclave $(python scripts/parse_enclave.py target/enclave/$CONTRACT.signed.so  2>/dev/null | grep ENCLAVEHASH | cut -f2)
+scripts/run_contract.sh --client token
 ```
 
 ## Packages
