@@ -13,6 +13,7 @@ members = [
   "contracts/dummy",
   "contracts/token",
   "contracts/learner",
+  "contracts/iot_learner",
 
   "libcontract/common",
   "libcontract/untrusted",

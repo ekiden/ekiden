@@ -6,10 +6,14 @@ package learner;
 message LearnerState {
   string owner = 1;
   bytes model = 2;
+  repeated string inputs = 3;
+  repeated string targets = 4;
 }
 
 message CreateRequest {
   string requester = 1;
+  repeated string inputs = 2;
+  repeated string targets = 3;
 }
 
 message CreateResponse {

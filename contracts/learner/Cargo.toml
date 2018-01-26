@@ -2,11 +2,9 @@
 name = "learner"
 version = "0.1.0"
 authors = ["Nick Hynes <nhynes@berkeley.edu>"]
-build = "build.rs"
 
 [lib]
 name = "learner"
-crate-type = ["staticlib"]
 
 [features]
 default = []
@@ -18,6 +16,7 @@ libcontract-trusted = { path = "../../libcontract/trusted" }
 protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
 rusty-machine-sgx = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 serde_cbor-sgx = { git = "https://github.com/ekiden/cbor" }
+serde-sgx = { git = "https://github.com/ekiden/serde" }
 sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 
 [build-dependencies]
