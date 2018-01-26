@@ -66,14 +66,14 @@ fn main() {
                 .value_name("SPID")
                 .help("IAS SPID in hex format")
                 .takes_value(true)
-                .required(true),
+                .requires("ias-pkcs12"),
         )
         .arg(
             Arg::with_name("ias-pkcs12")
                 .long("ias-pkcs12")
                 .help("Path to IAS client certificate and private key PKCS#12 archive")
                 .takes_value(true)
-                .required(true),
+                .requires("ias-spid"),
         )
         .arg(
             Arg::with_name("key-manager-host")
@@ -107,9 +107,15 @@ fn main() {
 
     // Setup IAS.
     let ias = Arc::new(
-        ias::IAS::new(ias::IASConfiguration {
-            spid: value_t!(matches, "ias-spid", ias::SPID).unwrap_or_else(|e| e.exit()),
-            pkcs12_archive: matches.value_of("ias-pkcs12").unwrap().to_string(),
+        ias::IAS::new(if matches.is_present("ias-spid") {
+            Some(ias::IASConfiguration {
+                spid: value_t!(matches, "ias-spid", ias::SPID).unwrap_or_else(|e| e.exit()),
+                pkcs12_archive: matches.value_of("ias-pkcs12").unwrap().to_string(),
+            })
+        } else {
+            eprintln!("WARNING: IAS is not configured, validation will always return an error.");
+
+            None
         }).unwrap(),
     );
 

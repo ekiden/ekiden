@@ -35,7 +35,7 @@ pub struct IAS {
     /// SPID assigned by Intel.
     spid: SPID,
     /// Client used for IAS requests.
-    client: reqwest::Client,
+    client: Option<reqwest::Client>,
 }
 
 #[derive(Default)]
@@ -52,30 +52,43 @@ pub struct AttestationVerificationReport {
 
 impl IAS {
     /// Construct new IAS interface.
-    pub fn new(config: IASConfiguration) -> io::Result<IAS> {
-        Ok(IAS {
-            spid: config.spid.clone(),
-            client: {
-                // Read and parse PKCS#12 archive.
-                let mut buffer = Vec::new();
-                File::open(&config.pkcs12_archive)?.read_to_end(&mut buffer)?;
-                let identity = match reqwest::Identity::from_pkcs12_der(&buffer, "") {
-                    Ok(identity) => identity,
-                    _ => {
-                        return Err(Error::new(
-                            ErrorKind::Other,
-                            "Failed to load IAS credentials",
-                        ))
-                    }
-                };
+    pub fn new(config: Option<IASConfiguration>) -> io::Result<IAS> {
+        match config {
+            Some(config) => {
+                Ok(IAS {
+                    spid: config.spid.clone(),
+                    client: {
+                        // Read and parse PKCS#12 archive.
+                        let mut buffer = Vec::new();
+                        File::open(&config.pkcs12_archive)?.read_to_end(&mut buffer)?;
+                        let identity = match reqwest::Identity::from_pkcs12_der(&buffer, "") {
+                            Ok(identity) => identity,
+                            _ => {
+                                return Err(Error::new(
+                                    ErrorKind::Other,
+                                    "Failed to load IAS credentials",
+                                ))
+                            }
+                        };
 
-                // Create client with the identity.
-                match reqwest::ClientBuilder::new().identity(identity).build() {
-                    Ok(client) => client,
-                    _ => return Err(Error::new(ErrorKind::Other, "Failed to create IAS client")),
-                }
-            },
-        })
+                        // Create client with the identity.
+                        match reqwest::ClientBuilder::new().identity(identity).build() {
+                            Ok(client) => Some(client),
+                            _ => {
+                                return Err(Error::new(
+                                    ErrorKind::Other,
+                                    "Failed to create IAS client",
+                                ))
+                            }
+                        }
+                    },
+                })
+            }
+            None => Ok(IAS {
+                spid: SPID([0; SPID_LEN]),
+                client: None,
+            }),
+        }
     }
 
     /// Make authenticated web request to IAS.
@@ -86,7 +99,12 @@ impl IAS {
     ) -> io::Result<reqwest::Response> {
         let endpoint = format!("{}{}", IAS_API_URL, endpoint);
 
-        match self.client.post(&endpoint).json(&data).send() {
+        let client = match self.client {
+            Some(ref client) => client,
+            None => return Err(Error::new(ErrorKind::Other, "IAS is not configured")),
+        };
+
+        match client.post(&endpoint).json(&data).send() {
             Ok(response) => Ok(response),
             _ => return Err(Error::new(ErrorKind::Other, "Request to IAS failed")),
         }
