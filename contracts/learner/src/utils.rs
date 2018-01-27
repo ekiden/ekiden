@@ -17,7 +17,7 @@ pub fn unpack_feature_matrix(
             for name in feature_names.iter() {
                 vals.extend(match feature_vals.get(name) {
                     Some(fv) => fv.get_float_list().get_value().iter().map(|&v| v as f64),
-                    None => return Err("Missing feature".to_string()),
+                    None => return Err(format!("Missing feature: {}", name)),
                 });
             }
             Ok(vals)
@@ -45,7 +45,7 @@ pub fn unpack_feature_vector(
                         .map(|&v| v as f64)
                         .ok_or("Missing feature value".to_string())
                 })
-                .ok_or("Missing feature".to_string());
+                .ok_or(format!("Missing feature: {}", feature_name));
             match val {
                 Ok(Ok(val)) => Ok(val),
                 Err(err) | Ok(Err(err)) => Err(err),
@@ -80,7 +80,7 @@ pub fn pack_proto(
                 features.insert(name.clone(), feature);
             }
         }
-        examples[i] = example;
+        examples.push(example);
     }
 
     Ok(protobuf::RepeatedField::from_vec(examples))

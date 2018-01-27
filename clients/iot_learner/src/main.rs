@@ -9,25 +9,22 @@ extern crate client_utils;
 extern crate compute_client;
 extern crate libcontract_common;
 
-#[macro_use]
-extern crate learner_api;
-
+extern crate learner as learner_contract;
 use clap::{App, Arg};
 use rulinalg::norm::Euclidean;
 use rulinalg::vector::Vector;
 
-use learner_api::*;
-
 create_client_api!();
+use learner_contract::api::*;
+
+use learner_contract::utils::unpack_feature_vector;
 
 fn main() {
-    let client_dir = env!("CARGO_MANIFEST_DIR").to_string();
-    let contract_dir = client_dir.replace("clients", "contracts");
     let data_output = std::process::Command::new("python2")
-        .arg(&(client_dir + "/src/gen_data.py"))
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/src/gen_data.py"))
         .args(&[
             "--api-proto",
-            &(contract_dir + "/api/src/generated/api_pb2.py"),
+            "/code/contracts/learner/api/src/generated/api_pb2.py",
         ])
         .output()
         .expect("Could not fetch data.");
@@ -42,49 +39,48 @@ fn main() {
     let examples = examples_proto.get_examples();
 
     let mut client = contract_client!(learner);
-    let user = "benbitdiddle".to_string();
+    let user = "Rusty Lerner".to_string();
 
     let _create_res = client
         .create({
-            let mut req = CreateRequest::new();
+            let mut req = learner::CreateRequest::new();
             req.set_requester(user.clone());
+            let inputs = vec!["tin", "tin_a1", "tin_a2"]
+                .into_iter()
+                .map(String::from)
+                .collect();
+            let targets = vec!["next_temp".to_string()];
+            req.set_inputs(protobuf::RepeatedField::from_vec(inputs));
+            req.set_targets(protobuf::RepeatedField::from_vec(targets));
             req
         })
         .expect("error: create");
 
-    // let _train_res = client
-    //     .train({
-    //         let mut req = learner::TrainingRequest::new();
-    //         req.set_requester(user.clone());
-    //         req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
-    //         req
-    //     })
-    //     .expect("error: train");
-    //
-    // let infer_res = client
-    //     .infer({
-    //         let mut req = learner::InferenceRequest::new();
-    //         req.set_requester(user.clone());
-    //         req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
-    //         req
-    //     })
-    //     .expect("error: infer");
-    //
-    // let ground_truth: Vector<f64> = examples
-    //     .iter()
-    //     .filter_map(|example| unpack_val!(&example.get_features().feature, next_temp))
-    //     .collect();
-    //
-    // let preds: Vector<f64> = infer_res
-    //     .get_predictions()
-    //     .iter()
-    //     .filter_map(|example| unpack_val!(&example.get_features().feature, next_temp))
-    //     .collect();
-    //
-    // assert!(preds.size() == ground_truth.size());
-    //
-    // println!(
-    //     "Training loss: {:?}",
-    //     (preds - ground_truth).norm(Euclidean)
-    // );
+    let _train_res = client
+        .train({
+            let mut req = learner::TrainingRequest::new();
+            req.set_requester(user.clone());
+            req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
+            req
+        })
+        .expect("error: train");
+
+    let infer_res = client
+        .infer({
+            let mut req = learner::InferenceRequest::new();
+            req.set_requester(user.clone());
+            req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
+            req
+        })
+        .expect("error: infer");
+
+    let ground_truth: Vector<f64> = unpack_feature_vector(examples, "next_temp").unwrap();
+    let preds: Vector<f64> = unpack_feature_vector(infer_res.get_predictions(), "preds").unwrap();
+
+    assert!(preds.size() == ground_truth.size());
+
+    println!(
+        "Training loss: {:?}",
+        (preds - ground_truth).norm(Euclidean)
+    );
 }

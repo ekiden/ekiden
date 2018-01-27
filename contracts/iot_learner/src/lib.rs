@@ -35,7 +35,7 @@ fn create(req: &CreateRequest) -> Result<(LearnerState, CreateResponse), Contrac
         LinRegressor::default(),
         req.get_inputs().to_vec(),
         req.get_targets().to_vec(),
-    );
+    )?;
     Ok((learner.get_state(), CreateResponse::new()))
 }
 

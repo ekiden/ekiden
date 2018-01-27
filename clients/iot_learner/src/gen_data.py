@@ -13,6 +13,7 @@ import imp
 from os import path as osp
 import sys
 
+import numpy as np
 import pandas as pd
 import pytz
 from xbos import get_client
@@ -98,8 +99,15 @@ def _fetch_dataframe():
     df = pd.concat([dframe for uid, dframe in dfs.items()], axis=1)
     df['a1'] = df.apply(lambda row: int(row['a'] > 0 and row['a'] <= 1), axis=1)
     df['a2'] = df.apply(lambda row: int(row['a'] > 1), axis=1)
+    # the following are the features used by the baseline model
     df['tin'] = df['tin'].replace(to_replace=0, method='pad')
+    df['tin_a1'] = df.tin * df.a1
+    df['tin_a2'] = df.tin * df.a2
     df['next_temp'] = df['tin'].shift(-1)
+    # the following are necessary because rulinalg complains about ill-conditioning
+    # note that numpy does not have this problem
+    df.tin_a1 += np.random.randn(len(df.tin)) * 1e-8
+    df.tin_a2 += np.random.randn(len(df.tin)) * 1e-8
     df = df.dropna()
 
     return df
