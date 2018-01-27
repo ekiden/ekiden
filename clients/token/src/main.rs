@@ -46,7 +46,7 @@ fn main() {
             request
         })
         .unwrap();
-    assert_eq!(response.get_balance(), 5);
+    assert_eq!(response.get_balance(), 7_999_999_999_999_999_997);
     let response = client
         .get_balance({
             let mut request = token::GetBalanceRequest::new();
