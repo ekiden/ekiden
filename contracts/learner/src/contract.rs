@@ -18,13 +18,23 @@ pub struct Learner<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + Deseriali
 }
 
 impl<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + DeserializeOwned> Learner<M> {
-    pub fn new(owner: Address, model: M, inputs: Vec<String>, targets: Vec<String>) -> Learner<M> {
-        Learner {
+    pub fn new(
+        owner: Address,
+        model: M,
+        inputs: Vec<String>,
+        targets: Vec<String>,
+    ) -> Result<Learner<M>, ContractError> {
+        if inputs.len() == 0 {
+            return Err(ContractError::new("No inputs specified."));
+        } else if targets.len() == 0 {
+            return Err(ContractError::new("No targets specified."));
+        }
+        Ok(Learner {
             owner: owner,
             model: model,
             inputs: inputs,
             targets: targets,
-        }
+        })
     }
 
     pub fn train(
