@@ -24,11 +24,11 @@ fn main() {
     request.set_token_symbol("EKI".to_string());
     request.set_initial_supply(8);
 
-    let response = client.create(request).unwrap();
+    println!("Creating");
+    client.create(request).unwrap();
 
-    println!("Response from contract: {:?}", response);
-
-    let response = client
+    println!("Transferring");
+    client
         .transfer({
             let mut request = token::TransferRequest::new();
             request.set_sender("testaddr".to_string());
@@ -38,5 +38,29 @@ fn main() {
         })
         .unwrap();
 
-    println!("Response from contract: {:?}", response);
+    println!("Checking balances");
+    let response = client
+        .get_balance({
+            let mut request = token::GetBalanceRequest::new();
+            request.set_account("testaddr".to_string());
+            request
+        })
+        .unwrap();
+    assert_eq!(response.get_balance(), 7_999_999_999_999_999_997);
+    let response = client
+        .get_balance({
+            let mut request = token::GetBalanceRequest::new();
+            request.set_account("b".to_string());
+            request
+        })
+        .unwrap();
+    assert_eq!(response.get_balance(), 3);
+    let response = client
+        .get_balance({
+            let mut request = token::GetBalanceRequest::new();
+            request.set_account("poor".to_string());
+            request
+        })
+        .unwrap();
+    assert_eq!(response.get_balance(), 0);
 }

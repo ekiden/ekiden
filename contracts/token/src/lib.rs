@@ -19,7 +19,8 @@ use std::prelude::v1::*;
 
 mod token_contract;
 
-use token_api::{CreateRequest, CreateResponse, TokenState, TransferRequest, TransferResponse};
+use token_api::{CreateRequest, CreateResponse, GetBalanceRequest, GetBalanceResponse, TokenState,
+                TransferRequest, TransferResponse};
 use token_contract::TokenContract;
 
 use libcontract_common::{with_contract_state, Address, Contract, ContractError};
@@ -56,4 +57,17 @@ fn transfer(
     let response = TransferResponse::new();
 
     Ok((state, response))
+}
+
+fn get_balance(
+    state: &TokenState,
+    request: &GetBalanceRequest,
+) -> Result<GetBalanceResponse, ContractError> {
+    let contract = TokenContract::from_state(state);
+    let balance = contract.get_balance(&Address::from(request.get_account().to_string()))?;
+
+    let mut response = GetBalanceResponse::new();
+    response.set_balance(balance);
+
+    Ok(response)
 }

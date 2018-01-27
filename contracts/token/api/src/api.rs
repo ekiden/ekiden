@@ -9,4 +9,6 @@ contract_api! {
     rpc create(CreateRequest) -> (state, CreateResponse);
 
     rpc transfer(state, TransferRequest) -> (state, TransferResponse);
+
+    rpc get_balance(state, GetBalanceRequest) -> (GetBalanceResponse);
 }
