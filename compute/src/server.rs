@@ -201,10 +201,10 @@ impl ComputeServerWorker {
         if let Some(encrypted_state) = encrypted_state_opt {
             if ever_update_state {
                 let _consensus_set_timer = self.ins_consensus_set_time.start_timer();
-                let mut consensus_set_request = consensus::SetRequest::new();
-                consensus_set_request.set_payload(encrypted_state.write_to_bytes()?);
+                let mut consensus_replace_request = consensus::ReplaceRequest::new();
+                consensus_replace_request.set_payload(encrypted_state.write_to_bytes()?);
                 consensus_client
-                    .set(grpc::RequestOptions::new(), consensus_set_request)
+                    .replace(grpc::RequestOptions::new(), consensus_replace_request)
                     .wait()?;
             }
         }

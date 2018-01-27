@@ -27,6 +27,7 @@ pub mod secure_channel;
 pub mod dispatcher;
 pub mod errors;
 pub mod state_crypto;
+pub mod state_diffs;
 pub mod key_manager;
 
 #[macro_use]

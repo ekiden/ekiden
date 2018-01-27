@@ -1,19 +1,22 @@
 use grpc;
+use protobuf;
+use protobuf::Message;
+use std;
 use std::sync::{mpsc, Arc, Mutex};
 
-use generated::consensus::{GetRequest, GetResponse, SetRequest, SetResponse};
+use generated::consensus;
 use generated::consensus_grpc::Consensus;
-use state::State;
+use state;
 use tendermint::BroadcastRequest;
 
 pub struct ConsensusServerImpl {
-    state: Arc<Mutex<State>>,
+    state: Arc<Mutex<state::State>>,
     tx: Arc<Mutex<mpsc::Sender<BroadcastRequest>>>,
 }
 
 impl ConsensusServerImpl {
     pub fn new(
-        state: Arc<Mutex<State>>,
+        state: Arc<Mutex<state::State>>,
         tx: Arc<Mutex<mpsc::Sender<BroadcastRequest>>>,
     ) -> ConsensusServerImpl {
         ConsensusServerImpl {
@@ -21,55 +24,122 @@ impl ConsensusServerImpl {
             tx: tx,
         }
     }
+
+    fn replace_fallible(
+        &self,
+        payload: Vec<u8>,
+    ) -> Result<consensus::ReplaceResponse, Box<std::error::Error>> {
+        let mut stored = consensus::StoredTx::new();
+        stored.set_replace(payload);
+        let stored_bytes = stored.write_to_bytes()?;
+
+        // check attestation - early reject
+        state::State::check_tx(&stored_bytes)?;
+
+        // Create a one-shot channel for response
+        let (tx, rx) = mpsc::channel();
+        let req = BroadcastRequest {
+            chan: tx,
+            payload: stored_bytes,
+        };
+        let broadcast_channel = self.tx.lock().unwrap();
+        broadcast_channel.send(req).unwrap();
+        rx.recv().unwrap()?;
+        Ok(consensus::ReplaceResponse::new())
+    }
+
+    fn add_diff_fallible(
+        &self,
+        payload: Vec<u8>,
+    ) -> Result<consensus::AddDiffResponse, Box<std::error::Error>> {
+        let mut stored = consensus::StoredTx::new();
+        stored.set_diff(payload);
+        let stored_bytes = stored.write_to_bytes()?;
+
+        // check attestation - early reject
+        state::State::check_tx(&stored_bytes)?;
+
+        // Create a one-shot channel for response
+        let (tx, rx) = mpsc::channel();
+        let req = BroadcastRequest {
+            chan: tx,
+            payload: stored_bytes,
+        };
+        let broadcast_channel = self.tx.lock().unwrap();
+        broadcast_channel.send(req).unwrap();
+        rx.recv().unwrap()?;
+        Ok(consensus::AddDiffResponse::new())
+    }
 }
 
 impl Consensus for ConsensusServerImpl {
-    // Handle `get` requests to retrieve latest state
     fn get(
         &self,
         _options: grpc::RequestOptions,
-        _req: GetRequest,
-    ) -> grpc::SingleResponse<GetResponse> {
+        _req: consensus::GetRequest,
+    ) -> grpc::SingleResponse<consensus::GetResponse> {
         let s = self.state.lock().unwrap();
-        match s.get_latest() {
-            Some(val) => {
-                let mut response = GetResponse::new();
-                response.set_payload(val);
+        match s.everything {
+            Some(ref si) => {
+                let mut response = consensus::GetResponse::new();
+                {
+                    let mut checkpoint = response.mut_checkpoint();
+                    checkpoint.set_payload(si.checkpoint.clone());
+                    checkpoint.set_height(si.checkpoint_height);
+                }
+                response.set_diffs(protobuf::RepeatedField::from_vec(si.diffs.clone()));
                 grpc::SingleResponse::completed(response)
             }
             None => grpc::SingleResponse::err(grpc::Error::Other("State not initialized.")),
         }
     }
 
-    // Set the next state as latest
-    fn set(
+    fn get_diffs(
         &self,
         _options: grpc::RequestOptions,
-        req: SetRequest,
-    ) -> grpc::SingleResponse<SetResponse> {
-        let payload = req.get_payload();
-
-        // check attestation - early reject
-        match State::check_tx(payload) {
-            Ok(_) => {
-                // Create a one-shot channel for response
-                let (tx, rx) = mpsc::channel();
-                let req = BroadcastRequest {
-                    chan: tx,
-                    payload: payload.to_vec(),
-                };
-                let broadcast_channel = self.tx.lock().unwrap();
-                broadcast_channel.send(req).unwrap();
-                match rx.recv().unwrap() {
-                    Ok(_result) => grpc::SingleResponse::completed(SetResponse::new()),
-                    Err(_error) => grpc::SingleResponse::err(grpc::Error::Other(
-                        "Error forwarding to Tendermint",
-                    )),
+        req: consensus::GetDiffsRequest,
+    ) -> grpc::SingleResponse<consensus::GetDiffsResponse> {
+        let s = self.state.lock().unwrap();
+        match s.everything {
+            Some(ref si) => {
+                let mut response = consensus::GetDiffsResponse::new();
+                if si.checkpoint_height > req.get_since_height() {
+                    // We don't have diffs going back far enough.
+                    {
+                        let mut checkpoint = response.mut_checkpoint();
+                        checkpoint.set_payload(si.checkpoint.clone());
+                        checkpoint.set_height(si.checkpoint_height);
+                    }
+                    response.set_diffs(protobuf::RepeatedField::from_vec(si.diffs.clone()));
+                } else {
+                    let num_known = req.get_since_height() - si.checkpoint_height;
+                    response.set_diffs(protobuf::RepeatedField::from_vec(si.diffs[num_known as usize..].to_vec()));
                 }
+                grpc::SingleResponse::completed(response)
             }
-            Err(_error) => {
-                grpc::SingleResponse::err(grpc::Error::Other("Invalid payload fails check_tx"))
-            }
+            None => grpc::SingleResponse::err(grpc::Error::Other("State not initialized.")),
+        }
+    }
+
+    fn replace(
+        &self,
+        _options: grpc::RequestOptions,
+        req: consensus::ReplaceRequest,
+    ) -> grpc::SingleResponse<consensus::ReplaceResponse> {
+        match self.replace_fallible(req.get_payload().to_vec()) {
+            Ok(res) => grpc::SingleResponse::completed(res),
+            Err(e) => grpc::SingleResponse::err(grpc::Error::Panic(e.description().to_owned())),
+        }
+    }
+
+    fn add_diff(
+        &self,
+        _options: grpc::RequestOptions,
+        req: consensus::AddDiffRequest,
+    ) -> grpc::SingleResponse<consensus::AddDiffResponse> {
+        match self.add_diff_fallible(req.get_payload().to_vec()) {
+            Ok(res) => grpc::SingleResponse::completed(res),
+            Err(e) => grpc::SingleResponse::err(grpc::Error::Panic(e.description().to_owned())),
         }
     }
 }

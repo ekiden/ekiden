@@ -5,19 +5,67 @@
 // https://github.com/tendermint/basecoin/
 use abci::application::Application;
 use abci::types;
+use protobuf;
+use std;
 use std::sync::{Arc, Mutex};
 
-use state::State;
+use generated::consensus;
+use state;
 
 //#[derive(Copy, Clone)]
 #[derive(Clone)]
 pub struct Ekidenmint {
-    state: Arc<Mutex<State>>,
+    state: Arc<Mutex<state::State>>,
 }
 
 impl Ekidenmint {
-    pub fn new(state: Arc<Mutex<State>>) -> Ekidenmint {
+    pub fn new(state: Arc<Mutex<state::State>>) -> Ekidenmint {
         Ekidenmint { state: state }
+    }
+
+    fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<std::error::Error>> {
+        state::State::check_tx(tx)?;
+        match state::State::check_tx(tx) {
+            Ok(_) => {
+                let stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
+                // Set the state
+                let mut s = self.state.lock().unwrap();
+                if stored.has_replace() {
+                    let current_height = match s.everything {
+                        Some(ref si) => si.checkpoint_height + si.diffs.len() as u64,
+                        None => 0,
+                    };
+                    s.everything = Some(state::StateInitialized {
+                        checkpoint: stored.get_replace().to_vec(),
+                        checkpoint_height: current_height + 1,
+                        diffs: Vec::new(),
+                    });
+                    Ok(())
+                } else if stored.has_diff() {
+                    match s.everything {
+                        Some(ref mut si) => {
+                            si.diffs.push(stored.get_diff().to_vec());
+                            Ok(())
+                        }
+                        None => Err(From::from("Can't add diff to uninitialized state.")),
+                    }
+                } else if stored.has_checkpoint() {
+                    match s.everything {
+                        Some(ref mut si) => {
+                            let current_height = si.checkpoint_height + si.diffs.len() as u64;
+                            si.checkpoint = stored.get_checkpoint().to_vec();
+                            si.checkpoint_height = current_height;
+                            si.diffs.clear();
+                            Ok(())
+                        }
+                        None => Err(From::from("Can't checkpoint uninitialized state.")),
+                    }
+                } else {
+                    Err(From::from("Unrecognized StoredTx variant"))
+                }
+            }
+            Err(error) => Err(From::from(error)),
+        }
     }
 }
 
@@ -45,7 +93,7 @@ impl Application for Ekidenmint {
 
     fn check_tx(&self, p: &types::RequestCheckTx) -> types::ResponseCheckTx {
         let mut resp = types::ResponseCheckTx::new();
-        match State::check_tx(p.get_tx()) {
+        match state::State::check_tx(p.get_tx()) {
             Ok(_) => {
                 resp.set_code(types::CodeType::OK);
             }
@@ -73,17 +121,13 @@ impl Application for Ekidenmint {
         println!("deliver_tx");
         let mut resp = types::ResponseDeliverTx::new();
         let tx = p.get_tx();
-        match State::check_tx(tx) {
+        match self.deliver_tx_fallible(tx) {
             Ok(_) => {
-                // Respond
                 resp.set_code(types::CodeType::OK);
-                // Set the state
-                let mut s = self.state.lock().unwrap();
-                s.set_latest(tx.to_vec());
             }
-            Err(error) => {
+            Err(e) => {
                 resp.set_code(types::CodeType::BaseEncodingError);
-                resp.set_log(error);
+                resp.set_log(e.description().to_owned());
             }
         }
         return resp;
