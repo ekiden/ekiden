@@ -19,7 +19,8 @@ use std::prelude::v1::*;
 
 mod token_contract;
 
-use token_api::{CreateRequest, CreateResponse, TokenState, TransferRequest, TransferResponse, GetBalanceRequest, GetBalanceResponse};
+use token_api::{CreateRequest, CreateResponse, GetBalanceRequest, GetBalanceResponse, TokenState,
+                TransferRequest, TransferResponse};
 use token_contract::TokenContract;
 
 use libcontract_common::{with_contract_state, Address, Contract, ContractError};
