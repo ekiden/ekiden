@@ -74,11 +74,26 @@ impl ComputeServerImpl {
         std::thread::spawn(move || {
             let contract = Self::create_contract(&contract_filename_owned);
             let instrumentation = ComputeServerWorkerInstrumentation {
-                reqs_batches_started: register_counter!("reqs_batches_started", "Incremented in each batch of requests.").unwrap(),
-                req_time_batch: register_histogram!("req_time_batch", "Time spent by worker thread in an entire batch of requests.").unwrap(),
-                req_time_enclave: register_histogram!("req_time_enclave", "Time spent by worker thread in a single request.").unwrap(),
-                consensus_get_time: register_histogram!("consensus_get_time", "Time spent getting state from consensus.").unwrap(),
-                consensus_set_time: register_histogram!("consensus_set_time", "Time spent setting state in consensus.").unwrap(),
+                reqs_batches_started: register_counter!(
+                    "reqs_batches_started",
+                    "Incremented in each batch of requests."
+                ).unwrap(),
+                req_time_batch: register_histogram!(
+                    "req_time_batch",
+                    "Time spent by worker thread in an entire batch of requests."
+                ).unwrap(),
+                req_time_enclave: register_histogram!(
+                    "req_time_enclave",
+                    "Time spent by worker thread in a single request."
+                ).unwrap(),
+                consensus_get_time: register_histogram!(
+                    "consensus_get_time",
+                    "Time spent getting state from consensus."
+                ).unwrap(),
+                consensus_set_time: register_histogram!(
+                    "consensus_set_time",
+                    "Time spent setting state in consensus."
+                ).unwrap(),
             };
             // Block for the next call.
             // When ComputeServerImpl is dropped, the request_sender closes, and the thread will exit.
@@ -98,8 +113,12 @@ impl ComputeServerImpl {
         ComputeServerImpl {
             request_sender: Mutex::new(request_sender),
             ias: ias,
-            ins_reqs_received: register_counter!("reqs_received", "Incremented in each request.").unwrap(),
-            ins_req_time_client: register_histogram!("req_time_client", "Time spent by grpc thread handling a request.").unwrap(),
+            ins_reqs_received: register_counter!("reqs_received", "Incremented in each request.")
+                .unwrap(),
+            ins_req_time_client: register_histogram!(
+                "req_time_client",
+                "Time spent by grpc thread handling a request."
+            ).unwrap(),
         }
     }
 
@@ -181,7 +200,8 @@ impl ComputeServerImpl {
                 .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
                 .wait();
             if let Ok((_, consensus_get_response, _)) = consensus_result {
-                let encrypted_state = protobuf::parse_from_bytes(consensus_get_response.get_payload())?;
+                let encrypted_state =
+                    protobuf::parse_from_bytes(consensus_get_response.get_payload())?;
                 Some(encrypted_state)
             } else {
                 // We should bail if there was an error other than the state not being initialized.
@@ -235,7 +255,11 @@ impl ComputeServerImpl {
         Ok(response_batch)
     }
 
-    fn call_contract_batch(contract: &enclave::EkidenEnclave, request_batch: Vec<QueuedRequest>, instrumentation: &ComputeServerWorkerInstrumentation) {
+    fn call_contract_batch(
+        contract: &enclave::EkidenEnclave,
+        request_batch: Vec<QueuedRequest>,
+        instrumentation: &ComputeServerWorkerInstrumentation,
+    ) {
         match Self::call_contract_batch_fallible(contract, &request_batch, instrumentation) {
             Ok(response_batch) => {
                 // No batch-wide errors. Send out per-call responses.

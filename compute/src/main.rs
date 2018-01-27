@@ -45,7 +45,7 @@ impl hyper::server::Service for MetricsService {
     type Error = hyper::Error;
     // The future representing the eventual Response your call will
     // resolve to. This can change to whatever Future you need.
-    type Future = Box<futures::future::Future<Item=Self::Response, Error=Self::Error>>;
+    type Future = Box<futures::future::Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, _req: Self::Request) -> Self::Future {
         let enc = prometheus::TextEncoder::new();
@@ -56,7 +56,7 @@ impl hyper::server::Service for MetricsService {
         Box::new(futures::future::ok(
             Self::Response::new()
                 .with_header(hyper::header::ContentType(type_mime))
-                .with_body(buf)
+                .with_body(buf),
         ))
     }
 }
@@ -169,8 +169,11 @@ fn main() {
 
     // Start the Prometheus metrics endpoint.
     if let Ok(metrics_addr) = value_t!(matches, "metrics-addr", std::net::SocketAddr) {
-        std::thread::spawn(move || { // move metrics_addr
-            let metrics_server = hyper::server::Http::new().bind(&metrics_addr, || Ok(MetricsService)).unwrap();
+        std::thread::spawn(move || {
+            // move metrics_addr
+            let metrics_server = hyper::server::Http::new()
+                .bind(&metrics_addr, || Ok(MetricsService))
+                .unwrap();
             metrics_server.run().unwrap();
         });
     }
