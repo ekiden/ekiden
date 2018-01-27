@@ -212,10 +212,7 @@ impl ComputeServerWorker {
         Ok(response_batch)
     }
 
-    fn call_contract_batch(
-        &self,
-        request_batch: Vec<QueuedRequest>,
-    ) {
+    fn call_contract_batch(&self, request_batch: Vec<QueuedRequest>) {
         match self.call_contract_batch_fallible(&request_batch) {
             Ok(response_batch) => {
                 // No batch-wide errors. Send out per-call responses.
