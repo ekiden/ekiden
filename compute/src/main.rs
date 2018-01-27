@@ -22,6 +22,7 @@ mod ias;
 mod handlers;
 mod server;
 
+use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 
@@ -122,8 +123,12 @@ fn main() {
     // Start the gRPC server.
     let mut server = grpc::ServerBuilder::new_plain();
     server.http.set_port(port);
+    let contract_filename = matches.value_of("contract").unwrap();
+    if !Path::new(contract_filename).exists() {
+        panic!(format!("Could not find contract: {}", contract_filename))
+    }
     server.add_service(ComputeServer::new_service_def(ComputeServerImpl::new(
-        &matches.value_of("contract").unwrap(),
+        &contract_filename,
         ias.clone(),
     )));
     let num_threads = value_t!(matches, "grpc-threads", usize).unwrap();
