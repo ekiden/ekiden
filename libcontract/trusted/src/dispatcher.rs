@@ -266,7 +266,8 @@ pub fn return_success<S: Message, P: Message>(
 
     let encrypted_state = match state {
         Some(state) => {
-            Some(super::state_crypto::encrypt_state(&state).expect("Failed to serialize state"))
+            let state_bytes = state.write_to_bytes().expect("Failed to serialize state");
+            Some(super::state_crypto::encrypt_state(state_bytes).expect("Failed to serialize state"))
         }
         None => None,
     };

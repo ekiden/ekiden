@@ -49,6 +49,8 @@ macro_rules! create_enclave {
             #[allow(unused)]
             use $crate::state_crypto::decrypt_state;
 
+            use $crate::state_diffs;
+
             use super::*;
 
             #[no_mangle]
@@ -101,7 +103,7 @@ macro_rules! create_enclave {
                     _ => {},
                 }
 
-                // Meta methods.
+                // Meta methods. Keep these names in sync with libcontract/common/src/protocol.rs.
                 create_enclave_method!(
                     encrypted_state,
                     request,
@@ -138,6 +140,20 @@ macro_rules! create_enclave {
                     _channel_attest_client(
                         api::ChannelAttestClientRequest
                     ) -> api::ChannelAttestClientResponse
+                );
+                create_enclave_method!(
+                    encrypted_state,
+                    request,
+                    raw_response,
+                    $metadata_state_type,
+                    _state_diff(api::StateDiffRequest) -> api::StateDiffResponse
+                );
+                create_enclave_method!(
+                    encrypted_state,
+                    request,
+                    raw_response,
+                    $metadata_state_type,
+                    _state_apply(api::StateApplyRequest) -> api::StateApplyResponse
                 );
 
                 // User-defined methods.
@@ -197,6 +213,18 @@ macro_rules! create_enclave {
             {
                 channel_attest_client(request)
             }
+
+            fn _state_diff(request: &api::StateDiffRequest) ->
+                Result<api::StateDiffResponse, ContractError>
+            {
+                state_diffs::diff(request)
+            }
+
+            fn _state_apply(request: &api::StateApplyRequest) ->
+                Result<api::StateApplyResponse, ContractError>
+            {
+                state_diffs::apply(request)
+            }
         }
 
         // Re-export rpc_call.
@@ -211,11 +239,22 @@ macro_rules! parse_enclave_method_state {
         let state: $state_type = match $state {
             Some(encrypted_state) =>
                 match decrypt_state(&encrypted_state) {
-                    Ok(value) => value,
-                    _ => {
+                    Ok(value) =>
+                        match protobuf::parse_from_bytes(&value) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                return_error(
+                                    api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
+                                    "Unable to parse request state",
+                                    &$response
+                                );
+                                return;
+                            }
+                        },
+                    Err(e) => {
                         return_error(
                             api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                            "Unable to parse request state",
+                            &e.message,
                             &$response
                         );
                         return;

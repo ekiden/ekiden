@@ -175,3 +175,21 @@ message ChannelCloseRequest {
 
 message ChannelCloseResponse {
 }
+
+message StateDiffRequest {
+    CryptoSecretbox old = 1;
+    CryptoSecretbox new = 2;
+}
+
+message StateDiffResponse {
+    CryptoSecretbox diff = 1;
+}
+
+message StateApplyRequest {
+    CryptoSecretbox old = 1;
+    CryptoSecretbox diff = 2;
+}
+
+message StateApplyResponse {
+    CryptoSecretbox new = 1;
+}
