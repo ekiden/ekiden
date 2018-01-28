@@ -24,9 +24,7 @@ fn get_state_key() -> Result<sodalite::SecretboxKey, ContractError> {
 }
 
 /// Open encrypted state box.
-pub fn decrypt_state(
-    encrypted_state: &CryptoSecretbox,
-) -> Result<Vec<u8>, ContractError> {
+pub fn decrypt_state(encrypted_state: &CryptoSecretbox) -> Result<Vec<u8>, ContractError> {
     let state_key = get_state_key()?;
     let encrypted_state_ciphertext = encrypted_state.get_ciphertext();
 

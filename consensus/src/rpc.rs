@@ -113,7 +113,9 @@ impl Consensus for ConsensusServerImpl {
                     response.set_diffs(protobuf::RepeatedField::from_vec(si.diffs.clone()));
                 } else {
                     let num_known = req.get_since_height() - si.checkpoint_height;
-                    response.set_diffs(protobuf::RepeatedField::from_vec(si.diffs[num_known as usize..].to_vec()));
+                    response.set_diffs(protobuf::RepeatedField::from_vec(
+                        si.diffs[num_known as usize..].to_vec(),
+                    ));
                 }
                 grpc::SingleResponse::completed(response)
             }

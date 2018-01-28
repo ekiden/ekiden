@@ -154,11 +154,14 @@ impl ComputeServerWorker {
     fn get_cached_state_height(&self) -> Option<u64> {
         match self.cached_state {
             Some(ref csi) => Some(csi.height),
-            None => None
+            None => None,
         }
     }
 
-    fn set_cached_state(&mut self, checkpoint: &consensus::Checkpoint) -> Result<(), Box<std::error::Error>> {
+    fn set_cached_state(
+        &mut self,
+        checkpoint: &consensus::Checkpoint,
+    ) -> Result<(), Box<std::error::Error>> {
         self.cached_state = Some(CachedStateInitialized {
             encrypted_state: protobuf::parse_from_bytes(checkpoint.get_payload())?,
             height: checkpoint.get_height(),
@@ -166,15 +169,24 @@ impl ComputeServerWorker {
         Ok(())
     }
 
-    fn advance_cached_state(&mut self, diffs: &[Vec<u8>]) -> Result<libcontract_common::api::CryptoSecretbox, Box<std::error::Error>> {
-        let csi = &mut self.cached_state.as_mut().ok_or::<Box<std::error::Error>>(From::from("advance_cached_state called with uninitialized cached state"))?;
+    fn advance_cached_state(
+        &mut self,
+        diffs: &[Vec<u8>],
+    ) -> Result<libcontract_common::api::CryptoSecretbox, Box<std::error::Error>> {
+        let csi = &mut self.cached_state
+            .as_mut()
+            .ok_or::<Box<std::error::Error>>(From::from(
+                "advance_cached_state called with uninitialized cached state",
+            ))?;
         for diff in diffs {
-            let res: libcontract_common::api::StateApplyResponse = self.contract.call(libcontract_common::api::METHOD_STATE_APPLY, &{
-                let mut req = libcontract_common::api::StateApplyRequest::new();
-                req.set_old(csi.encrypted_state.clone());
-                req.set_diff(protobuf::parse_from_bytes(diff)?);
-                req
-            })?;
+            let res: libcontract_common::api::StateApplyResponse =
+                self.contract
+                    .call(libcontract_common::api::METHOD_STATE_APPLY, &{
+                        let mut req = libcontract_common::api::StateApplyRequest::new();
+                        req.set_old(csi.encrypted_state.clone());
+                        req.set_diff(protobuf::parse_from_bytes(diff)?);
+                        req
+                    })?;
             csi.encrypted_state = res.get_new().clone();
             csi.height += 1;
         }
@@ -196,23 +208,30 @@ impl ComputeServerWorker {
             let _consensus_get_timer = self.ins_consensus_get_time.start_timer();
             match self.get_cached_state_height() {
                 Some(height) => {
-                    let (_, consensus_response, _) = consensus_client.get_diffs(grpc::RequestOptions::new(), {
-                        let mut consensus_request = consensus::GetDiffsRequest::new();
-                        consensus_request.set_since_height(height);
-                        consensus_request
-                    }).wait()?;
+                    let (_, consensus_response, _) = consensus_client
+                        .get_diffs(grpc::RequestOptions::new(), {
+                            let mut consensus_request = consensus::GetDiffsRequest::new();
+                            consensus_request.set_since_height(height);
+                            consensus_request
+                        })
+                        .wait()?;
                     if consensus_response.has_checkpoint() {
                         self.set_cached_state(consensus_response.get_checkpoint())?;
                     }
                     Some(self.advance_cached_state(consensus_response.get_diffs())?)
                 }
                 None => {
-                    if let Ok((_, consensus_response, _)) = consensus_client.get(grpc::RequestOptions::new(), consensus::GetRequest::new()).wait() {
+                    if let Ok((_, consensus_response, _)) = consensus_client
+                        .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
+                        .wait()
+                    {
                         self.set_cached_state(consensus_response.get_checkpoint())?;
                         Some(self.advance_cached_state(consensus_response.get_diffs())?)
                     } else {
-                        // We should bail if there was an error other than the state not being initialized.
-                        // But don't go fixing this. There's another resolution planned in #95.
+                        // We should bail if there was an error other
+                        // than the state not being initialized. But
+                        // don't go fixing this. There's another
+                        // resolution planned in #95.
                         None
                     }
                 }
@@ -254,17 +273,20 @@ impl ComputeServerWorker {
                 let _consensus_set_timer = self.ins_consensus_set_time.start_timer();
                 match orig_encrypted_state_opt {
                     Some(orig_encrypted_state) => {
-                        let diff_res: libcontract_common::api::StateDiffResponse = self.contract.call(libcontract_common::api::METHOD_STATE_DIFF, &{
-                            let mut diff_req = libcontract_common::api::StateDiffRequest::new();
-                            diff_req.set_old(orig_encrypted_state);
-                            diff_req.set_new(encrypted_state);
-                            diff_req
-                        })?;
-                        consensus_client.add_diff(grpc::RequestOptions::new(), {
-                            let mut add_diff_req = consensus::AddDiffRequest::new();
-                            add_diff_req.set_payload(diff_res.get_diff().write_to_bytes()?);
-                            add_diff_req
-                        }).wait()?;
+                        let diff_res: libcontract_common::api::StateDiffResponse =
+                            self.contract.call(libcontract_common::api::METHOD_STATE_DIFF, &{
+                                let mut diff_req = libcontract_common::api::StateDiffRequest::new();
+                                diff_req.set_old(orig_encrypted_state);
+                                diff_req.set_new(encrypted_state);
+                                diff_req
+                            })?;
+                        consensus_client
+                            .add_diff(grpc::RequestOptions::new(), {
+                                let mut add_diff_req = consensus::AddDiffRequest::new();
+                                add_diff_req.set_payload(diff_res.get_diff().write_to_bytes()?);
+                                add_diff_req
+                            })
+                            .wait()?;
                     }
                     None => {
                         let mut consensus_replace_request = consensus::ReplaceRequest::new();

@@ -8,7 +8,9 @@ pub fn apply_internal(_old: &[u8], diff: &[u8]) -> Vec<u8> {
     diff.to_vec()
 }
 
-pub fn diff(req: &libcontract_common::api::StateDiffRequest) -> Result<libcontract_common::api::StateDiffResponse, libcontract_common::ContractError> {
+pub fn diff(
+    req: &libcontract_common::api::StateDiffRequest,
+) -> Result<libcontract_common::api::StateDiffResponse, libcontract_common::ContractError> {
     let old = super::state_crypto::decrypt_state(req.get_old())?;
     let new = super::state_crypto::decrypt_state(req.get_new())?;
     let diff = diff_internal(&old, &new);
@@ -17,7 +19,9 @@ pub fn diff(req: &libcontract_common::api::StateDiffRequest) -> Result<libcontra
     Ok(res)
 }
 
-pub fn apply(req: &libcontract_common::api::StateApplyRequest) -> Result<libcontract_common::api::StateApplyResponse, libcontract_common::ContractError> {
+pub fn apply(
+    req: &libcontract_common::api::StateApplyRequest,
+) -> Result<libcontract_common::api::StateApplyResponse, libcontract_common::ContractError> {
     let old = super::state_crypto::decrypt_state(req.get_old())?;
     let diff = super::state_crypto::decrypt_state(req.get_diff())?;
     let new = diff_internal(&old, &diff);
