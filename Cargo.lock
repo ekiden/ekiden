@@ -61,6 +61,15 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "bsdiff"
+version = "0.1.3"
+source = "git+https://github.com/ekiden/bsdiff-rs#015019c944cd9385e115d35daf7c69807ee6ffc0"
+dependencies = [
+ "libc 0.2.36 (git+https://github.com/ekiden/libc)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
 name = "build_const"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -596,6 +605,7 @@ dependencies = [
 name = "libcontract-trusted"
 version = "0.1.0"
 dependencies = [
+ "bsdiff 0.1.3 (git+https://github.com/ekiden/bsdiff-rs)",
  "bzip2 0.3.2 (git+https://github.com/ekiden/bzip2-rs)",
  "compute-client 0.1.0",
  "key-manager-api 0.1.0",
@@ -1682,6 +1692,7 @@ dependencies = [
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum bitflags 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4efd02e230a02e18f92fc2735f44597385ed02ad8f831e7c1c1156ee5e1ab3a5"
 "checksum bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b3c30d3802dfb7281680d6285f2ccdaa8c2d8fee41f93805dba5c4cf50dc23cf"
+"checksum bsdiff 0.1.3 (git+https://github.com/ekiden/bsdiff-rs)" = "<none>"
 "checksum build_const 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e90dc84f5e62d2ebe7676b83c22d33b6db8bd27340fb6ffbff0a364efa0cb9c9"
 "checksum build_helper 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
 "checksum byteorder 1.1.0 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"

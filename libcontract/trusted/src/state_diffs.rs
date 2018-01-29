@@ -1,20 +1,27 @@
 use std;
-use std::io::Write;
 
+use bsdiff;
 use bzip2;
+use protobuf;
+use protobuf::Message;
 
 use libcontract_common;
 
-fn diff_internal(_old: &[u8], new: &[u8]) -> std::io::Result<Vec<u8>> {
+fn diff_internal(old: &[u8], new: &[u8]) -> std::io::Result<Vec<u8>> {
     let mut enc = bzip2::write::BzEncoder::new(std::io::Cursor::new(Vec::new()), bzip2::Compression::Default);
-    enc.write_all(new)?;
-    Ok(enc.finish()?.into_inner())
+    bsdiff::diff::diff(old, new, &mut enc)?;
+    let mut m = libcontract_common::api::BsdiffPatch::new();
+    m.set_new_length(new.len() as u64);
+    m.set_patch_bz2(enc.finish()?.into_inner());
+    Ok(m.write_to_bytes()?)
 }
 
-fn apply_internal(_old: &[u8], diff: &[u8]) -> std::io::Result<Vec<u8>> {
-    let mut dec = bzip2::write::BzDecoder::new(std::io::Cursor::new(Vec::new()));
-    dec.write_all(diff)?;
-    Ok(dec.finish()?.into_inner())
+fn apply_internal(old: &[u8], diff: &[u8]) -> std::io::Result<Vec<u8>> {
+    let m: libcontract_common::api::BsdiffPatch = protobuf::parse_from_bytes(diff)?;
+    let mut dec = bzip2::read::BzDecoder::new(std::io::Cursor::new(m.get_patch_bz2()));
+    let mut new = vec![0; m.get_new_length() as usize];
+    bsdiff::patch::patch(old, &mut dec, &mut new)?;
+    Ok(new)
 }
 
 pub fn diff(

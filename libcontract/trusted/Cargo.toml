@@ -19,6 +19,7 @@ libcontract-common = { path = "../common", features = ["sgx"], default-features 
 compute-client = { path = "../../compute-client", features = ["sgx"], default-features = false }
 key-manager-api = { path = "../../contracts/key-manager/api", features = ["sgx"], default-features = false }
 bzip2 = { git = "https://github.com/ekiden/bzip2-rs" }
+bsdiff = { git = "https://github.com/ekiden/bsdiff-rs" }
 
 [build-dependencies]
 libcontract-utils = { path = "../utils" }
