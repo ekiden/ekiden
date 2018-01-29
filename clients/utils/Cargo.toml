@@ -1,6 +1,11 @@
 [package]
 name = "client-utils"
 version = "0.1.0"
-authors = ["Nick Hynes <nhynes@berkeley.edu>"]
+authors = [
+    "Nick Hynes <nhynes@berkeley.edu>",
+    "Jernej Kos <jernej@kos.mx>"
+]
 
 [dependencies]
+threadpool = "1.7.1"
+time = "0.1"

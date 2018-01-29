@@ -23,6 +23,16 @@ If you are using minikube, you can use the following command to get the correct 
 $ minikube service --url ekiden-token-proxy
 ```
 
+## Running the token benchmark client
+
+To run a simple benchmark against the testnet, build the `token-client` with the `benchmark` feature enabled (note that for some reason this doesn't work when called from the workspace using `-p token-client`):
+```
+$ cd /code/clients/token
+$ cargo run --features benchmark -- --benchmark-runs 100 --benchmark-threads 4 --mr-enclave <mr-enclave> --host <host> --port <port>
+```
+
+Where `host` and `port` are values obtained from `minikube service` as above.
+
 ## Building the ekiden/core image
 
 The testnet uses the `ekiden/core` Docker image, which contains prebuilt Ekiden binaries and contracts. In order to (re)build this Docker image, you can run the following command in the top-level Ekiden directory:

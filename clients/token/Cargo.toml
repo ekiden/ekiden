@@ -5,6 +5,10 @@ authors = [
     "Jernej Kos <jernej@kos.mx>"
 ]
 
+[features]
+default = []
+benchmark = []
+
 [dependencies]
 client-utils = { path = "../utils" }
 libcontract-common = { path = "../../libcontract/common" }
