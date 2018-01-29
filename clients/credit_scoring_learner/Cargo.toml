@@ -1,0 +1,13 @@
+[package]
+name = "credit-scoring-learner-client"
+version = "0.1.0"
+authors = ["Nick Hynes <nhynes@berkeley.edu>"]
+
+[dependencies]
+clap = "2.29.1"
+client-utils = { path = "../utils" }
+compute-client = { path = "../../compute-client" }
+credit-scoring-learner-api = { path = "../../contracts/credit_scoring_learner/api", default-features = false, features = ["no-sgx"] }
+libcontract-common = { path = "../../libcontract/common" }
+protobuf = "1.4.2"
+serde-pickle = "0.4.0"

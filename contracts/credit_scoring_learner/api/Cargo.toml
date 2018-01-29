@@ -6,10 +6,11 @@ build = "build.rs"
 
 [features]
 default = ["no-sgx"]
-no-sgx = ["protobuf", "libcontract-common/no-sgx"]
-sgx = ["sgx_tstd", "protobuf-sgx", "libcontract-common/sgx"]
+no-sgx = ["protobuf", "libcontract-common/no-sgx", "learner-api/no-sgx"]
+sgx = ["sgx_tstd", "protobuf-sgx", "libcontract-common/sgx", "learner-api/sgx"]
 
 [dependencies]
+learner-api = { path = "../../learner/api", default-features = false }
 libcontract-common = { path = "../../../libcontract/common", default-features = false }
 protobuf = { version = "1.4.2", optional = true }
 protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true }

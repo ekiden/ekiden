@@ -6,6 +6,8 @@ extern crate protobuf;
 #[cfg(feature = "sgx")]
 extern crate sgx_tstd as std;
 
+extern crate learner_api;
+
 #[macro_use]
 extern crate libcontract_common;
 
@@ -19,3 +21,5 @@ mod api;
 mod generated;
 
 pub use generated::api::*;
+pub use learner_api::{CreateRequest, CreateResponse, Examples, InferenceRequest,
+                      InferenceResponse, LearnerState, TrainingRequest, TrainingResponse};
