@@ -10,7 +10,7 @@ use libcontract_common::{Address, Contract, ContractError};
 
 use api::LearnerState;
 
-pub struct Learner<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + DeserializeOwned> {
+pub struct Learner<M> {
     owner: Address,
     model: M,
     inputs: Vec<String>,
@@ -64,6 +64,10 @@ impl<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + DeserializeOwned> Learn
 
     pub fn get_targets(&self) -> Result<&Vec<String>, ContractError> {
         Ok(&self.targets)
+    }
+
+    pub fn get_model(&self) -> Result<&M, ContractError> {
+        Ok(&self.model)
     }
 }
 
