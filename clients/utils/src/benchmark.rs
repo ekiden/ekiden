@@ -1,5 +1,6 @@
 use std::sync::Arc;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, Sender};
+use std::thread;
 
 use threadpool::ThreadPool;
 use time;
@@ -39,6 +40,8 @@ pub struct Benchmark<Factory: ClientFactory> {
 /// All time values are in nanoseconds.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct BenchmarkResult {
+    /// Flag showing that a benchmark run failed.
+    pub failed: bool,
     /// Amount of time taken for client initialization. This includes the time it
     /// takes to establish a secure channel.
     pub client_initialization: u64,
@@ -46,6 +49,46 @@ pub struct BenchmarkResult {
     pub scenario: u64,
 }
 
+/// Sentinel that sends the benchmark results back to the main thread.
+///
+/// Using this sentinel ensures that results are sent even if the thread panicks and
+/// unwinds.
+struct BenchmarkSentinel {
+    /// Benchmark result.
+    result: BenchmarkResult,
+    /// Channel to send the result over.
+    sender: Sender<BenchmarkResult>,
+}
+
+impl BenchmarkSentinel {
+    /// Create a new benchmark sentinel.
+    fn new(sender: Sender<BenchmarkResult>) -> Self {
+        BenchmarkSentinel {
+            result: BenchmarkResult::default(),
+            sender: sender,
+        }
+    }
+
+    /// Get mutable reference to benchmark result.
+    fn result_mut(&mut self) -> &mut BenchmarkResult {
+        &mut self.result
+    }
+}
+
+impl Drop for BenchmarkSentinel {
+    /// Send result back to the main thread.
+    fn drop(&mut self) {
+        if thread::panicking() {
+            // Mark result as failed.
+            self.result.failed = true;
+        }
+
+        // Send result.
+        self.sender.send(self.result).unwrap();
+    }
+}
+
+/// Set of benchmark results for all runs.
 pub struct BenchmarkResults(Vec<BenchmarkResult>);
 
 impl BenchmarkResults {
@@ -70,12 +113,21 @@ impl BenchmarkResults {
         self.0.iter().map(|result| result.scenario).sum()
     }
 
+    /// Number of failed runs.
+    pub fn failures(&self) -> usize {
+        self.0
+            .iter()
+            .map(|result| if result.failed { 1 } else { 0 })
+            .sum()
+    }
+
     /// Show benchmark results in a human-readable form.
     pub fn show(&self) {
         let count = self.0.len() as u64;
 
         println!("=== Benchmark Results ===");
         println!("Runs:                  {}", count);
+        println!("Failures:              {}", self.failures());
         println!(
             "Total time:            {} ms ({} ms / run)",
             self.total_time() / 1_000_000,
@@ -126,15 +178,13 @@ where
             let tx = tx.clone();
 
             self.pool.execute(move || {
-                let mut result = BenchmarkResult::default();
+                let mut sentinel = BenchmarkSentinel::new(tx);
+                let result = sentinel.result_mut();
 
                 // Create client, run the scenario.
                 let client =
                     time_block!(result, client_initialization, { client_factory.create() });
                 time_block!(result, scenario, { scenario(client) });
-
-                // Send result back to the main thread.
-                tx.send(result).unwrap();
             });
         }
 
