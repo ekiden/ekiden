@@ -30,8 +30,6 @@ enclave {
             [in] const sgx_report_t *p_report,
             sgx_quote_sign_type_t quote_type,
             [in] const sgx_spid_t *p_spid,
-            [in] const sgx_quote_nonce_t *p_nonce,
-            [out] sgx_report_t *p_qe_report,
             [out, size=quote_capacity] uint8_t *p_quote,
             uint32_t quote_capacity,
             [out] uint32_t *quote_size

@@ -15,8 +15,6 @@ extern "C" {
         p_report: *const sgx_report_t,
         quote_type: sgx_quote_sign_type_t,
         p_spid: *const sgx_spid_t,
-        p_nonce: *const sgx_quote_nonce_t,
-        p_qe_report: *mut sgx_report_t,
         p_quote: *mut u8,
         quote_capacity: u32,
         quote_size: *mut u32,

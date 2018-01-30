@@ -32,7 +32,11 @@ macro_rules! create_client {
                            mr_enclave: MrEnclave) -> Result<Self, Error> {
 
                     Ok(Client {
-                        client: ContractClient::new(backend, mr_enclave)?,
+                        client: ContractClient::new(
+                            backend,
+                            mr_enclave,
+                            $client_attestation_required,
+                        )?,
                     })
                 }
 

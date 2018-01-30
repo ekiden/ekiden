@@ -7,6 +7,8 @@ use std::str::FromStr;
 use base64;
 use reqwest;
 
+use libcontract_common::quote::AttestationReport;
+
 /// Intel IAS API URL.
 const IAS_API_URL: &'static str = "https://test-as.sgx.trustedservices.intel.com";
 /// Intel IAS report endpoint.
@@ -36,18 +38,6 @@ pub struct IAS {
     spid: SPID,
     /// Client used for IAS requests.
     client: Option<reqwest::Client>,
-}
-
-#[derive(Default)]
-pub struct AttestationVerificationReport {
-    /// IAS response status code.
-    pub status: u16,
-    /// Report body (serialized JSON).
-    pub body: String,
-    /// Signature (report signature).
-    pub signature: Vec<u8>,
-    /// Report signing certificate chain in PEM format.
-    pub certificates: String,
 }
 
 impl IAS {
@@ -111,25 +101,49 @@ impl IAS {
     }
 
     /// Make authenticated web request to IAS report endpoint.
-    pub fn verify_quote(
-        &self,
-        nonce: &[u8],
-        quote: &[u8],
-    ) -> io::Result<AttestationVerificationReport> {
+    pub fn verify_quote(&self, nonce: &[u8], quote: &[u8]) -> io::Result<AttestationReport> {
+        // Generate mock report when client is not configured.
+        if self.client.is_none() {
+            let report = AttestationReport::new(
+                // TODO: Generate other mock fields.
+                format!(
+                    "{{\"isvEnclaveQuoteBody\": \"{}\"}}",
+                    base64::encode(&quote)
+                ).into_bytes(),
+                vec![],
+                vec![],
+            );
+
+            return Ok(report);
+        }
+
         let mut request = HashMap::new();
         request.insert("isvEnclaveQuote", base64::encode(&quote));
         request.insert("nonce", base64::encode(&nonce));
 
-        let response = self.make_request(IAS_ENDPOINT_REPORT, &request)?;
-
-        let mut report = AttestationVerificationReport::default();
-        report.status = response.status().as_u16();
-
-        if response.status().is_success() {
-            // TODO: Decode attestation verification report.
+        let mut response = self.make_request(IAS_ENDPOINT_REPORT, &request)?;
+        if !response.status().is_success() {
+            return Err(Error::new(ErrorKind::Other, "Request to IAS failed"));
         }
 
-        Ok(report)
+        Ok(AttestationReport::new(
+            // TODO: Handle errors.
+            response.text().unwrap().into_bytes(),
+            response
+                .headers()
+                .get_raw("X-IASReport-Signature")
+                .unwrap()
+                .one()
+                .unwrap()
+                .to_vec(),
+            response
+                .headers()
+                .get_raw("X-IASReport-Signing-Certificate")
+                .unwrap()
+                .one()
+                .unwrap()
+                .to_vec(),
+        ))
     }
 
     /// Get configured SPID.

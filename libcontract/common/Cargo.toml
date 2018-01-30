@@ -9,8 +9,8 @@ build = "build.rs"
 
 [features]
 default = ["no-sgx"]
-no-sgx = ["protobuf", "rand", "byteorder"]
-sgx = ["protobuf-sgx", "byteorder-sgx", "sgx_types", "sgx_tstd", "sgx_trts"]
+no-sgx = ["protobuf", "rand", "byteorder", "serde_json", "base64"]
+sgx = ["protobuf-sgx", "byteorder-sgx", "serde_json-sgx", "base64-sgx", "sgx_types", "sgx_tstd", "sgx_trts"]
 
 [dependencies]
 protobuf = { version = "1.4.2", optional = true }
@@ -22,6 +22,10 @@ sodalite = "0.3.0"
 rand = { version = "0.4", optional = true }
 byteorder = { version = "1.2.1", optional = true }
 byteorder-sgx = { git = "https://github.com/ekiden/byteorder", optional = true }
+serde_json = { version = "1.0.9", optional = true }
+serde_json-sgx = { git = "https://github.com/ekiden/json", optional = true }
+base64 = { version = "0.9.0", optional = true }
+base64-sgx = { git = "https://github.com/ekiden/rust-base64", optional = true }
 
 [build-dependencies]
 libcontract-utils = { path = "../utils" }

@@ -4,7 +4,7 @@ use protobuf;
 use protobuf::{Message, MessageStatic};
 
 use libcontract_common::{api, random};
-use libcontract_common::quote::MrEnclave;
+use libcontract_common::quote::{AttestationReport, MrEnclave};
 use libcontract_common::secure_channel::{create_box, open_box, MonotonicNonceGenerator,
                                          RandomNonceGenerator, SessionState, NONCE_CONTEXT_INIT,
                                          NONCE_CONTEXT_REQUEST, NONCE_CONTEXT_RESPONSE};
@@ -37,10 +37,6 @@ pub struct SecureChannelContext {
     long_term_nonce_generator: RandomNonceGenerator,
     /// Short-term nonce generator.
     short_term_nonce_generator: MonotonicNonceGenerator,
-    /// Client attestation nonce.
-    client_attestation_nonce: Vec<u8>,
-    /// Client attestation SPID.
-    client_attestation_spid: Vec<u8>,
 }
 
 /// Contract client.
@@ -55,7 +51,11 @@ pub struct ContractClient<Backend: ContractClientBackend> {
 
 impl<Backend: ContractClientBackend> ContractClient<Backend> {
     /// Constructs a new contract client.
-    pub fn new(backend: Backend, mr_enclave: MrEnclave) -> Result<Self, Error> {
+    pub fn new(
+        backend: Backend,
+        mr_enclave: MrEnclave,
+        client_attestation: bool,
+    ) -> Result<Self, Error> {
         let mut client = ContractClient {
             backend: backend,
             mr_enclave: mr_enclave,
@@ -63,7 +63,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
         };
 
         // Initialize a secure session.
-        client.init_secure_channel()?;
+        client.init_secure_channel(client_attestation)?;
 
         Ok(client)
     }
@@ -129,35 +129,32 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
     }
 
     /// Initialize a secure channel with the contract.
-    pub fn init_secure_channel(&mut self) -> Result<(), Error> {
+    pub fn init_secure_channel(&mut self, client_attestation: bool) -> Result<(), Error> {
         let mut request = api::ChannelInitRequest::new();
 
         // Reset secure channel.
         self.secure_channel.reset()?;
 
-        // Generate random nonce for contract attestation request.
-        let mut nonce = vec![0u8; 16];
-        random::get_random_bytes(&mut nonce)?;
-
-        {
-            // Generate contract attestation request.
-            let contract_attestation = request.mut_contract_attestation_request();
-            contract_attestation.set_nonce(nonce.clone());
-            contract_attestation.set_spid(self.backend.get_spid()?);
+        // Provide mutual attestation if required.
+        if client_attestation {
+            let report = self.backend
+                .get_attestation_report(&self.secure_channel.get_client_public_key())?;
+            request.set_client_attestation_report(report.serialize());
         }
 
         request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
 
         let mut response: api::ChannelInitResponse = self.call(api::METHOD_CHANNEL_INIT, request)?;
 
-        // Verify quote via IAS, verify nonce.
-        let quote = self.backend
-            .verify_quote(response.mut_contract_attestation_response().take_quote())?;
-        if quote.get_nonce().to_vec() != nonce {
-            return Err(Error::new(
-                "Secure channel initialization failed: nonce mismatch",
-            ));
-        }
+        // Verify contract attestation.
+        let mut report = response.take_contract_attestation_report();
+        let report = AttestationReport::new(
+            report.take_body(),
+            report.take_signature(),
+            report.take_certificates(),
+        );
+
+        let quote = report.get_quote()?;
 
         // Verify MRENCLAVE.
         if quote.get_mr_enclave() != &self.mr_enclave {
@@ -166,28 +163,9 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
             ));
         }
 
-        // TODO: Verify enclave attributes.
-
         // Extract public key and establish a secure channel.
         self.secure_channel
-            .setup(&quote.get_public_key(), &response.get_response_box())?;
-
-        // Check if mutual attestataion has been requested and request the backend to perform
-        // client attestation. If the backend does not support this (e.g., because the client
-        // is not actually running in an enclave), this operation will fail.
-        if self.secure_channel.get_state() == SessionState::ClientAttestationRequired {
-            let quote = self.backend.get_quote(
-                &self.secure_channel.get_client_attestation_spid(),
-                &self.secure_channel.get_client_attestation_nonce(),
-                &self.secure_channel.get_client_public_key(),
-            )?;
-
-            let mut request = api::ChannelAttestClientRequest::new();
-            request.mut_client_attestation_response().set_quote(quote);
-
-            let _response: api::ChannelAttestClientResponse =
-                self.call(api::METHOD_CHANNEL_ATTEST_CLIENT, request)?;
-        }
+            .setup(&quote.get_public_key(), &response.take_response_box())?;
 
         Ok(())
     }
@@ -255,22 +233,12 @@ impl SecureChannelContext {
             &mut shared_key,
         )?;
 
-        let mut response_box: api::ChannelInitResponseBox =
-            protobuf::parse_from_bytes(&response_box)?;
+        let response_box: api::ChannelInitResponseBox = protobuf::parse_from_bytes(&response_box)?;
 
         self.contract_short_term_public_key
             .copy_from_slice(&response_box.get_short_term_public_key());
 
-        // Check if client attestation is required.
-        if response_box.has_client_attestation_request() {
-            let mut attestation_request = response_box.take_client_attestation_request();
-            self.client_attestation_nonce = attestation_request.take_nonce();
-            self.client_attestation_spid = attestation_request.take_spid();
-            self.state
-                .transition_to(SessionState::ClientAttestationRequired)?;
-        } else {
-            self.state.transition_to(SessionState::Established)?;
-        }
+        self.state.transition_to(SessionState::Established)?;
 
         Ok(())
     }
@@ -291,16 +259,6 @@ impl SecureChannelContext {
     /// Get client short-term public key.
     pub fn get_client_public_key(&self) -> &sodalite::BoxPublicKey {
         &self.client_public_key
-    }
-
-    /// Get client attestation nonce for mutual attestation.
-    pub fn get_client_attestation_nonce(&self) -> &Vec<u8> {
-        &self.client_attestation_nonce
-    }
-
-    /// Get client attestation SPID for mutual attestation.
-    pub fn get_client_attestation_spid(&self) -> &Vec<u8> {
-        &self.client_attestation_spid
     }
 
     /// Create cryptographic box with RPC request.

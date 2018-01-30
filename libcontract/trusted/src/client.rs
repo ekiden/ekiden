@@ -2,13 +2,13 @@ use sodalite;
 
 use libcontract_common::api;
 use libcontract_common::client::ClientEndpoint;
-use libcontract_common::quote::{Quote, QUOTE_CONTEXT_SC_CLIENT_TO_CONTRACT};
+use libcontract_common::quote::{AttestationReport, QUOTE_CONTEXT_SC};
 
 use compute_client::Error;
 use compute_client::backend::ContractClientBackend;
 
 use super::dispatcher;
-use super::quote::{create_report_data_for_public_key, get_quote, get_spid, verify_quote};
+use super::quote::create_attestation_report_for_public_key;
 
 pub struct OcallContractClientBackend {
     /// Endpoint that the client is connecting to.
@@ -39,27 +39,15 @@ impl ContractClientBackend for OcallContractClientBackend {
         )?)
     }
 
-    /// Get SPID that can be used to verify the quote later.
-    fn get_spid(&self) -> Result<Vec<u8>, Error> {
-        Ok(get_spid()?)
-    }
-
-    /// Verify quote via IAS.
-    fn verify_quote(&self, quote: Vec<u8>) -> Result<Quote, Error> {
-        Ok(verify_quote(quote)?)
-    }
-
-    /// Get quote of the local enclave for mutual attestation.
-    fn get_quote(
+    /// Get attestation report of the local enclave for mutual attestation.
+    fn get_attestation_report(
         &self,
-        spid: &Vec<u8>,
-        nonce: &Vec<u8>,
         public_key: &sodalite::BoxPublicKey,
-    ) -> Result<Vec<u8>, Error> {
-        Ok(get_quote(
-            spid.as_slice(),
-            &QUOTE_CONTEXT_SC_CLIENT_TO_CONTRACT,
-            create_report_data_for_public_key(nonce.as_slice(), &public_key)?,
+    ) -> Result<AttestationReport, Error> {
+        Ok(create_attestation_report_for_public_key(
+            &QUOTE_CONTEXT_SC,
+            &[0; 16],
+            &public_key,
         )?)
     }
 }

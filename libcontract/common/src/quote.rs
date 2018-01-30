@@ -2,14 +2,16 @@ use std::io;
 use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::str::FromStr;
 
+use base64;
 use byteorder::{LittleEndian, ReadBytesExt};
+use serde_json;
+
+use super::{api, ContractError};
 
 pub const QUOTE_CONTEXT_LEN: usize = 8;
 pub type QuoteContext = [u8; QUOTE_CONTEXT_LEN];
-/// Secure channel contract -> client RA (EkQ-CoCl).
-pub const QUOTE_CONTEXT_SC_CONTRACT_TO_CLIENT: QuoteContext = [69, 107, 81, 45, 67, 111, 67, 108];
-/// Secure channel client -> contract RA (EkQ-ClCo).
-pub const QUOTE_CONTEXT_SC_CLIENT_TO_CONTRACT: QuoteContext = [69, 107, 81, 45, 67, 108, 67, 111];
+/// Secure channel binding (EkQ-CoCl).
+pub const QUOTE_CONTEXT_SC: QuoteContext = [69, 107, 81, 45, 67, 111, 67, 108];
 
 // MRENCLAVE.
 hex_encoded_struct!(MrEnclave, MRENCLAVE_LEN, 32);
@@ -129,5 +131,80 @@ impl Quote {
     /// Extract MRENCLAVE from report body.
     pub fn get_mr_enclave(&self) -> &MrEnclave {
         &self.report_body.mr_enclave
+    }
+}
+
+/// Attestation report.
+#[derive(Default, Debug)]
+pub struct AttestationReport {
+    /// Raw report body (must be raw as the signature is computed over it). The body
+    /// is JSON-encoded as per the IAS API specification.
+    body: Vec<u8>,
+    /// Report signature.
+    signature: Vec<u8>,
+    /// Report signing certificate chain in PEM format.
+    certificates: Vec<u8>,
+}
+
+impl AttestationReport {
+    pub fn new(body: Vec<u8>, signature: Vec<u8>, certificates: Vec<u8>) -> Self {
+        AttestationReport {
+            body: body,
+            signature: signature,
+            certificates: certificates,
+        }
+    }
+
+    /// Verify attestation report.
+    pub fn verify(&self) -> Result<(), ContractError> {
+        // TODO: Verify IAS signature.
+
+        Ok(())
+    }
+
+    /// Decode quote from attestation report.
+    ///
+    /// If the quote cannot be verified, an error will be returned.
+    pub fn get_quote(&self) -> Result<Quote, ContractError> {
+        self.verify()?;
+
+        // Parse quote from body.
+        let body: serde_json::Value = match serde_json::from_slice(self.body.as_slice()) {
+            Ok(body) => body,
+            _ => return Err(ContractError::new("Failed to parse report body")),
+        };
+
+        // TODO: Check timestamp, reject if report is too old (e.g. 1 day).
+
+        let quote = match body["isvEnclaveQuoteBody"].as_str() {
+            Some(quote) => quote,
+            None => return Err(ContractError::new("Failed to parse quote")),
+        };
+
+        let quote = match base64::decode(&quote) {
+            Ok(quote) => quote,
+            _ => return Err(ContractError::new("Failed to parse quote")),
+        };
+
+        let quote = match Quote::decode(&quote) {
+            Ok(quote) => quote,
+            _ => return Err(ContractError::new("Failed to parse quote")),
+        };
+
+        // TODO: Verify enclave attributes.
+
+        Ok(quote)
+    }
+
+    /// Get a serialized version of this report.
+    pub fn serialize(&self) -> api::AttestationReport {
+        // TODO: This should be removed once we use serde instead of Protocol Buffers.
+
+        let mut message = api::AttestationReport::new();
+        message.set_body(self.body.clone());
+        message.set_signature(self.signature.clone());
+        message.set_certificates(self.certificates.clone());
+
+        message
     }
 }

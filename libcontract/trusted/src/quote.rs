@@ -1,4 +1,3 @@
-use sgx_trts;
 use sgx_tse;
 use sgx_types::*;
 
@@ -95,8 +94,6 @@ pub fn get_quote(
     };
 
     // Request the quoting enclave to generate a quote from our report.
-    let mut qe_report = sgx_report_t::default();
-    let mut qe_nonce = sgx_quote_nonce_t { rand: [0; 16] };
     let mut s_spid = sgx_spid_t { id: [0; 16] };
 
     // Maximum quote size is 16K.
@@ -105,38 +102,21 @@ pub fn get_quote(
 
     s_spid.id.copy_from_slice(&spid[..16]);
 
-    match sgx_trts::rsgx_read_rand(&mut qe_nonce.rand) {
-        Ok(_) => {}
-        _ => return Err(ContractError::new("Failed to generate random nonce")),
-    };
-
     sgx_call!("Failed to get quote", result, {
         untrusted::untrusted_get_quote(
             &mut result,
             &report as *const sgx_report_t,
             sgx_quote_sign_type_t::SGX_UNLINKABLE_SIGNATURE,
             &s_spid as *const sgx_spid_t,
-            &qe_nonce as *const sgx_quote_nonce_t,
-            &mut qe_report as *mut sgx_report_t,
             quote.as_mut_ptr() as *mut u8,
             quote.capacity() as u32,
             &mut quote_size,
         )
     });
 
-    match sgx_tse::rsgx_verify_report(&qe_report) {
-        Ok(_) => {}
-        _ => return Err(ContractError::new("Failed to get quote")),
-    };
-
     unsafe {
         quote.set_len(quote_size as usize);
     }
-
-    // TODO: Verify QE signature. Note that this may not be the QE enclave at all as
-    // untrusted_init_quote can provide an arbitrary enclave target. Is there a way
-    // to get the QE identity in a secure way?
-    // lower 32Bytes in report.data = SHA256(qe_nonce||quote).
 
     Ok(quote)
 }
@@ -153,9 +133,7 @@ pub fn get_spid() -> Result<Vec<u8>, ContractError> {
 /// Verify quote via IAS.
 ///
 /// The quote must have been generated using an SPID returned by `get_spid`.
-pub fn verify_quote(quote: Vec<u8>) -> Result<Quote, ContractError> {
-    let decoded = Quote::decode(&quote)?;
-
+pub fn verify_quote(quote: Vec<u8>) -> Result<AttestationReport, ContractError> {
     let mut request = api::services::IasVerifyQuoteRequest::new();
     request.set_quote(quote);
 
@@ -164,10 +142,32 @@ pub fn verify_quote(quote: Vec<u8>) -> Result<Quote, ContractError> {
     random::get_random_bytes(&mut nonce)?;
     request.set_nonce(nonce.clone());
 
-    let response: api::services::IasVerifyQuoteResponse =
+    let mut response: api::services::IasVerifyQuoteResponse =
         dispatcher::untrusted_call_endpoint(&ClientEndpoint::IASProxyVerifyQuote, request)?;
 
-    // TODO: Check response, verify signatures, verify nonce etc.
+    let mut report = response.take_report();
 
-    Ok(decoded)
+    let report = AttestationReport::new(
+        report.take_body(),
+        report.take_signature(),
+        report.take_certificates(),
+    );
+
+    Ok(report)
+}
+
+/// Create attestation report for given public key.
+pub fn create_attestation_report_for_public_key(
+    quote_context: &QuoteContext,
+    nonce: &[u8],
+    public_key: &sodalite::BoxPublicKey,
+) -> Result<AttestationReport, ContractError> {
+    let quote = get_quote(
+        &get_spid()?,
+        &quote_context,
+        create_report_data_for_public_key(&nonce, &public_key)?,
+    )?;
+
+    // Then, contact IAS to get the attestation report.
+    Ok(verify_quote(quote)?)
 }

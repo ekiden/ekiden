@@ -1,8 +1,10 @@
 #![cfg_attr(feature = "sgx", no_std)]
 #![cfg_attr(feature = "sgx", feature(prelude_import))]
 
+extern crate base64;
 extern crate byteorder;
 extern crate protobuf;
+extern crate serde_json;
 extern crate sodalite;
 
 #[cfg(feature = "sgx")]

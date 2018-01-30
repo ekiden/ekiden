@@ -4,7 +4,6 @@ use protobuf::Message;
 use std;
 
 use std::fmt::Write;
-use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::SyncSender;
@@ -12,15 +11,11 @@ use std::sync::mpsc::SyncSender;
 use libcontract_common;
 use libcontract_untrusted::enclave;
 
-use generated::compute_web3::{CallContractRequest, CallContractResponse, IasGetSpidRequest,
-                              IasGetSpidResponse, IasVerifyQuoteRequest, IasVerifyQuoteResponse,
-                              IasVerifyQuoteResponse_Status};
+use generated::compute_web3::{CallContractRequest, CallContractResponse};
 use generated::compute_web3_grpc::Compute;
 use generated::consensus;
 use generated::consensus_grpc;
 use generated::consensus_grpc::Consensus;
-
-use super::ias::IAS;
 
 /// This struct describes a call sent to the worker thread.
 struct QueuedRequest {
@@ -318,15 +313,13 @@ impl ComputeServerWorker {
 pub struct ComputeServerImpl {
     /// Channel for submitting requests to the worker.
     request_sender: Mutex<Sender<QueuedRequest>>,
-    /// IAS service.
-    ias: Arc<IAS>,
     /// Instrumentation objects.
     ins: super::instrumentation::HandlerMetrics,
 }
 
 impl ComputeServerImpl {
     /// Create new compute server instance.
-    pub fn new(contract_filename: &str, ias: Arc<IAS>) -> Self {
+    pub fn new(contract_filename: &str) -> Self {
         let contract_filename_owned = String::from(contract_filename);
         let (request_sender, request_receiver) = std::sync::mpsc::channel();
         // move request_receiver
@@ -335,7 +328,6 @@ impl ComputeServerImpl {
         });
         ComputeServerImpl {
             request_sender: Mutex::new(request_sender),
-            ias: ias,
             ins: super::instrumentation::HandlerMetrics::new(),
         }
     }
@@ -360,50 +352,5 @@ impl Compute for ComputeServerImpl {
                 .unwrap();
         }
         response_receiver.recv().unwrap()
-    }
-
-    fn ias_get_spid(
-        &self,
-        _options: grpc::RequestOptions,
-        _request: IasGetSpidRequest,
-    ) -> grpc::SingleResponse<IasGetSpidResponse> {
-        let mut response = IasGetSpidResponse::new();
-
-        response.set_spid(self.ias.get_spid().to_vec());
-
-        return grpc::SingleResponse::completed(response);
-    }
-
-    fn ias_verify_quote(
-        &self,
-        _options: grpc::RequestOptions,
-        request: IasVerifyQuoteRequest,
-    ) -> grpc::SingleResponse<IasVerifyQuoteResponse> {
-        let mut response = IasVerifyQuoteResponse::new();
-
-        match self.ias
-            .verify_quote(request.get_nonce(), request.get_quote())
-        {
-            Ok(report) => {
-                response.set_status(match report.status {
-                    200 => IasVerifyQuoteResponse_Status::SUCCESS,
-                    400 => IasVerifyQuoteResponse_Status::ERROR_BAD_REQUEST,
-                    401 => IasVerifyQuoteResponse_Status::ERROR_UNAUTHORIZED,
-                    500 => IasVerifyQuoteResponse_Status::ERROR_INTERNAL_SERVER_ERROR,
-                    503 => IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE,
-                    _ => IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE,
-                });
-
-                response.set_body(report.body);
-                response.set_signature(report.signature);
-                response.set_certificates(report.certificates);
-            }
-            _ => {
-                // Verification failed due to IAS communication error.
-                response.set_status(IasVerifyQuoteResponse_Status::ERROR_SERVICE_UNAVAILABLE);
-            }
-        }
-
-        return grpc::SingleResponse::completed(response);
     }
 }

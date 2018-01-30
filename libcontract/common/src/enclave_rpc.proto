@@ -129,53 +129,33 @@ message ContractRestoreResponse {
     bytes public_key = 1;
 }
 
-message AttestationRequest {
-    // 16-byte random nonce.
-    bytes nonce = 1;
-    // 16-byte SPID used for verifying remote attestation.
-    bytes spid = 2;
-}
-
-message AttestationResponse {
-    // Encoded signed attestation quote. This quote contains the public key
-    // of the contract/client.
-    bytes quote = 1;
+message AttestationReport {
+    // Raw report body (must be raw as the signature is computed over it). The body
+    // is JSON-encoded as per the IAS API specification.
+    bytes body = 1;
+    // Report signature.
+    bytes signature = 2;
+    // Report signing certificate chain in PEM format.
+    bytes certificates = 3;
 }
 
 message ChannelInitRequest {
-    // Request for the contract to attest itself.
-    AttestationRequest contract_attestation_request = 1;
     // 32-byte client short-term public key.
-    bytes short_term_public_key = 2;
+    bytes short_term_public_key = 1;
+    // Optional client attestation report.
+    AttestationReport client_attestation_report = 2;
 }
 
 message ChannelInitResponseBox {
     // Server short-term public key.
     bytes short_term_public_key = 1;
-    // Optional request for the client to attest itself. This is only set when
-    // the contract requires the client to be an enclave. If this is set, the
-    // client must call _channel_attest_client with the corresponding response.
-    //
-    // Until the client attests itself, the channel is not considered established
-    // and calling any other method will fail.
-    //
-    // This cryptographic box contains an AttestationRequest message.
-    AttestationRequest client_attestation_request = 2;
 }
 
 message ChannelInitResponse {
-    // Contract attestation response.
-    AttestationResponse contract_attestation_response = 1;
+    // Contract attestation report.
+    AttestationReport contract_attestation_report = 1;
     // Encrypted ChannelInitResponseBox message.
     CryptoBox response_box = 2;
-}
-
-message ChannelAttestClientRequest {
-    // Client attestation response.
-    AttestationResponse client_attestation_response = 1;
-}
-
-message ChannelAttestClientResponse {
 }
 
 message ChannelCloseRequest {

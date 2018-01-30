@@ -145,7 +145,6 @@ fn main() {
     }
     server.add_service(ComputeServer::new_service_def(ComputeServerImpl::new(
         &contract_filename,
-        ias.clone(),
     )));
     let num_threads = value_t!(matches, "grpc-threads", usize).unwrap();
     server.http.set_cpu_pool_threads(num_threads);
