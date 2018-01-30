@@ -7,6 +7,8 @@ use protobuf::Message;
 
 use libcontract_common;
 
+/// Diff: create a summary of changes that can be applied to `old` to recreate `new`.
+/// This is the actual diffing algorithm implementation.
 fn diff_internal(old: &[u8], new: &[u8]) -> std::io::Result<Vec<u8>> {
     let mut enc = bzip2::write::BzEncoder::new(std::io::Cursor::new(Vec::new()), bzip2::Compression::Default);
     bsdiff::diff::diff(old, new, &mut enc)?;
@@ -16,6 +18,8 @@ fn diff_internal(old: &[u8], new: &[u8]) -> std::io::Result<Vec<u8>> {
     Ok(m.write_to_bytes()?)
 }
 
+/// Apply: change `old` as specified by `diff`.
+/// `apply_internal(&old, &diff_internal(&old, &new))` should be the same as `new`.
 fn apply_internal(old: &[u8], diff: &[u8]) -> std::io::Result<Vec<u8>> {
     let m: libcontract_common::api::BsdiffPatch = protobuf::parse_from_bytes(diff)?;
     let mut dec = bzip2::read::BzDecoder::new(std::io::Cursor::new(m.get_patch_bz2()));
