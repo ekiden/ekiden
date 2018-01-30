@@ -1,5 +1,4 @@
 use grpc;
-use prometheus;
 use protobuf;
 use protobuf::Message;
 use std;
@@ -43,43 +42,15 @@ struct QueuedResponse<'a> {
 struct ComputeServerWorker {
     /// Contract running in an enclave.
     contract: enclave::EkidenEnclave,
-    // Instrumentation objects.
-    /// Incremented in each batch of requests.
-    ins_reqs_batches_started: prometheus::Counter,
-    /// Time spent by worker thread in an entire batch of requests.
-    ins_req_time_batch: prometheus::Histogram,
-    /// Time spent by worker thread in a single request.
-    ins_req_time_enclave: prometheus::Histogram,
-    /// Time spent getting state from consensus.
-    ins_consensus_get_time: prometheus::Histogram,
-    /// Time spent setting state in consensus.
-    ins_consensus_set_time: prometheus::Histogram,
+    /// Instrumentation objects.
+    ins: super::instrumentation::WorkerMetrics,
 }
 
 impl ComputeServerWorker {
     fn new(contract_filename: String) -> Self {
         ComputeServerWorker {
             contract: Self::create_contract(&contract_filename),
-            ins_reqs_batches_started: register_counter!(
-                "reqs_batches_started",
-                "Incremented in each batch of requests."
-            ).unwrap(),
-            ins_req_time_batch: register_histogram!(
-                "req_time_batch",
-                "Time spent by worker thread in an entire batch of requests."
-            ).unwrap(),
-            ins_req_time_enclave: register_histogram!(
-                "req_time_enclave",
-                "Time spent by worker thread in a single request."
-            ).unwrap(),
-            ins_consensus_get_time: register_histogram!(
-                "consensus_get_time",
-                "Time spent getting state from consensus."
-            ).unwrap(),
-            ins_consensus_set_time: register_histogram!(
-                "consensus_set_time",
-                "Time spent setting state in consensus."
-            ).unwrap(),
+            ins: super::instrumentation::WorkerMetrics::new(),
         }
     }
 
@@ -125,7 +96,7 @@ impl ComputeServerWorker {
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
         let enclave_response_bytes = {
-            let _enclave_timer = self.ins_req_time_enclave.start_timer();
+            let _enclave_timer = self.ins.req_time_enclave.start_timer();
             self.contract.call_raw(enclave_request_bytes)
         }?;
 
@@ -154,7 +125,7 @@ impl ComputeServerWorker {
 
         // Get state from consensus
         let mut encrypted_state_opt = {
-            let _consensus_get_timer = self.ins_consensus_get_time.start_timer();
+            let _consensus_get_timer = self.ins.consensus_get_time.start_timer();
             let consensus_result = consensus_client
                 .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
                 .wait();
@@ -200,7 +171,7 @@ impl ComputeServerWorker {
         // Set state in consensus
         if let Some(encrypted_state) = encrypted_state_opt {
             if ever_update_state {
-                let _consensus_set_timer = self.ins_consensus_set_time.start_timer();
+                let _consensus_set_timer = self.ins.consensus_set_time.start_timer();
                 let mut consensus_set_request = consensus::SetRequest::new();
                 consensus_set_request.set_payload(encrypted_state.write_to_bytes()?);
                 consensus_client
@@ -240,8 +211,8 @@ impl ComputeServerWorker {
     fn work(&self, request_receiver: std::sync::mpsc::Receiver<QueuedRequest>) {
         // Block for the next call.
         while let Ok(queued_request) = request_receiver.recv() {
-            self.ins_reqs_batches_started.inc();
-            let _batch_timer = self.ins_req_time_batch.start_timer();
+            self.ins.reqs_batches_started.inc();
+            let _batch_timer = self.ins.req_time_batch.start_timer();
             let mut request_batch = Vec::new();
             request_batch.push(queued_request);
             // Additionally dequeue any remaining requests.
@@ -259,11 +230,8 @@ pub struct ComputeServerImpl {
     request_sender: Mutex<Sender<QueuedRequest>>,
     /// IAS service.
     ias: Arc<IAS>,
-    // Instrumentation objects.
-    /// Incremented in each request.
-    ins_reqs_received: prometheus::Counter,
-    /// Time spent by grpc thread handling a request.
-    ins_req_time_client: prometheus::Histogram,
+    /// Instrumentation objects.
+    ins: super::instrumentation::HandlerMetrics,
 }
 
 impl ComputeServerImpl {
@@ -278,12 +246,7 @@ impl ComputeServerImpl {
         ComputeServerImpl {
             request_sender: Mutex::new(request_sender),
             ias: ias,
-            ins_reqs_received: register_counter!("reqs_received", "Incremented in each request.")
-                .unwrap(),
-            ins_req_time_client: register_histogram!(
-                "req_time_client",
-                "Time spent by grpc thread handling a request."
-            ).unwrap(),
+            ins: super::instrumentation::HandlerMetrics::new(),
         }
     }
 }
@@ -294,8 +257,8 @@ impl Compute for ComputeServerImpl {
         _options: grpc::RequestOptions,
         rpc_request: CallContractRequest,
     ) -> grpc::SingleResponse<CallContractResponse> {
-        self.ins_reqs_received.inc();
-        let _client_timer = self.ins_req_time_client.start_timer();
+        self.ins.reqs_received.inc();
+        let _client_timer = self.ins.req_time_client.start_timer();
         let (response_sender, response_receiver) = std::sync::mpsc::sync_channel(0);
         {
             let request_sender = self.request_sender.lock().unwrap();

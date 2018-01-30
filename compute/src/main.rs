@@ -22,6 +22,7 @@ extern crate libcontract_untrusted;
 
 mod generated;
 mod ias;
+mod instrumentation;
 mod handlers;
 mod server;
 
