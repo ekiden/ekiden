@@ -27,3 +27,11 @@ message CreateRequest {
 
 message CreateResponse {
 }
+
+message GetBalanceRequest {
+    string account = 1;
+}
+
+message GetBalanceResponse {
+    uint64 balance = 1;
+}
