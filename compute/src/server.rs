@@ -152,8 +152,8 @@ impl ComputeServerWorker {
     }
 
     fn get_cached_state_height(&self) -> Option<u64> {
-        match self.cached_state {
-            Some(ref csi) => Some(csi.height),
+        match self.cached_state.as_ref() {
+            Some(csi) => Some(csi.height),
             None => None,
         }
     }
@@ -173,7 +173,7 @@ impl ComputeServerWorker {
         &mut self,
         diffs: &[Vec<u8>],
     ) -> Result<libcontract_common::api::CryptoSecretbox, Box<std::error::Error>> {
-        let csi = &mut self.cached_state
+        let csi = self.cached_state
             .as_mut()
             .ok_or::<Box<std::error::Error>>(From::from(
                 "advance_cached_state called with uninitialized cached state",

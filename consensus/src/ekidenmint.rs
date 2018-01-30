@@ -27,34 +27,33 @@ impl Ekidenmint {
         state::State::check_tx(tx)?;
         match state::State::check_tx(tx) {
             Ok(_) => {
-                let stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
+                let mut stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
                 // Set the state
                 let mut s = self.state.lock().unwrap();
                 if stored.has_replace() {
-                    let current_height = match s.everything {
-                        Some(ref si) => si.checkpoint_height + si.diffs.len() as u64,
+                    let current_height = match s.everything.as_ref() {
+                        Some(si) => si.checkpoint_height + si.diffs.len() as u64,
                         None => 0,
                     };
                     s.everything = Some(state::StateInitialized {
-                        checkpoint: stored.get_replace().to_vec(),
+                        checkpoint: stored.take_replace(),
                         checkpoint_height: current_height + 1,
                         diffs: Vec::new(),
                     });
                     Ok(())
                 } else if stored.has_diff() {
-                    match s.everything {
-                        Some(ref mut si) => {
-                            si.diffs.push(stored.get_diff().to_vec());
+                    match s.everything.as_mut() {
+                        Some(si) => {
+                            si.diffs.push(stored.take_diff());
                             Ok(())
                         }
                         None => Err(From::from("Can't add diff to uninitialized state.")),
                     }
                 } else if stored.has_checkpoint() {
-                    match s.everything {
-                        Some(ref mut si) => {
-                            let current_height = si.checkpoint_height + si.diffs.len() as u64;
-                            si.checkpoint = stored.get_checkpoint().to_vec();
-                            si.checkpoint_height = current_height;
+                    match s.everything.as_mut() {
+                        Some(si) => {
+                            si.checkpoint = stored.take_checkpoint();
+                            si.checkpoint_height += si.diffs.len() as u64;
                             si.diffs.clear();
                             Ok(())
                         }
