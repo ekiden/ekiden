@@ -6,14 +6,10 @@ package learner;
 message LearnerState {
   string owner = 1;
   bytes model = 2;
-  repeated string inputs = 3;
-  repeated string targets = 4;
 }
 
 message CreateRequest {
   string requester = 1;
-  repeated string inputs = 2;
-  repeated string targets = 3;
 }
 
 message CreateResponse {
@@ -22,7 +18,8 @@ message CreateResponse {
 
 message TrainingRequest {
   string requester = 1;
-  repeated Example examples = 2;
+  Matrix inputs = 2;
+  repeated float targets = 3;
 }
 
 message TrainingResponse {
@@ -31,44 +28,23 @@ message TrainingResponse {
 
 message InferenceRequest {
   string requester = 1;
-  repeated Example examples = 2;
+  Matrix inputs = 2;
 }
 
 message InferenceResponse {
-  repeated Example predictions = 1;
+  repeated float predictions = 1;
   string log = 2;
 }
 
-
-// inlined from tensorflow
-// https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example
-
-message Examples {
-  repeated Example examples = 1;
+message Matrix {
+  int32 rows = 1;
+  int32 cols = 2;
+  repeated float data = 3;
 }
 
-message Example {
-  Features features = 1;
-};
-
-message Features {
-  map<string, Feature> feature = 1;
-};
-
-message Feature {
-  oneof kind {
-    BytesList bytes_list = 1;
-    FloatList float_list = 2;
-    Int64List int64_list = 3;
-  }
-};
-
-message BytesList {
-  repeated bytes value = 1;
-}
-message FloatList {
-  repeated float value = 1 [packed = true];
-}
-message Int64List {
-  repeated int64 value = 1 [packed = true];
+message Dataset {
+  Matrix train_inputs = 1;
+  repeated float train_targets = 2;
+  Matrix test_inputs = 3;
+  repeated float test_targets = 4;
 }

@@ -13,27 +13,13 @@ use api::LearnerState;
 pub struct Learner<M> {
     owner: Address,
     model: M,
-    inputs: Vec<String>,
-    targets: Vec<String>,
 }
 
 impl<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + DeserializeOwned> Learner<M> {
-    pub fn new(
-        owner: Address,
-        model: M,
-        inputs: Vec<String>,
-        targets: Vec<String>,
-    ) -> Result<Learner<M>, ContractError> {
-        if inputs.len() == 0 {
-            return Err(ContractError::new("No inputs specified."));
-        } else if targets.len() == 0 {
-            return Err(ContractError::new("No targets specified."));
-        }
+    pub fn new(owner: Address, model: M) -> Result<Learner<M>, ContractError> {
         Ok(Learner {
             owner: owner,
             model: model,
-            inputs: inputs,
-            targets: targets,
         })
     }
 
@@ -57,18 +43,6 @@ impl<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + DeserializeOwned> Learn
     pub fn get_owner(&self) -> Result<&Address, ContractError> {
         Ok(&self.owner)
     }
-
-    pub fn get_inputs(&self) -> Result<&Vec<String>, ContractError> {
-        Ok(&self.inputs)
-    }
-
-    pub fn get_targets(&self) -> Result<&Vec<String>, ContractError> {
-        Ok(&self.targets)
-    }
-
-    pub fn get_model(&self) -> Result<&M, ContractError> {
-        Ok(&self.model)
-    }
 }
 
 impl<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + DeserializeOwned> Contract<LearnerState>
@@ -78,8 +52,6 @@ impl<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + DeserializeOwned> Contr
         let mut state = LearnerState::new();
         state.set_owner(self.owner.to_string());
         state.set_model(serde_cbor::to_vec(&self.model).expect("Unable to serialize model."));
-        state.set_inputs(protobuf::RepeatedField::from_vec(self.inputs.clone()));
-        state.set_targets(protobuf::RepeatedField::from_vec(self.targets.clone()));
         state
     }
 
@@ -87,8 +59,6 @@ impl<M: SupModel<Matrix<f64>, Vector<f64>> + Serialize + DeserializeOwned> Contr
         Learner {
             owner: Address::from(state.get_owner().to_string()),
             model: serde_cbor::from_slice(state.get_model()).expect("Unable to deserialize model."),
-            inputs: state.get_inputs().to_vec(),
-            targets: state.get_targets().to_vec(),
         }
     }
 }

@@ -22,11 +22,10 @@ pub use libcontract_common::{Address, Contract, ContractError};
 
 use rusty_machine::learning::logistic_reg::LogisticRegressor;
 use rusty_machine::learning::optim::grad_desc::GradientDesc;
-use rusty_machine::prelude::*;
+use rusty_machine::linalg;
 
 use learner::Learner;
 use learner::api::*;
-use learner::utils::{pack_proto, unpack_feature_matrix, unpack_feature_vector};
 
 create_enclave_api!();
 
@@ -36,8 +35,6 @@ fn create(req: &CreateRequest) -> Result<(LearnerState, CreateResponse), Contrac
     let learner = Learner::new(
         Address::from(req.get_requester().to_string()),
         LogisticRegressor::default(),
-        req.get_inputs().to_vec(),
-        req.get_targets().to_vec(),
     )?;
     Ok((learner.get_state(), CreateResponse::new()))
 }
@@ -48,9 +45,23 @@ fn train(
 ) -> Result<(LearnerState, TrainingResponse), ContractError> {
     let mut learner = check_owner!(Model, state, req);
 
-    let examples = req.get_examples();
-    let xs = unpack_feature_matrix(examples, learner.get_inputs()?)?;
-    let ys = unpack_target_vec!(examples, learner.get_targets()?)?;
+    let inputs = req.get_inputs();
+    let xs: linalg::Matrix<f64> = linalg::Matrix::new(
+        inputs.get_rows() as usize,
+        inputs.get_cols() as usize,
+        inputs
+            .get_data()
+            .to_vec()
+            .iter()
+            .map(|&v| v as f64)
+            .collect::<Vec<f64>>(),
+    );
+    let ys = linalg::Vector::new(
+        req.get_targets()
+            .iter()
+            .map(|&v| v as f64)
+            .collect::<Vec<f64>>(),
+    );
     learner.train(&xs, &ys)?;
 
     Ok((learner.get_state(), TrainingResponse::new()))
@@ -59,12 +70,19 @@ fn train(
 fn infer(state: &LearnerState, req: &InferenceRequest) -> Result<InferenceResponse, ContractError> {
     let learner = check_owner!(Model, state, req);
 
-    let xs = unpack_feature_matrix(req.get_examples(), learner.get_inputs()?)?;
+    let inputs = req.get_inputs();
+    let xs = linalg::Matrix::new(
+        inputs.get_rows() as usize,
+        inputs.get_cols() as usize,
+        inputs
+            .get_data()
+            .iter()
+            .map(|&v| v as f64)
+            .collect::<Vec<f64>>(),
+    );
     let preds = learner.infer(&xs)?;
 
     let mut response = InferenceResponse::new();
-    response.set_predictions(pack_proto(vec![
-        ("preds".to_string(), Matrix::from(preds)),
-    ])?);
+    response.set_predictions(preds.data().iter().map(|&v| v as f32).collect::<Vec<f32>>());
     Ok(response)
 }

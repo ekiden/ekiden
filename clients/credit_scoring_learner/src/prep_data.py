@@ -21,10 +21,6 @@ import pandas as pd
 DS_URL = ('https://archive.ics.uci.edu/ml/machine-learning-databases'
           '/00350/default%20of%20credit%20card%20clients.xls')
 
-DATA_DIR = osp.join(tempfile.gettempdir(), 'credit_scoring_data')
-DATA_PROTO = osp.join(DATA_DIR, 'data.pb')
-DATA_CSV = osp.join(DATA_DIR, 'data.csv')
-
 BILLS = range(1, 7)
 NUMERIC_COLS = (['LIMIT_BAL', 'AGE'] +
                 ['BILL_AMT%d' % i for i in BILLS] +
@@ -38,6 +34,8 @@ def _prep_data():
                 .rename(columns={'PAY_0': 'PAY_1'}))
 
     data = pd.get_dummies(raw_data, columns=INDICATOR_COLS)
+    num_cols = raw_data.loc[:, NUMERIC_COLS]
+    data.loc[:, NUMERIC_COLS] = (num_cols - num_cols.mean(0)) / (num_cols.std(0) + 1e-8)
     data = data.assign(**{
         'PAY_DULY_%d' % i: (raw_data['PAY_%d' % i] == -1) * 1 for i in BILLS})
     data = data.rename(columns={'default payment next month': 'will_default'})
@@ -46,61 +44,49 @@ def _prep_data():
     return data
 
 
-def _pack_proto(proto_api, data_df):
-    examples = []
-    for _i, row in data_df.iterrows():
-        feature = {}
-        for col_name, val in row.iteritems():
-            if isinstance(val, str):
-                feature[col_name] = proto_api.Feature(
-                    bytes_list=proto_api.BytesList(value=[val]))
-            else:
-                feature[col_name] = proto_api.Feature(
-                    float_list=proto_api.FloatList(value=[val]))
-        examples.append(proto_api.Example(
-            features=proto_api.Features(feature=feature)))
-    return proto_api.Examples(examples=examples)
+def _pack_proto(api, train_inputs, train_targets, test_inputs, test_targets):
+    def _mk_matrix(data):
+        return api.Matrix(rows=data.shape[0],
+                          cols=data.shape[1],
+                          data=data.ravel().tolist())
+    return api.Dataset(train_inputs=_mk_matrix(train_inputs),
+                       train_targets=train_targets.tolist(),
+                       test_inputs=_mk_matrix(test_inputs),
+                       test_targets=test_targets.tolist())
 
 
 def _split_data(data, train_frac, seed):
     np.random.seed(seed)
     shuf_data = data.reindex(np.random.permutation(data.index))
     split_idx = int(len(data) * train_frac)
-    is_train = np.ones(len(data))
-    is_train[split_idx:] = 0
-    return shuf_data.assign(is_train=is_train)
+
+    targets = data.pop('will_default').as_matrix()
+    inputs = data.as_matrix()
+
+
+    inputs_train = inputs[:split_idx]
+    inputs_test = inputs[split_idx:]
+    targets_train = targets[:split_idx]
+    targets_test = targets[split_idx:]
+
+    return inputs_train, targets_train, inputs_test, targets_test
 
 
 def main():
-    if osp.isfile(DATA_PROTO):
-        with open(DATA_PROTO) as f_ds:
-            sys.stdout.write(f_ds.read())
-            sys.stdout.flush()
-            return
-
-    # exit()
     parser = argparse.ArgumentParser()
     parser.add_argument('--api-proto', required=True, type=osp.abspath)
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--train-frac', type=float, default=2./3.)
+    parser.add_argument('--train-frac', type=float, default=0.8)
     args = parser.parse_args()
-
-    if not osp.isdir(DATA_DIR):
-        os.mkdir(DATA_DIR)
 
     prepped_data = _prep_data()
     split_data = _split_data(prepped_data, args.train_frac, args.seed)
-    split_data.to_csv(DATA_CSV)
 
     api_pb2 = imp.load_source('api_pb2', args.api_proto)
-    proto_data = _pack_proto(api_pb2, split_data)
-    ser_data = proto_data.SerializeToString()
-
-    with open(DATA_PROTO, 'w') as f_ds:
-        f_ds.write(ser_data)
+    proto_data = _pack_proto(api_pb2, *split_data)
 
     if not sys.stdout.isatty():
-        sys.stdout.write(ser_data)
+        sys.stdout.write(proto_data.SerializeToString())
         sys.stdout.flush()
 
 
