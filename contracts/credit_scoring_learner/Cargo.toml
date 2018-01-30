@@ -12,7 +12,6 @@ crate-type = ["staticlib"]
 default = []
 
 [dependencies]
-credit-scoring-learner-api = { path = "./api", features = ["sgx"], default-features = false }
 learner = { path = "../learner" }
 libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
 libcontract-trusted = { path = "../../libcontract/trusted" }

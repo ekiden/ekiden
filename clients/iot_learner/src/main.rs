@@ -14,10 +14,10 @@ use clap::{App, Arg};
 use rulinalg::norm::Euclidean;
 use rulinalg::vector::Vector;
 
-create_client_api!();
 use learner_contract::api::*;
-
 use learner_contract::utils::unpack_feature_vector;
+
+create_client_api!();
 
 fn main() {
     let data_output = std::process::Command::new("python2")

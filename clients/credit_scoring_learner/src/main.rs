@@ -9,21 +9,19 @@ extern crate client_utils;
 extern crate compute_client;
 extern crate libcontract_common;
 
-#[macro_use]
-extern crate credit_scoring_learner_api;
+extern crate learner as learner_contract;
 
 use clap::{App, Arg};
+use std::process::{Command, Stdio};
 
-use credit_scoring_learner_api::*;
+use learner_contract::api::*;
+use learner_contract::utils::unpack_feature_vector;
+
 create_client_api!();
 
 fn main() {
-    let data_output = std::process::Command::new("python2")
+    let data_output = Command::new("python2")
         .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/src/prep_data.py"))
-        .args(&[
-            "--api-proto",
-            "/code/contracts/learner/api/src/generated/api_pb2.py",
-        ])
         .output()
         .expect("Could not fetch data.");
     assert!(
@@ -32,11 +30,24 @@ fn main() {
         String::from_utf8(data_output.stderr).unwrap_or("Could not generate data".to_string())
     );
 
-    let examples_proto: Examples =
+    let mut examples_proto: Examples =
         protobuf::parse_from_bytes(&data_output.stdout).expect("Unable to parse Examples.");
-    let examples = examples_proto.get_examples();
+    let (train_examples, test_examples): (Vec<Example>, Vec<Example>) = examples_proto
+        .take_examples()
+        .into_iter()
+        .partition(|example| {
+            *example
+                .get_features()
+                .get_feature()
+                .get("is_train")
+                .unwrap()
+                .get_float_list()
+                .get_value()
+                .first()
+                .unwrap() == 1.0f32
+        });
 
-    let mut client = contract_client!(credit_scoring_learner);
+    let mut client = contract_client!(learner);
     let user = "Rusty Lerner".to_string();
 
     let _create_res = client
@@ -98,29 +109,31 @@ fn main() {
         .train({
             let mut req = TrainingRequest::new();
             req.set_requester(user.clone());
-            req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
+            req.set_examples(protobuf::RepeatedField::from_vec(train_examples));
             req
         })
         .expect("error: train");
 
-    let params_res = client
-        .get_parameters({
-            let mut req = ParametersRequest::new();
+    let infer_res = client
+        .infer({
+            let mut req = learner::InferenceRequest::new();
             req.set_requester(user.clone());
+            req.set_examples(protobuf::RepeatedField::from_vec(test_examples));
             req
         })
-        .expect("error: parameters");
+        .expect("error: infer");
 
-    let params = params_res.get_parameters();
+    let preds = unpack_feature_vector(infer_res.get_predictions(), "preds").unwrap();
 
-    let mut evaluator = std::process::Command::new("python2")
+    let mut evaluator = Command::new("python2")
         .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/src/evaluate.py"))
+        .stdin(Stdio::piped())
         .spawn()
         .expect("Could not run evaluation script.");
     serde_pickle::to_writer(
         evaluator.stdin.as_mut().unwrap(),
-        &params,
+        preds.data(),
         false, /* use pickle 3 */
-    ).unwrap();
-    evaluator.wait().unwrap();
+    ).expect("Could not send params.");
+    evaluator.wait().expect("Evaluator script failed.");
 }

@@ -81,7 +81,7 @@ def _fetch_dataframe():
     now = datetime.now(pytz.timezone('America/Los_Angeles'))
 
     start = (now + timedelta(minutes=15)).strftime(DATE_FMT)
-    end = (now - timedelta(days=1)).strftime(DATE_FMT)
+    end = (now - timedelta(days=7)).strftime(DATE_FMT)
 
     dfs = make_dataframe(archiver.window_uuids(UUIDS, end, start, INTERVAL))
 

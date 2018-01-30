@@ -9,15 +9,21 @@ into proto format. The serialized data are cached so future runs will be fast.
 
 import argparse
 import imp
+import os
 from os import path as osp
 import sys
 import tempfile
 
+import numpy as np
 import pandas as pd
 
-DS_URL = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00350/default%20of%20credit%20card%20clients.xls'
-PROTO_CACHE = osp.join(tempfile.gettempdir(), 'data.pb')
-PREPPED_DATA_CSV = osp.join(tempfile.gettempdir(), 'data.csv')
+
+DS_URL = ('https://archive.ics.uci.edu/ml/machine-learning-databases'
+          '/00350/default%20of%20credit%20card%20clients.xls')
+
+DATA_DIR = osp.join(tempfile.gettempdir(), 'credit_scoring_data')
+DATA_PROTO = osp.join(DATA_DIR, 'data.pb')
+DATA_CSV = osp.join(DATA_DIR, 'data.csv')
 
 BILLS = range(1, 7)
 NUMERIC_COLS = (['LIMIT_BAL', 'AGE'] +
@@ -40,47 +46,62 @@ def _prep_data():
     return data
 
 
-def _pack_proto(proto_api, df):
+def _pack_proto(proto_api, data_df):
     examples = []
-    for _i, row in df.iterrows():
+    for _i, row in data_df.iterrows():
         feature = {}
-        for col_name, v in row.iteritems():
-            if isinstance(v, str):
+        for col_name, val in row.iteritems():
+            if isinstance(val, str):
                 feature[col_name] = proto_api.Feature(
-                    bytes_list=proto_api.BytesList(value=[v]))
+                    bytes_list=proto_api.BytesList(value=[val]))
             else:
                 feature[col_name] = proto_api.Feature(
-                    float_list=proto_api.FloatList(value=[v]))
+                    float_list=proto_api.FloatList(value=[val]))
         examples.append(proto_api.Example(
             features=proto_api.Features(feature=feature)))
     return proto_api.Examples(examples=examples)
 
 
+def _split_data(data, train_frac, seed):
+    np.random.seed(seed)
+    shuf_data = data.reindex(np.random.permutation(data.index))
+    split_idx = int(len(data) * train_frac)
+    is_train = np.ones(len(data))
+    is_train[split_idx:] = 0
+    return shuf_data.assign(is_train=is_train)
+
+
 def main():
-    if osp.isfile(PROTO_CACHE):
-        with open(PROTO_CACHE) as f_ds:
+    if osp.isfile(DATA_PROTO):
+        with open(DATA_PROTO) as f_ds:
             sys.stdout.write(f_ds.read())
             sys.stdout.flush()
             return
 
+    # exit()
     parser = argparse.ArgumentParser()
     parser.add_argument('--api-proto', required=True, type=osp.abspath)
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--train-frac', type=float, default=2./3.)
     args = parser.parse_args()
 
+    if not osp.isdir(DATA_DIR):
+        os.mkdir(DATA_DIR)
+
+    prepped_data = _prep_data()
+    split_data = _split_data(prepped_data, args.train_frac, args.seed)
+    split_data.to_csv(DATA_CSV)
+
     api_pb2 = imp.load_source('api_pb2', args.api_proto)
-
-    data = _prep_data()
-    data.to_csv(PREPPED_DATA_CSV)
-
-    proto_data = _pack_proto(api_pb2, data)
+    proto_data = _pack_proto(api_pb2, split_data)
     ser_data = proto_data.SerializeToString()
 
-    with open(PROTO_CACHE, 'w') as f_ds:
+    with open(DATA_PROTO, 'w') as f_ds:
         f_ds.write(ser_data)
 
-    exit()
-    sys.stdout.write(ser_data)
-    sys.stdout.flush()
+    if not sys.stdout.isatty():
+        sys.stdout.write(ser_data)
+        sys.stdout.flush()
 
 
 if __name__ == '__main__':

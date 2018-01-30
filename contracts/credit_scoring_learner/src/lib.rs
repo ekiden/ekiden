@@ -15,11 +15,8 @@ extern crate libcontract_trusted;
 #[prelude_import]
 use std::prelude::v1::*;
 
-#[macro_use(check_owner, unpack_target_vec)]
-extern crate learner;
-
 #[macro_use]
-extern crate credit_scoring_learner_api;
+extern crate learner;
 
 pub use libcontract_common::{Address, Contract, ContractError};
 
@@ -28,11 +25,8 @@ use rusty_machine::learning::optim::grad_desc::GradientDesc;
 use rusty_machine::prelude::*;
 
 use learner::Learner;
-use learner::api::{CreateRequest, CreateResponse, InferenceRequest, InferenceResponse,
-                   LearnerState, TrainingRequest, TrainingResponse};
+use learner::api::*;
 use learner::utils::{pack_proto, unpack_feature_matrix, unpack_feature_vector};
-
-use credit_scoring_learner_api::*;
 
 create_enclave_api!();
 
@@ -72,21 +66,5 @@ fn infer(state: &LearnerState, req: &InferenceRequest) -> Result<InferenceRespon
     response.set_predictions(pack_proto(vec![
         ("preds".to_string(), Matrix::from(preds)),
     ])?);
-    Ok(response)
-}
-
-fn get_parameters(
-    state: &LearnerState,
-    req: &ParametersRequest,
-) -> Result<ParametersResponse, ContractError> {
-    let learner = check_owner!(Model, state, req);
-
-    let params = learner
-        .get_model()?
-        .parameters()
-        .ok_or(ContractError::new("Model hasn't been trained."))?;
-
-    let mut response = ParametersResponse::new();
-    response.set_parameters(params.iter().map(|&v| v as f32).collect());
     Ok(response)
 }
