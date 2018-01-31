@@ -1,4 +1,9 @@
+use std;
+
+use futures;
+use hyper;
 use prometheus;
+use prometheus::Encoder;
 
 /// Worker thread metrics.
 pub struct WorkerMetrics {
@@ -62,4 +67,41 @@ impl HandlerMetrics {
             ).unwrap(),
         }
     }
+}
+
+struct MetricsService;
+
+impl hyper::server::Service for MetricsService {
+    // boilerplate hooking up hyper's server types
+    type Request = hyper::server::Request;
+    type Response = hyper::server::Response;
+    type Error = hyper::Error;
+    // The future representing the eventual Response your call will
+    // resolve to. This can change to whatever Future you need.
+    type Future = Box<futures::future::Future<Item = Self::Response, Error = Self::Error>>;
+
+    fn call(&self, _req: Self::Request) -> Self::Future {
+        let enc = prometheus::TextEncoder::new();
+        let type_mime = enc.format_type().parse().unwrap();
+        let mut buf = Vec::new();
+        // If this can practically fail, forward the error to the response.
+        enc.encode(&prometheus::gather(), &mut buf).unwrap();
+        Box::new(futures::future::ok(
+            Self::Response::new()
+                .with_header(hyper::header::ContentType(type_mime))
+                .with_body(buf),
+        ))
+    }
+}
+
+/// Start an HTTP server for Prometheus metrics in a thread.
+pub fn start_http_server(addr: std::net::SocketAddr) {
+    std::thread::spawn(move || {
+        // move addr
+        hyper::server::Http::new()
+            .bind(&addr, || Ok(MetricsService))
+            .unwrap()
+            .run()
+            .unwrap();
+    });
 }
