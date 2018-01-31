@@ -11,6 +11,9 @@ extern crate tls_api;
 
 #[macro_use]
 extern crate clap;
+extern crate hyper;
+#[macro_use]
+extern crate prometheus;
 
 extern crate compute_client;
 #[macro_use]
@@ -19,6 +22,7 @@ extern crate libcontract_untrusted;
 
 mod generated;
 mod ias;
+mod instrumentation;
 mod handlers;
 mod server;
 
@@ -91,6 +95,12 @@ fn main() {
                 .default_value("1")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("metrics-addr")
+                .long("metrics-addr")
+                .help("A SocketAddr (as a string) from which to serve metrics to Prometheus.")
+                .takes_value(true)
+        )
         .get_matches();
 
     let port = value_t!(matches, "port", u16).unwrap_or(9001);
@@ -136,6 +146,11 @@ fn main() {
     let _server = server.build().expect("server");
 
     println!("Compute node listening at {}", port);
+
+    // Start the Prometheus metrics endpoint.
+    if let Ok(metrics_addr) = value_t!(matches, "metrics-addr", std::net::SocketAddr) {
+        instrumentation::start_http_server(metrics_addr);
+    }
 
     loop {
         thread::park();
