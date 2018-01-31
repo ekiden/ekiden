@@ -25,45 +25,32 @@ impl Ekidenmint {
 
     fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<std::error::Error>> {
         state::State::check_tx(tx)?;
-        match state::State::check_tx(tx) {
-            Ok(_) => {
-                let mut stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
-                // Set the state
-                let mut s = self.state.lock().unwrap();
-                if stored.has_replace() {
-                    let current_height = match s.everything.as_ref() {
-                        Some(si) => si.checkpoint_height + si.diffs.len() as u64,
-                        None => 0,
-                    };
-                    s.everything = Some(state::StateInitialized {
-                        checkpoint: stored.take_replace(),
-                        checkpoint_height: current_height + 1,
-                        diffs: Vec::new(),
-                    });
-                    Ok(())
-                } else if stored.has_diff() {
-                    match s.everything.as_mut() {
-                        Some(si) => {
-                            si.diffs.push(stored.take_diff());
-                            Ok(())
-                        }
-                        None => Err(From::from("Can't add diff to uninitialized state.")),
-                    }
-                } else if stored.has_checkpoint() {
-                    match s.everything.as_mut() {
-                        Some(si) => {
-                            si.checkpoint = stored.take_checkpoint();
-                            si.checkpoint_height += si.diffs.len() as u64;
-                            si.diffs.clear();
-                            Ok(())
-                        }
-                        None => Err(From::from("Can't checkpoint uninitialized state.")),
-                    }
-                } else {
-                    Err(From::from("Unrecognized StoredTx variant"))
-                }
-            }
-            Err(error) => Err(From::from(error)),
+        let mut stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
+        // Set the state
+        let mut s = self.state.lock().unwrap();
+        if stored.has_replace() {
+            let current_height = match s.everything.as_ref() {
+                Some(si) => si.checkpoint_height + si.diffs.len() as u64,
+                None => 0,
+            };
+            s.everything = Some(state::StateInitialized {
+                checkpoint: stored.take_replace(),
+                checkpoint_height: current_height + 1,
+                diffs: Vec::new(),
+            });
+            Ok(())
+        } else if stored.has_diff() {
+            let si = s.everything.as_mut().ok_or::<Box<std::error::Error>>(From::from("Can't add diff to uninitialized state."))?;
+            si.diffs.push(stored.take_diff());
+            Ok(())
+        } else if stored.has_checkpoint() {
+            let si = s.everything.as_mut().ok_or::<Box<std::error::Error>>(From::from("Can't checkpoint uninitialized state."))?;
+            si.checkpoint = stored.take_checkpoint();
+            si.checkpoint_height += si.diffs.len() as u64;
+            si.diffs.clear();
+            Ok(())
+        } else {
+            Err(From::from("Unrecognized StoredTx variant"))
         }
     }
 }
