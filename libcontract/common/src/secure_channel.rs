@@ -184,24 +184,13 @@ impl Default for MonotonicNonceGenerator {
 }
 
 /// Current state of the secure channel session.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SessionState {
     /// Session is being initialized.
     ///
     /// From this state, the session will transition into:
-    /// * `ClientAttestationRequired` if the contract requires the client to
-    ///   attest itself as well.
-    /// * `Established` if no client attestation is required.
+    /// * `Established`.
     Init,
-    /// Contract is waiting for client attestation. The channel may not be
-    /// used for any method calls except _channel_attest_client. Any calls
-    /// must be encrypted and authenticated.
-    ///
-    /// From this state, the session will transition into:
-    /// * `Established` if the attestation is successful.
-    ///
-    /// In case client attestation fails, the session will stay in this state.
-    ClientAttestationRequired,
     /// Secure channel is established.
     Established,
 }
@@ -211,13 +200,12 @@ impl SessionState {
     pub fn transition_to(&mut self, new_state: SessionState) -> Result<(), ContractError> {
         match (*self, new_state) {
             (_, SessionState::Init) => {}
-            (SessionState::Init, SessionState::ClientAttestationRequired) => {}
             (SessionState::Init, SessionState::Established) => {}
-            (SessionState::ClientAttestationRequired, SessionState::Established) => {}
-            _ => {
-                return Err(ContractError::new(
-                    "Invalid secure channel state transition",
-                ))
+            transition => {
+                return Err(ContractError::new(&format!(
+                    "Invalid secure channel state transition: {:?}",
+                    transition
+                )))
             }
         }
 

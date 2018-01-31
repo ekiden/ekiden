@@ -4,11 +4,10 @@ use sodalite;
 use protobuf;
 use protobuf::Message;
 
-use libcontract_common::{api, random};
-use libcontract_common::quote::Quote;
+use libcontract_common::api;
+use libcontract_common::quote::AttestationReport;
 
-use super::super::generated::compute_web3::{CallContractRequest, IasGetSpidRequest,
-                                            IasVerifyQuoteRequest};
+use super::super::generated::compute_web3::CallContractRequest;
 use super::super::generated::compute_web3_grpc::{Compute, ComputeClient};
 
 use super::ContractClientBackend;
@@ -62,53 +61,11 @@ impl ContractClientBackend for Web3ContractClientBackend {
         Ok(rpc_response.take_payload())
     }
 
-    /// Get SPID that can be used to verify the quote later.
-    fn get_spid(&self) -> Result<Vec<u8>, Error> {
-        // TODO: Cache SPID.
-
-        let mut response = match self.client
-            .ias_get_spid(grpc::RequestOptions::new(), IasGetSpidRequest::new())
-            .wait()
-        {
-            Ok((_, response, _)) => response,
-            _ => return Err(Error::new("Failed to get SPID from compute node")),
-        };
-
-        Ok(response.take_spid())
-    }
-
-    /// Verify quote via IAS.
-    fn verify_quote(&self, quote: Vec<u8>) -> Result<Quote, Error> {
-        let decoded = Quote::decode(&quote)?;
-
-        let mut request = IasVerifyQuoteRequest::new();
-        request.set_quote(quote);
-
-        // Generate random nonce.
-        let mut nonce = vec![0u8; 16];
-        random::get_random_bytes(&mut nonce)?;
-        request.set_nonce(nonce.clone());
-
-        let response = match self.client
-            .ias_verify_quote(grpc::RequestOptions::new(), request)
-            .wait()
-        {
-            Ok((_, response, _)) => response,
-            _ => return Err(Error::new("Failed to verify quote")),
-        };
-
-        // TODO: Check response, verify signatures, verify nonce etc.
-
-        Ok(decoded)
-    }
-
-    /// Get quote of the local enclave for mutual attestation.
-    fn get_quote(
+    /// Get attestation report of the local enclave for mutual attestation.
+    fn get_attestation_report(
         &self,
-        _spid: &Vec<u8>,
-        _nonce: &Vec<u8>,
         _public_key: &sodalite::BoxPublicKey,
-    ) -> Result<Vec<u8>, Error> {
+    ) -> Result<AttestationReport, Error> {
         Err(Error::new(
             "This backend does not support mutual attestation",
         ))

@@ -1,0 +1,26 @@
+FROM ekiden/rust-sgx-sdk
+
+ENV HOME="/root"
+ENV PATH="${HOME}/.cargo/bin:${PATH}"
+
+# Copy code.
+ADD . /code
+
+# Build all Ekiden binaries.
+# TODO: Build in release mode.
+RUN git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx && \
+    cd /code && \
+    cargo make build-flow
+
+# Package all binaries.
+RUN mkdir -p /package/bin /package/lib && \
+    cp /code/target/enclave/*.signed.so /package/lib && \
+    cp /code/target/debug/compute /package/bin && \
+    cp /code/target/debug/consensus /package/bin && \
+    cp /code/docker/deployment/Dockerfile.runtime /package/Dockerfile
+
+# This is a builder container which outputs the contents of the package
+# on standard output. This enables the runtime and the builder container
+# to be different and reduces the image size considerably.
+WORKDIR /package
+CMD tar cvzhf - .

@@ -12,6 +12,7 @@ pub enum Error {
     RpcRouterCallFailed,
     ResponseError(PlainClientResponse_Code, String),
     SgxError,
+    OtherError(String),
 }
 
 impl fmt::Display for Error {
@@ -24,6 +25,9 @@ impl fmt::Display for Error {
             Error::RpcRouterInvalidEndpoint => f.write_str("RpcRouterInvalidEndpoint"),
             Error::RpcRouterCallFailed => f.write_str("RpcRouterCallFailed"),
             Error::SgxError => f.write_str("SgxError"),
+            Error::OtherError(ref message) => {
+                f.write_str(format!("OtherError({})", message).as_str())
+            }
         }
     }
 }
@@ -36,6 +40,7 @@ impl StdError for Error {
             Error::RpcRouterCallFailed => "RPC router: call failed",
             Error::ResponseError(_, _) => "RPC call returned an error",
             Error::SgxError => "SGX execution error",
+            Error::OtherError(_) => "Other error",
         }
     }
 }
