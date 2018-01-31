@@ -10,7 +10,10 @@ use libcontract_common;
 /// Diff: create a summary of changes that can be applied to `old` to recreate `new`.
 /// This is the actual diffing algorithm implementation.
 fn diff_internal(old: &[u8], new: &[u8]) -> std::io::Result<Vec<u8>> {
-    let mut enc = bzip2::write::BzEncoder::new(std::io::Cursor::new(Vec::new()), bzip2::Compression::Default);
+    let mut enc = bzip2::write::BzEncoder::new(
+        std::io::Cursor::new(Vec::new()),
+        bzip2::Compression::Default,
+    );
     bsdiff::diff::diff(old, new, &mut enc)?;
     let mut m = libcontract_common::api::BsdiffPatch::new();
     m.set_new_length(new.len() as u64);
