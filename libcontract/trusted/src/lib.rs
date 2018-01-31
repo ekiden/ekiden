@@ -9,6 +9,8 @@ extern crate sgx_tseal;
 extern crate sgx_tstd as std;
 extern crate sgx_types;
 
+extern crate bsdiff;
+extern crate bzip2;
 #[macro_use]
 extern crate lazy_static;
 extern crate protobuf;

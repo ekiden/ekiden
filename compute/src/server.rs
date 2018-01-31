@@ -150,7 +150,7 @@ impl ComputeServerWorker {
                 "advance_cached_state called with uninitialized cached state",
             ))?;
         for diff in diffs {
-            let res: libcontract_common::api::StateApplyResponse =
+            let mut res: libcontract_common::api::StateApplyResponse =
                 self.contract
                     .call(libcontract_common::api::METHOD_STATE_APPLY, &{
                         let mut req = libcontract_common::api::StateApplyRequest::new();
@@ -158,7 +158,7 @@ impl ComputeServerWorker {
                         req.set_diff(protobuf::parse_from_bytes(diff)?);
                         req
                     })?;
-            csi.encrypted_state = res.get_new().clone();
+            csi.encrypted_state = res.take_new();
             csi.height += 1;
         }
         Ok(csi.encrypted_state.clone())
