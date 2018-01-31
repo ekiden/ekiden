@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 
+use histogram::Histogram;
 use threadpool::ThreadPool;
 use time;
 
@@ -89,58 +90,72 @@ impl Drop for BenchmarkSentinel {
 }
 
 /// Set of benchmark results for all runs.
-pub struct BenchmarkResults(Vec<BenchmarkResult>);
+pub struct BenchmarkResults {
+    /// Benchmark results.
+    pub results: Vec<BenchmarkResult>,
+    /// The number of threads the experiment was run with.
+    pub threads: usize,
+}
 
 impl BenchmarkResults {
-    /// Total time taken by the benchmark runs.
-    pub fn total_time(&self) -> u64 {
-        self.0
-            .iter()
-            .map(|result| result.client_initialization + result.scenario)
-            .sum()
-    }
-
-    /// Total time taken by client initialization.
-    pub fn client_initialization_time(&self) -> u64 {
-        self.0
-            .iter()
-            .map(|result| result.client_initialization)
-            .sum()
-    }
-
-    /// Total time taken by running the scenario.
-    pub fn scenario_time(&self) -> u64 {
-        self.0.iter().map(|result| result.scenario).sum()
-    }
-
-    /// Number of failed runs.
-    pub fn failures(&self) -> usize {
-        self.0
-            .iter()
-            .map(|result| if result.failed { 1 } else { 0 })
-            .sum()
+    /// Show one benchmark result.
+    fn show_result(&self, name: &str, result: &Histogram) {
+        println!("{}:", name);
+        println!(
+            "    Percentiles: p50: {} ms / p90: {} ms / p99: {} ms / p999: {}",
+            result.percentile(50.0).unwrap(),
+            result.percentile(90.0).unwrap(),
+            result.percentile(99.0).unwrap(),
+            result.percentile(99.9).unwrap(),
+        );
+        println!(
+            "    Min: {} ms / Avg: {} ms / Max: {} ms / StdDev: {} ms",
+            result.minimum().unwrap(),
+            result.mean().unwrap(),
+            result.maximum().unwrap(),
+            result.stddev().unwrap(),
+        );
     }
 
     /// Show benchmark results in a human-readable form.
     pub fn show(&self) {
-        let count = self.0.len() as u64;
+        // Prepare histograms.
+        let mut histogram_client_init = Histogram::new();
+        let mut histogram_scenario = Histogram::new();
+        let mut failures = 0;
+        let mut total_time = 0;
+
+        for result in &self.results {
+            if result.failed {
+                failures += 1;
+                continue;
+            }
+
+            histogram_client_init
+                .increment(result.client_initialization / 1_000_000)
+                .unwrap();
+            histogram_scenario
+                .increment(result.scenario / 1_000_000)
+                .unwrap();
+
+            total_time += result.client_initialization + result.scenario;
+        }
+
+        let count = self.results.len() as u64;
 
         println!("=== Benchmark Results ===");
+        println!("Threads:               {}", self.threads);
         println!("Runs:                  {}", count);
-        println!("Failures:              {}", self.failures());
+        println!("Failures:              {}", failures);
+        println!("--- Latency ---");
         println!(
             "Total time:            {} ms ({} ms / run)",
-            self.total_time() / 1_000_000,
-            self.total_time() / (1_000_000 * count)
+            total_time / 1_000_000,
+            total_time / (1_000_000 * count)
         );
-        println!(
-            "Client initialization: {} ms / run",
-            self.client_initialization_time() / (1_000_000 * count)
-        );
-        println!(
-            "Scenario:              {} ms / run",
-            self.scenario_time() / (1_000_000 * count)
-        );
+
+        self.show_result("Client initialization", &histogram_client_init);
+        self.show_result("Scenario", &histogram_scenario);
     }
 }
 
@@ -163,14 +178,31 @@ where
     pub fn new(runs: usize, threads: usize, client_factory: Factory) -> Self {
         Benchmark {
             runs: runs,
-            pool: ThreadPool::new(threads),
+            pool: ThreadPool::with_name("benchmark-scenario".into(), threads),
             client_factory: Arc::new(client_factory),
         }
     }
 
     /// Run the given benchmark scenario.
-    pub fn run(&self, scenario: fn(Factory::Client)) -> BenchmarkResults {
+    ///
+    /// The `init` function will only be called once and should prepare the
+    /// grounds for running scenarios. Then multiple `scenario` invocations
+    /// will run in parallel. At the end, the `finalize` function will be
+    /// called once.
+    ///
+    /// Both `init` and `finalize` will be invoked with the number of runs
+    /// and the number of threads as the last two arguments.
+    pub fn run(
+        &self,
+        init: fn(&mut Factory::Client, usize, usize),
+        scenario: fn(&mut Factory::Client),
+        finalize: fn(&mut Factory::Client, usize, usize),
+    ) -> BenchmarkResults {
         let (tx, rx) = channel();
+
+        // Initialize.
+        let mut client = self.client_factory.create();
+        init(&mut client, self.runs, self.pool.max_count());
 
         // Run the given number of scenarios.
         for _ in 0..self.runs {
@@ -182,13 +214,22 @@ where
                 let result = sentinel.result_mut();
 
                 // Create client, run the scenario.
-                let client =
+                let mut client =
                     time_block!(result, client_initialization, { client_factory.create() });
-                time_block!(result, scenario, { scenario(client) });
+                time_block!(result, scenario, { scenario(&mut client) });
             });
         }
 
         // Collect benchmark results.
-        BenchmarkResults(rx.iter().take(self.runs).collect())
+        let results = rx.iter().take(self.runs).collect();
+
+        // Finalize.
+        finalize(&mut client, self.runs, self.pool.max_count());
+
+        // Collect benchmark results.
+        BenchmarkResults {
+            results: results,
+            threads: self.pool.max_count(),
+        }
     }
 }

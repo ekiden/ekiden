@@ -156,6 +156,7 @@ dependencies = [
 name = "client-utils"
 version = "0.1.0"
 dependencies = [
+ "histogram 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.39 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -371,6 +372,11 @@ dependencies = [
 [[package]]
 name = "hex"
 version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "histogram"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1502,6 +1508,7 @@ dependencies = [
  "client-utils 0.1.0",
  "compute-client 0.1.0",
  "libcontract-common 0.1.0",
+ "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "token-api 0.1.0",
 ]
 
@@ -1753,6 +1760,7 @@ dependencies = [
 "checksum grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fc6251c5d191eb0d122a4b4fdc24dfa0095b4f54e1f70de5c3913e0332054662"
 "checksum grpc-compiler 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0b80ef06aa3e174f24eb688358e83afc50e328798de258b29e8abd27d6b9fc3c"
 "checksum hex 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "459d3cf58137bb02ad4adeef5036377ff59f066dbb82517b7192e3a5462a2abc"
+"checksum histogram 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1bdcec4094c1ca961b685384ea7af76af5718230b3f34657d1a71fd2dcf4cc9d"
 "checksum httparse 1.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "c2f407128745b78abc95c0ffbe4e5d37427fdc0d45470710cfef8c44522a2e37"
 "checksum httpbis 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "73dde194d197eaa5b49bb58d212ed4a99a713cf47fc77a9d0471b76c0f73fcf0"
 "checksum hyper 0.11.16 (registry+https://github.com/rust-lang/crates.io-index)" = "6a82c41828dd6f271f4d6ebc3f1db78239a4b2b3d355dfdb5f8bbf55f004463a"

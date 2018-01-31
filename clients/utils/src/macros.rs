@@ -59,9 +59,10 @@ macro_rules! contract_client {
     };
 }
 
+#[cfg(feature = "benchmark")]
 #[macro_export]
 macro_rules! benchmark_client {
-    ($contract:ident, $scenario:expr) => {{
+    ($contract:ident, $init:expr, $scenario:expr, $finalize:expr) => {{
         let args = std::sync::Arc::new(
             default_app!()
                 .arg(Arg::with_name("benchmark-threads")
@@ -86,6 +87,6 @@ macro_rules! benchmark_client {
             }
         );
 
-        benchmark.run($scenario)
+        benchmark.run($init, $scenario, $finalize)
     }}
 }
