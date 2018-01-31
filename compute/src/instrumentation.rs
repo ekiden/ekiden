@@ -57,10 +57,8 @@ pub struct HandlerMetrics {
 impl HandlerMetrics {
     pub fn new() -> Self {
         HandlerMetrics {
-            reqs_received: register_counter!(
-                "reqs_received",
-                "Incremented in each request."
-            ).unwrap(),
+            reqs_received: register_counter!("reqs_received", "Incremented in each request.")
+                .unwrap(),
             req_time_client: register_histogram!(
                 "req_time_client",
                 "Time spent by grpc thread handling a request."
