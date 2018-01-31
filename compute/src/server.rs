@@ -39,9 +39,17 @@ struct QueuedResponse<'a> {
     grpc_response: grpc::SingleResponse<CallContractResponse>,
 }
 
+struct CachedStateInitialized {
+    encrypted_state: libcontract_common::api::CryptoSecretbox,
+    height: u64,
+}
+
 struct ComputeServerWorker {
     /// Contract running in an enclave.
     contract: enclave::EkidenEnclave,
+    /// Cached state reconstituted from checkpoint and diffs. None if
+    /// cache or state is uninitialized.
+    cached_state: Option<CachedStateInitialized>,
     /// Instrumentation objects.
     ins: super::instrumentation::WorkerMetrics,
 }
@@ -50,6 +58,7 @@ impl ComputeServerWorker {
     fn new(contract_filename: String) -> Self {
         ComputeServerWorker {
             contract: Self::create_contract(&contract_filename),
+            cached_state: None,
             ins: super::instrumentation::WorkerMetrics::new(),
         }
     }
@@ -113,8 +122,50 @@ impl ComputeServerWorker {
         Ok((new_encrypted_state_opt, rpc_response))
     }
 
+    fn get_cached_state_height(&self) -> Option<u64> {
+        match self.cached_state.as_ref() {
+            Some(csi) => Some(csi.height),
+            None => None,
+        }
+    }
+
+    fn set_cached_state(
+        &mut self,
+        checkpoint: &consensus::Checkpoint,
+    ) -> Result<(), Box<std::error::Error>> {
+        self.cached_state = Some(CachedStateInitialized {
+            encrypted_state: protobuf::parse_from_bytes(checkpoint.get_payload())?,
+            height: checkpoint.get_height(),
+        });
+        Ok(())
+    }
+
+    fn advance_cached_state(
+        &mut self,
+        diffs: &[Vec<u8>],
+    ) -> Result<libcontract_common::api::CryptoSecretbox, Box<std::error::Error>> {
+        let csi = self.cached_state
+            .as_mut()
+            .ok_or::<Box<std::error::Error>>(From::from(
+                "advance_cached_state called with uninitialized cached state",
+            ))?;
+        for diff in diffs {
+            let res: libcontract_common::api::StateApplyResponse =
+                self.contract
+                    .call(libcontract_common::api::METHOD_STATE_APPLY, &{
+                        let mut req = libcontract_common::api::StateApplyRequest::new();
+                        req.set_old(csi.encrypted_state.clone());
+                        req.set_diff(protobuf::parse_from_bytes(diff)?);
+                        req
+                    })?;
+            csi.encrypted_state = res.get_new().clone();
+            csi.height += 1;
+        }
+        Ok(csi.encrypted_state.clone())
+    }
+
     fn call_contract_batch_fallible<'a>(
-        &self,
+        &mut self,
         request_batch: &'a [QueuedRequest],
     ) -> Result<Vec<QueuedResponse<'a>>, Box<std::error::Error>> {
         // Connect to consensus node
@@ -123,24 +174,43 @@ impl ComputeServerWorker {
         let consensus_client =
             consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default())?;
 
-        // Get state from consensus
+        // Get state updates from consensus
         let mut encrypted_state_opt = {
             let _consensus_get_timer = self.ins.consensus_get_time.start_timer();
-            let consensus_result = consensus_client
-                .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
-                .wait();
-            if let Ok((_, consensus_get_response, _)) = consensus_result {
-                let encrypted_state =
-                    protobuf::parse_from_bytes(consensus_get_response.get_payload())?;
-                Some(encrypted_state)
-            } else {
-                // We should bail if there was an error other than the state not being initialized.
-                // But don't go fixing this. There's another resolution planned in #95.
-                None
+            match self.get_cached_state_height() {
+                Some(height) => {
+                    let (_, consensus_response, _) = consensus_client
+                        .get_diffs(grpc::RequestOptions::new(), {
+                            let mut consensus_request = consensus::GetDiffsRequest::new();
+                            consensus_request.set_since_height(height);
+                            consensus_request
+                        })
+                        .wait()?;
+                    if consensus_response.has_checkpoint() {
+                        self.set_cached_state(consensus_response.get_checkpoint())?;
+                    }
+                    Some(self.advance_cached_state(consensus_response.get_diffs())?)
+                }
+                None => {
+                    if let Ok((_, consensus_response, _)) = consensus_client
+                        .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
+                        .wait()
+                    {
+                        self.set_cached_state(consensus_response.get_checkpoint())?;
+                        Some(self.advance_cached_state(consensus_response.get_diffs())?)
+                    } else {
+                        // We should bail if there was an error other
+                        // than the state not being initialized. But
+                        // don't go fixing this. There's another
+                        // resolution planned in #95.
+                        None
+                    }
+                }
             }
         };
 
         // Process the requests.
+        let orig_encrypted_state_opt = encrypted_state_opt.clone();
         let mut ever_update_state = false;
         let response_batch = request_batch
             .iter()
@@ -172,18 +242,38 @@ impl ComputeServerWorker {
         if let Some(encrypted_state) = encrypted_state_opt {
             if ever_update_state {
                 let _consensus_set_timer = self.ins.consensus_set_time.start_timer();
-                let mut consensus_set_request = consensus::SetRequest::new();
-                consensus_set_request.set_payload(encrypted_state.write_to_bytes()?);
-                consensus_client
-                    .set(grpc::RequestOptions::new(), consensus_set_request)
-                    .wait()?;
+                match orig_encrypted_state_opt {
+                    Some(orig_encrypted_state) => {
+                        let diff_res: libcontract_common::api::StateDiffResponse =
+                            self.contract.call(libcontract_common::api::METHOD_STATE_DIFF, &{
+                                let mut diff_req = libcontract_common::api::StateDiffRequest::new();
+                                diff_req.set_old(orig_encrypted_state);
+                                diff_req.set_new(encrypted_state);
+                                diff_req
+                            })?;
+                        consensus_client
+                            .add_diff(grpc::RequestOptions::new(), {
+                                let mut add_diff_req = consensus::AddDiffRequest::new();
+                                add_diff_req.set_payload(diff_res.get_diff().write_to_bytes()?);
+                                add_diff_req
+                            })
+                            .wait()?;
+                    }
+                    None => {
+                        let mut consensus_replace_request = consensus::ReplaceRequest::new();
+                        consensus_replace_request.set_payload(encrypted_state.write_to_bytes()?);
+                        consensus_client
+                            .replace(grpc::RequestOptions::new(), consensus_replace_request)
+                            .wait()?;
+                    }
+                }
             }
         }
 
         Ok(response_batch)
     }
 
-    fn call_contract_batch(&self, request_batch: Vec<QueuedRequest>) {
+    fn call_contract_batch(&mut self, request_batch: Vec<QueuedRequest>) {
         match self.call_contract_batch_fallible(&request_batch) {
             Ok(response_batch) => {
                 // No batch-wide errors. Send out per-call responses.
@@ -208,7 +298,7 @@ impl ComputeServerWorker {
     }
 
     /// Process requests from a receiver until the channel closes.
-    fn work(&self, request_receiver: std::sync::mpsc::Receiver<QueuedRequest>) {
+    fn work(&mut self, request_receiver: std::sync::mpsc::Receiver<QueuedRequest>) {
         // Block for the next call.
         while let Ok(queued_request) = request_receiver.recv() {
             self.ins.reqs_batches_started.inc();

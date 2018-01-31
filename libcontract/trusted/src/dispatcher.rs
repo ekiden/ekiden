@@ -96,6 +96,8 @@ const PLAIN_METHODS: &'static [&'static str] = &[
     "_contract_init",
     "_contract_restore",
     api::METHOD_CHANNEL_INIT,
+    api::METHOD_STATE_DIFF,
+    api::METHOD_STATE_APPLY,
 ];
 
 /// Parse an RPC request message.
@@ -266,7 +268,10 @@ pub fn return_success<S: Message, P: Message>(
 
     let encrypted_state = match state {
         Some(state) => {
-            Some(super::state_crypto::encrypt_state(&state).expect("Failed to serialize state"))
+            let state_bytes = state.write_to_bytes().expect("Failed to serialize state");
+            Some(
+                super::state_crypto::encrypt_state(state_bytes).expect("Failed to serialize state"),
+            )
         }
         None => None,
     };

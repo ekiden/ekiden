@@ -1,4 +1,3 @@
-use protobuf;
 use sodalite;
 
 use libcontract_common::{random, ContractError};
@@ -25,9 +24,7 @@ fn get_state_key() -> Result<sodalite::SecretboxKey, ContractError> {
 }
 
 /// Open encrypted state box.
-pub fn decrypt_state<S: protobuf::MessageStatic>(
-    encrypted_state: &CryptoSecretbox,
-) -> Result<S, ContractError> {
+pub fn decrypt_state(encrypted_state: &CryptoSecretbox) -> Result<Vec<u8>, ContractError> {
     let state_key = get_state_key()?;
     let encrypted_state_ciphertext = encrypted_state.get_ciphertext();
 
@@ -46,17 +43,15 @@ pub fn decrypt_state<S: protobuf::MessageStatic>(
         _ => return Err(ContractError::new("Failed to open state box")),
     }
 
-    Ok(protobuf::parse_from_bytes(
-        &state_raw_padded[SECRETBOX_ZEROBYTES..],
-    )?)
+    Ok(state_raw_padded[SECRETBOX_ZEROBYTES..].to_vec())
 }
 
 /// Generate encrypted state box.
-pub fn encrypt_state<S: protobuf::Message>(state: &S) -> Result<CryptoSecretbox, ContractError> {
+pub fn encrypt_state(mut state: Vec<u8>) -> Result<CryptoSecretbox, ContractError> {
     let state_key = get_state_key()?;
 
     let mut state_raw_padded = vec![0; SECRETBOX_ZEROBYTES];
-    state.write_to_vec(&mut state_raw_padded)?;
+    state_raw_padded.append(&mut state);
 
     let mut encrypted_state_nonce = [0; sodalite::SECRETBOX_NONCE_LEN];
     random::get_random_bytes(&mut encrypted_state_nonce)?;

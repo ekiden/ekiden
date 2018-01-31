@@ -1,5 +1,6 @@
 use hyper;
 use serde_json;
+use std;
 use std::string;
 
 #[derive(Debug)]
@@ -8,6 +9,31 @@ pub enum Error {
     HyperUriError(hyper::error::UriError),
     JsonError(serde_json::Error),
     StringError(string::FromUtf8Error),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for Error {
+    fn description(&self) -> &str {
+        match self {
+            &Error::HyperError(ref e) => e.description(),
+            &Error::HyperUriError(ref e) => e.description(),
+            &Error::JsonError(ref e) => e.description(),
+            &Error::StringError(ref e) => e.description(),
+        }
+    }
+    fn cause(&self) -> Option<&std::error::Error> {
+        match self {
+            &Error::HyperError(ref e) => Some(e),
+            &Error::HyperUriError(ref e) => Some(e),
+            &Error::JsonError(ref e) => Some(e),
+            &Error::StringError(ref e) => Some(e),
+        }
+    }
 }
 
 impl From<hyper::Error> for Error {
