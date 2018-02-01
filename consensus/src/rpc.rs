@@ -1,27 +1,30 @@
-use grpc;
-use protobuf;
-use protobuf::Message;
 use std;
 use std::sync::{mpsc, Arc, Mutex};
 
-use generated::consensus;
-use generated::consensus_grpc::Consensus;
-use state;
-use tendermint::BroadcastRequest;
+use grpc;
+use protobuf;
+use protobuf::Message;
+
+use super::generated::consensus;
+use super::generated::consensus_grpc::Consensus;
+use super::state;
+
+use super::tendermint::BroadcastRequest;
 
 pub struct ConsensusServerImpl {
     state: Arc<Mutex<state::State>>,
-    tx: Arc<Mutex<mpsc::Sender<BroadcastRequest>>>,
+    // TODO: Clone the sender for each thread and store it in thread-local storage.
+    broadcast_channel: Mutex<mpsc::Sender<BroadcastRequest>>,
 }
 
 impl ConsensusServerImpl {
     pub fn new(
         state: Arc<Mutex<state::State>>,
-        tx: Arc<Mutex<mpsc::Sender<BroadcastRequest>>>,
+        broadcast_channel: mpsc::Sender<BroadcastRequest>,
     ) -> ConsensusServerImpl {
         ConsensusServerImpl {
             state: state,
-            tx: tx,
+            broadcast_channel: Mutex::new(broadcast_channel),
         }
     }
 
@@ -36,15 +39,17 @@ impl ConsensusServerImpl {
         // check attestation - early reject
         state::State::check_tx(&stored_bytes)?;
 
-        // Create a one-shot channel for response
+        // Create a one-shot channel for response.
         let (tx, rx) = mpsc::channel();
         let req = BroadcastRequest {
-            chan: tx,
+            response: tx,
             payload: stored_bytes,
         };
-        let broadcast_channel = self.tx.lock().unwrap();
+
+        let broadcast_channel = self.broadcast_channel.lock().unwrap();
         broadcast_channel.send(req).unwrap();
         rx.recv().unwrap()?;
+
         Ok(consensus::ReplaceResponse::new())
     }
 
@@ -59,15 +64,17 @@ impl ConsensusServerImpl {
         // check attestation - early reject
         state::State::check_tx(&stored_bytes)?;
 
-        // Create a one-shot channel for response
+        // Create a one-shot channel for response.
         let (tx, rx) = mpsc::channel();
         let req = BroadcastRequest {
-            chan: tx,
+            response: tx,
             payload: stored_bytes,
         };
-        let broadcast_channel = self.tx.lock().unwrap();
+
+        let broadcast_channel = self.broadcast_channel.lock().unwrap();
         broadcast_channel.send(req).unwrap();
         rx.recv().unwrap()?;
+
         Ok(consensus::AddDiffResponse::new())
     }
 }

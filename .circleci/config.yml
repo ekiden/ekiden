@@ -23,7 +23,7 @@ jobs:
           background: true
       - run: tendermint init
       - run:
-          command: tendermint node --consensus.create_empty_blocks=false
+          command: tendermint node --consensus.create_empty_blocks=false --rpc.laddr tcp://0.0.0.0:46666 --rpc.grpc_laddr tcp://0.0.0.0:46657
           background: true
       - run: echo "$IAS_PKCS12" | base64 --decode --ignore-garbage > client.pfx
       - run:
