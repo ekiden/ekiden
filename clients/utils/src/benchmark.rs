@@ -50,6 +50,15 @@ pub struct BenchmarkResult {
     pub scenario: u64,
 }
 
+/// Benchmark results for the entire set of runs.
+///
+/// All time values are in nanoseconds.
+#[derive(Debug, Copy, Clone, Default)]
+pub struct BenchmarkOverallResult {
+    /// Amount of time taken to run all runs.
+    pub time_total: u64,
+}
+
 /// Sentinel that sends the benchmark results back to the main thread.
 ///
 /// Using this sentinel ensures that results are sent even if the thread panicks and
@@ -91,8 +100,10 @@ impl Drop for BenchmarkSentinel {
 
 /// Set of benchmark results for all runs.
 pub struct BenchmarkResults {
-    /// Benchmark results.
+    /// Benchmark results from individual runs.
     pub results: Vec<BenchmarkResult>,
+    /// Benchmark results from overall measurements.
+    pub overall_result: BenchmarkOverallResult,
     /// The number of threads the experiment was run with.
     pub threads: usize,
 }
@@ -156,6 +167,17 @@ impl BenchmarkResults {
 
         self.show_result("Client initialization", &histogram_client_init);
         self.show_result("Scenario", &histogram_scenario);
+
+        println!("--- Throughput ---");
+        println!(
+            "Total time:            {} ms",
+            self.overall_result.time_total / 1_000_000
+        );
+        println!(
+            "Total runs:            {} ({} / sec)",
+            count,
+            count as f64 / (self.overall_result.time_total as f64 / 1e9)
+        );
     }
 }
 
@@ -205,23 +227,26 @@ where
         init(&mut client, self.runs, self.pool.max_count());
 
         // Run the given number of scenarios.
-        for _ in 0..self.runs {
-            let client_factory = self.client_factory.clone();
-            let tx = tx.clone();
+        let mut overall_result = BenchmarkOverallResult::default();
+        let results = time_block!(overall_result, time_total, {
+            for _ in 0..self.runs {
+                let client_factory = self.client_factory.clone();
+                let tx = tx.clone();
 
-            self.pool.execute(move || {
-                let mut sentinel = BenchmarkSentinel::new(tx);
-                let result = sentinel.result_mut();
+                self.pool.execute(move || {
+                    let mut sentinel = BenchmarkSentinel::new(tx);
+                    let result = sentinel.result_mut();
 
-                // Create client, run the scenario.
-                let mut client =
-                    time_block!(result, client_initialization, { client_factory.create() });
-                time_block!(result, scenario, { scenario(&mut client) });
-            });
-        }
+                    // Create client, run the scenario.
+                    let mut client =
+                        time_block!(result, client_initialization, { client_factory.create() });
+                    time_block!(result, scenario, { scenario(&mut client) });
+                });
+            }
 
-        // Collect benchmark results.
-        let results = rx.iter().take(self.runs).collect();
+            // Collect benchmark results.
+            rx.iter().take(self.runs).collect()
+        });
 
         // Finalize.
         finalize(&mut client, self.runs, self.pool.max_count());
@@ -229,6 +254,7 @@ where
         // Collect benchmark results.
         BenchmarkResults {
             results: results,
+            overall_result: overall_result,
             threads: self.pool.max_count(),
         }
     }
