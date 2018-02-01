@@ -204,6 +204,7 @@ spec:
             - "-c"
             - |
               compute \
+                --grpc-threads 4 \
                 --port 9003 \
                 --disable-key-manager \
                 /ekiden/lib/key-manager.signed.so
@@ -221,6 +222,7 @@ spec:
             - "-c"
             - |
               compute \
+                --grpc-threads 4 \
                 --port 9001 \
                 --key-manager-host localhost \
                 --key-manager-port 9003 \

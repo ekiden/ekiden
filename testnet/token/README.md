@@ -9,6 +9,11 @@ To deploy:
 $ make create
 ```
 
+To run benchmarks on the cluster:
+```bash
+$ make benchmark
+```
+
 To destroy:
 ```bash
 $ make destroy

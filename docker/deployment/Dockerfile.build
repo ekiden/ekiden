@@ -10,13 +10,17 @@ ADD . /code
 # TODO: Build in release mode.
 RUN git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx && \
     cd /code && \
-    cargo make build-flow
+    cargo make build-flow && \
+    cd /code/clients/token && \
+    cargo build --features benchmark
 
 # Package all binaries.
 RUN mkdir -p /package/bin /package/lib && \
     cp /code/target/enclave/*.signed.so /package/lib && \
+    cp /code/target/enclave/*.mrenclave /package/lib && \
     cp /code/target/debug/compute /package/bin && \
     cp /code/target/debug/consensus /package/bin && \
+    cp /code/target/debug/token-client /package/bin && \
     cp /code/docker/deployment/Dockerfile.runtime /package/Dockerfile
 
 # This is a builder container which outputs the contents of the package

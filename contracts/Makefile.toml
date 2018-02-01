@@ -9,6 +9,7 @@ ENCLAVE_CONFIG = "../../libcontract/utils/config/enclave.xml"
 SGX_COMMON_CFLAGS = "-m64"
 SGX_LIBRARY_PATH = "${INTEL_SGX_SDK}/lib64"
 SGX_ENCLAVE_SIGNER = "${INTEL_SGX_SDK}/bin/x64/sgx_sign"
+PARSE_ENCLAVE = "../../scripts/parse_enclave.py"
 
 [tasks.post-build]
 alias = "contract-post-build"
@@ -71,4 +72,9 @@ script = ['''
       -enclave ${TARGET_DIR}/${CARGO_MAKE_CRATE_NAME}.so \
       -out ${TARGET_DIR}/${CARGO_MAKE_CRATE_NAME}.signed.so \
       -config ${ENCLAVE_CONFIG}
+
+    ${PARSE_ENCLAVE} \
+      ${TARGET_DIR}/${CARGO_MAKE_CRATE_NAME}.signed.so 2>/dev/null \
+      | grep ENCLAVEHASH | cut -f2 \
+      > ${TARGET_DIR}/${CARGO_MAKE_CRATE_NAME}.mrenclave
 ''']

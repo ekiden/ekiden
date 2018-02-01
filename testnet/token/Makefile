@@ -16,4 +16,8 @@ destroy:
 	@echo "==> Destroying secrets"
 	@kubectl delete --ignore-not-found=true --now=true --force=true secret ias
 
-.PHONY: create destroy
+benchmark:
+	@echo "==> Running benchmarks"
+	@./benchmark.sh
+
+.PHONY: create destroy benchmark
