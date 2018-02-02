@@ -1,5 +1,5 @@
 # Enabling backtrace in an enclave
-```rs
+```rust
 std::backtrace::enable_backtrace("xxx", std::backtrace::PrintFormat::Short).expect("Failed to enable backtrace");
 ```
 
