@@ -220,6 +220,7 @@ spec:
               readOnly: true
 
         # Container running an Ekiden contract.
+        # TODO: Currently all compute nodes must use the same key manager.
         - name: contract
           imagePullPolicy: Always
           image: ekiden/core:latest
@@ -227,10 +228,12 @@ spec:
             - bash
             - "-c"
             - |
+              fqdn_suffix=$(hostname -f | sed 's#[^.]*\.\(\)#\1#')
+
               compute \
                 --grpc-threads 4 \
                 --port 9001 \
-                --key-manager-host localhost \
+                --key-manager-host ekiden-token-0.${fqdn_suffix} \
                 --key-manager-port 9003 \
                 /ekiden/lib/token.signed.so
           volumeMounts:
@@ -257,53 +260,3 @@ spec:
         resources:
           requests:
             storage: 2Gi
----
-# Proxy everything to one of the nodes. This is required because the key manager
-# is currently stateless, so running things in different compute nodes makes them
-# incompatible.
-#
-# When this is fixed, we can get rid of ekiden-token-proxy and use Kubernetes
-# services directly (which does load balancing).
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  name: ekiden-token-proxy
-  labels:
-    app: ekiden-token-proxy
-spec:
-  ports:
-    - port: 9001
-      name: ekiden-rpc
-  type: NodePort
-  selector:
-    app: ekiden-token-proxy
----
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  name: ekiden-token-proxy-deployment
-  labels:
-    app: ekiden-token-proxy
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: ekiden-token-proxy
-  template:
-    metadata:
-      labels:
-        app: ekiden-token-proxy
-    spec:
-      containers:
-        - name: proxy
-          image: demandbase/docker-tcp-proxy
-          ports:
-            - containerPort: 9001
-              name: ekiden-rpc
-          env:
-            - name: BACKEND_PORT
-              value: "9001"
-            - name: BACKEND_HOST
-              value: ekiden-token-0.ekiden-token.default.svc.cluster.local
