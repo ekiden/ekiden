@@ -47,6 +47,8 @@ pub struct ContractClient<Backend: ContractClientBackend> {
     mr_enclave: MrEnclave,
     /// Secure channel context.
     secure_channel: SecureChannelContext,
+    /// Client attestation required flag.
+    client_attestation: bool,
 }
 
 impl<Backend: ContractClientBackend> ContractClient<Backend> {
@@ -60,6 +62,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
             backend: backend,
             mr_enclave: mr_enclave,
             secure_channel: SecureChannelContext::default(),
+            client_attestation: client_attestation,
         };
 
         // Initialize a secure session.
@@ -90,14 +93,8 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
 
         let mut client_response = self.backend.call(client_request)?;
 
-        if self.secure_channel.must_encrypt() && !client_response.has_encrypted_response() {
-            return Err(Error::new(
-                "Contract returned plain response for encrypted request",
-            ));
-        }
-
         let mut plain_response = {
-            if self.secure_channel.must_encrypt() {
+            if client_response.has_encrypted_response() {
                 // Encrypted response.
                 self.secure_channel
                     .open_response_box(&client_response.get_encrypted_response())?
@@ -106,6 +103,30 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
                 client_response.take_plain_response()
             }
         };
+
+        if self.secure_channel.must_encrypt() && !client_response.has_encrypted_response() {
+            match plain_response.get_code() {
+                api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL => {
+                    // Request the secure channel to be reset.
+                    // NOTE: This opens us up to potential adversarial interference as an
+                    //       adversarial compute node can force the channel to be reset by
+                    //       crafting a non-authenticated response. But a compute node can
+                    //       always deny service or prevent the secure channel from being
+                    //       established in the first place, so this is not really an issue.
+                    if method != api::METHOD_CHANNEL_INIT {
+                        let client_attestation = self.client_attestation;
+                        self.init_secure_channel(client_attestation)?;
+
+                        return Err(Error::new("Secure channel reset"));
+                    }
+                }
+                _ => {}
+            }
+
+            return Err(Error::new(
+                "Contract returned plain response for encrypted request",
+            ));
+        }
 
         // Validate response code.
         match plain_response.get_code() {
