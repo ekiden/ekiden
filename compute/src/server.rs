@@ -117,6 +117,7 @@ impl ComputeServerWorker {
         Ok((new_encrypted_state_opt, rpc_response))
     }
 
+    #[cfg(not(feature = "no_cache"))]
     fn get_cached_state_height(&self) -> Option<u64> {
         match self.cached_state.as_ref() {
             Some(csi) => Some(csi.height),
@@ -144,6 +145,7 @@ impl ComputeServerWorker {
             diffs.is_empty(),
             "attempted to apply diffs in a no_diffs build"
         );
+
         let csi = self.cached_state
             .as_mut()
             .ok_or::<Box<std::error::Error>>(From::from(
@@ -177,9 +179,12 @@ impl ComputeServerWorker {
         // Get state updates from consensus
         let mut encrypted_state_opt = {
             let _consensus_get_timer = self.ins.consensus_get_time.start_timer();
+
+            #[cfg(not(feature = "no_cache"))]
             let cached_state_height = self.get_cached_state_height();
             #[cfg(feature = "no_cache")]
             let cached_state_height = None;
+
             match cached_state_height {
                 Some(height) => {
                     let (_, consensus_response, _) = consensus_client
@@ -212,8 +217,12 @@ impl ComputeServerWorker {
             }
         };
 
-        // Process the requests.
+        #[cfg(not(feature = "no_diffs"))]
         let orig_encrypted_state_opt = encrypted_state_opt.clone();
+        #[cfg(feature = "no_diffs")]
+        let orig_encrypted_state_opt = None;
+
+        // Process the requests.
         let mut ever_update_state = false;
         let response_batch = request_batch
             .iter()
@@ -245,8 +254,6 @@ impl ComputeServerWorker {
         if let Some(encrypted_state) = encrypted_state_opt {
             if ever_update_state {
                 let _consensus_set_timer = self.ins.consensus_set_time.start_timer();
-                #[cfg(feature = "no_diffs")]
-                let orig_encrypted_state_opt = None;
                 match orig_encrypted_state_opt {
                     Some(orig_encrypted_state) => {
                         let diff_res: libcontract_common::api::StateDiffResponse =
