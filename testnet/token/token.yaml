@@ -173,7 +173,13 @@ spec:
               done
               seeds=$(IFS=','; echo "${seeds[*]}")
 
-              tendermint node --p2p.seeds="$seeds" --moniker="`hostname`" --consensus.create_empty_blocks=false
+              tendermint node \
+                --p2p.seeds="$seeds" \
+                --moniker="`hostname`" \
+                --consensus.create_empty_blocks=false \
+                --rpc.laddr tcp://0.0.0.0:46666 \
+                --rpc.grpc_laddr tcp://0.0.0.0:46657
+
           volumeMounts:
             - name: tmdir
               mountPath: /tendermint
