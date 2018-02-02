@@ -7,6 +7,10 @@ authors = [
 ]
 build = "build.rs"
 
+[features]
+no_cache = []
+no_diffs = []
+
 [dependencies]
 libcontract-common = { path = "../libcontract/common" }
 libcontract-untrusted = { path = "../libcontract/untrusted" }
