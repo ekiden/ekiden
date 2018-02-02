@@ -173,7 +173,13 @@ spec:
               done
               seeds=$(IFS=','; echo "${seeds[*]}")
 
-              tendermint node --p2p.seeds="$seeds" --moniker="`hostname`" --consensus.create_empty_blocks=false
+              tendermint node \
+                --p2p.seeds="$seeds" \
+                --moniker="`hostname`" \
+                --consensus.create_empty_blocks=false \
+                --rpc.laddr tcp://0.0.0.0:46666 \
+                --rpc.grpc_laddr tcp://0.0.0.0:46657
+
           volumeMounts:
             - name: tmdir
               mountPath: /tendermint
@@ -204,6 +210,7 @@ spec:
             - "-c"
             - |
               compute \
+                --grpc-threads 4 \
                 --port 9003 \
                 --disable-key-manager \
                 /ekiden/lib/key-manager.signed.so
@@ -221,6 +228,7 @@ spec:
             - "-c"
             - |
               compute \
+                --grpc-threads 4 \
                 --port 9001 \
                 --key-manager-host localhost \
                 --key-manager-port 9003 \

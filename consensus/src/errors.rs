@@ -1,13 +1,12 @@
-use hyper;
-use serde_json;
 use std;
 use std::string;
+
+use hyper;
 
 #[derive(Debug)]
 pub enum Error {
     HyperError(hyper::Error),
     HyperUriError(hyper::error::UriError),
-    JsonError(serde_json::Error),
     StringError(string::FromUtf8Error),
 }
 
@@ -22,7 +21,6 @@ impl std::error::Error for Error {
         match self {
             &Error::HyperError(ref e) => e.description(),
             &Error::HyperUriError(ref e) => e.description(),
-            &Error::JsonError(ref e) => e.description(),
             &Error::StringError(ref e) => e.description(),
         }
     }
@@ -30,7 +28,6 @@ impl std::error::Error for Error {
         match self {
             &Error::HyperError(ref e) => Some(e),
             &Error::HyperUriError(ref e) => Some(e),
-            &Error::JsonError(ref e) => Some(e),
             &Error::StringError(ref e) => Some(e),
         }
     }
@@ -45,12 +42,6 @@ impl From<hyper::Error> for Error {
 impl From<hyper::error::UriError> for Error {
     fn from(error: hyper::error::UriError) -> Self {
         Error::HyperUriError(error)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Self {
-        Error::JsonError(error)
     }
 }
 

@@ -3,10 +3,6 @@ extern crate futures;
 extern crate grpc;
 extern crate hyper;
 extern crate protobuf;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
 extern crate tls_api;
 extern crate tokio_core;
 extern crate tokio_proto;
@@ -23,8 +19,6 @@ mod state;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc;
-use std::thread;
 
 use abci::server::{AbciProto, AbciService};
 use clap::{App, Arg};
@@ -33,6 +27,7 @@ use tokio_proto::TcpServer;
 use generated::consensus_grpc::ConsensusServer;
 use rpc::ConsensusServerImpl;
 use state::State;
+use tendermint::TendermintProxy;
 
 fn main() {
     let matches = App::new("Ekiden Compute Node")
@@ -67,30 +62,22 @@ fn main() {
     println!("Ekiden Consensus starting... ");
 
     // Create a shared State object
-    let s = Arc::new(Mutex::new(State::new()));
+    let state = Arc::new(Mutex::new(State::new()));
 
-    // Create Tendermint client.
-    // We'll use a channel to funnel transactions to Tendermint client
-    let tendermint_uri = format!(
-        "http://{}:{}",
-        matches.value_of("tendermint-host").unwrap().to_string(),
-        value_t!(matches, "tendermint-port", u16).unwrap_or_else(|e| e.exit())
+    // Create Tendermint proxy.
+    let tendermint = TendermintProxy::new(
+        &matches.value_of("tendermint-host").unwrap().to_string(),
+        value_t!(matches, "tendermint-port", u16).unwrap_or_else(|e| e.exit()),
     );
-    let (tx, rx) = mpsc::channel();
-    let tx = Arc::new(Mutex::new(tx));
-    thread::spawn(move || {
-        let mut tendermint_client = tendermint::Tendermint::new(tendermint_uri);
-        tendermint::proxy_broadcasts(&mut tendermint_client, rx);
-    });
 
-    // Start the gRPC server.
+    // Start the Ekiden consensus gRPC server.
     let port = value_t!(matches, "grpc-port", u16).unwrap_or_else(|e| e.exit());
     let mut rpc_server = grpc::ServerBuilder::new_plain();
     rpc_server.http.set_port(port);
     rpc_server.http.set_cpu_pool_threads(1);
     rpc_server.add_service(ConsensusServer::new_service_def(ConsensusServerImpl::new(
-        Arc::clone(&s),
-        Arc::clone(&tx),
+        Arc::clone(&state),
+        tendermint.get_channel(),
     )));
     let _server = rpc_server.build().expect("rpc_server");
     println!("Consensus node listening at {}", port);
@@ -104,7 +91,7 @@ fn main() {
     app_server.threads(1);
     app_server.serve(move || {
         Ok(AbciService {
-            app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&s))),
+            app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&state))),
         })
     });
 }

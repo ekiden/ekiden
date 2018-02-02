@@ -23,7 +23,7 @@ docker run -it --rm \
   --name "tendermint" \
   --network container:ekiden \
   -v "${DATA_PATH}:/tendermint" \
-  $IMAGE_TAG node --consensus.create_empty_blocks=false
-  #--net=host 
-  #--proxy_app=dummy
-
+  $IMAGE_TAG node \
+  --consensus.create_empty_blocks=false \
+  --rpc.laddr tcp://0.0.0.0:46666 \
+  --rpc.grpc_laddr tcp://0.0.0.0:46657
