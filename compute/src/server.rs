@@ -40,6 +40,8 @@ struct CachedStateInitialized {
 }
 
 struct ComputeServerWorker {
+    /// Consensus client.
+    consensus: Option<consensus_grpc::ConsensusClient>,
     /// Contract running in an enclave.
     contract: enclave::EkidenEnclave,
     /// Cached state reconstituted from checkpoint and diffs. None if
@@ -50,11 +52,27 @@ struct ComputeServerWorker {
 }
 
 impl ComputeServerWorker {
-    fn new(contract_filename: String) -> Self {
+    fn new(contract_filename: String, consensus_host: String, consensus_port: u16) -> Self {
+        // Connect to consensus node
         ComputeServerWorker {
             contract: Self::create_contract(&contract_filename),
             cached_state: None,
             ins: super::instrumentation::WorkerMetrics::new(),
+            // TODO: Use TLS client.
+            consensus: match consensus_grpc::ConsensusClient::new_plain(
+                &consensus_host,
+                consensus_port,
+                Default::default(),
+            ) {
+                Ok(client) => Some(client),
+                _ => {
+                    eprintln!(
+                        "WARNING: Failed to create consensus client. No state will be fetched."
+                    );
+
+                    None
+                }
+            },
         }
     }
 
@@ -170,14 +188,8 @@ impl ComputeServerWorker {
         &mut self,
         request_batch: &'a [QueuedRequest],
     ) -> Result<Vec<QueuedResponse<'a>>, Box<std::error::Error>> {
-        // Connect to consensus node
-        // TODO: Know the consensus node location other than having it hard-coded.
-        // TODO: Use TLS client.
-        let consensus_client =
-            consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default())?;
-
         // Get state updates from consensus
-        let mut encrypted_state_opt = {
+        let mut encrypted_state_opt = if self.consensus.is_some() {
             let _consensus_get_timer = self.ins.consensus_get_time.start_timer();
 
             #[cfg(not(feature = "no_cache"))]
@@ -187,7 +199,9 @@ impl ComputeServerWorker {
 
             match cached_state_height {
                 Some(height) => {
-                    let (_, consensus_response, _) = consensus_client
+                    let (_, consensus_response, _) = self.consensus
+                        .as_ref()
+                        .unwrap()
                         .get_diffs(grpc::RequestOptions::new(), {
                             let mut consensus_request = consensus::GetDiffsRequest::new();
                             consensus_request.set_since_height(height);
@@ -200,7 +214,9 @@ impl ComputeServerWorker {
                     Some(self.advance_cached_state(consensus_response.get_diffs())?)
                 }
                 None => {
-                    if let Ok((_, consensus_response, _)) = consensus_client
+                    if let Ok((_, consensus_response, _)) = self.consensus
+                        .as_ref()
+                        .unwrap()
                         .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
                         .wait()
                     {
@@ -215,6 +231,8 @@ impl ComputeServerWorker {
                     }
                 }
             }
+        } else {
+            None
         };
 
         #[cfg(not(feature = "no_diffs"))]
@@ -263,7 +281,9 @@ impl ComputeServerWorker {
                                 diff_req.set_new(encrypted_state);
                                 diff_req
                             })?;
-                        consensus_client
+                        self.consensus
+                            .as_ref()
+                            .unwrap()
                             .add_diff(grpc::RequestOptions::new(), {
                                 let mut add_diff_req = consensus::AddDiffRequest::new();
                                 add_diff_req.set_payload(diff_res.get_diff().write_to_bytes()?);
@@ -274,7 +294,9 @@ impl ComputeServerWorker {
                     None => {
                         let mut consensus_replace_request = consensus::ReplaceRequest::new();
                         consensus_replace_request.set_payload(encrypted_state.write_to_bytes()?);
-                        consensus_client
+                        self.consensus
+                            .as_ref()
+                            .unwrap()
                             .replace(grpc::RequestOptions::new(), consensus_replace_request)
                             .wait()?;
                     }
@@ -336,12 +358,17 @@ pub struct ComputeServerImpl {
 
 impl ComputeServerImpl {
     /// Create new compute server instance.
-    pub fn new(contract_filename: &str) -> Self {
+    pub fn new(contract_filename: &str, consensus_host: &str, consensus_port: u16) -> Self {
         let contract_filename_owned = String::from(contract_filename);
+        let consensus_host_owned = String::from(consensus_host);
         let (request_sender, request_receiver) = std::sync::mpsc::channel();
         // move request_receiver
         std::thread::spawn(move || {
-            ComputeServerWorker::new(contract_filename_owned).work(request_receiver);
+            ComputeServerWorker::new(
+                contract_filename_owned,
+                consensus_host_owned,
+                consensus_port,
+            ).work(request_receiver);
         });
         ComputeServerImpl {
             request_sender: Mutex::new(request_sender),

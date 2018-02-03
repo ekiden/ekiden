@@ -87,7 +87,20 @@ fn main() {
                 .takes_value(true)
                 .default_value("9003"),
         )
+        .arg(
+            Arg::with_name("consensus-host")
+                .long("consensus-host")
+                .takes_value(true)
+                .default_value("localhost"),
+        )
+        .arg(
+            Arg::with_name("consensus-port")
+                .long("consensus-port")
+                .takes_value(true)
+                .default_value("9002"),
+        )
         .arg(Arg::with_name("disable-key-manager").long("disable-key-manager"))
+        .arg(Arg::with_name("disable-state").long("disable-state"))
         .arg(
             Arg::with_name("grpc-threads")
                 .long("grpc-threads")
@@ -145,6 +158,8 @@ fn main() {
     }
     server.add_service(ComputeServer::new_service_def(ComputeServerImpl::new(
         &contract_filename,
+        matches.value_of("consensus-host").unwrap(),
+        value_t!(matches, "consensus-port", u16).unwrap_or(9002),
     )));
     let num_threads = value_t!(matches, "grpc-threads", usize).unwrap();
     server.http.set_cpu_pool_threads(num_threads);
