@@ -18,6 +18,7 @@ members = [
   "libcontract/untrusted",
   "libcontract/utils",
 
+  "clients/benchmark-token-failover",
   "clients/benchmark-token-transfer",
   "clients/benchmark-token-get-balance",
   "clients/token",
