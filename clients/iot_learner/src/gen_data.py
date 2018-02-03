@@ -43,8 +43,16 @@ def _silence():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--api-proto', required=True, type=osp.abspath)
+    run_load = parser.add_mutually_exclusive_group(required=True)
+    run_load.add_argument('--api-proto', type=osp.abspath)
+    run_load.add_argument('--data-proto', type=osp.abspath)
     args = parser.parse_args()
+
+    if args.data_proto:
+        with open(args.data_proto) as f_ser_data:
+            sys.stdout.write(f_ser_data.read())
+            sys.stdout.flush()
+            return
 
     api_pb2 = imp.load_source('api_pb2', args.api_proto)
 
@@ -81,7 +89,7 @@ def _fetch_dataframe():
     now = datetime.now(pytz.timezone('America/Los_Angeles'))
 
     start = (now + timedelta(minutes=15)).strftime(DATE_FMT)
-    end = (now - timedelta(days=1)).strftime(DATE_FMT)
+    end = (now - timedelta(days=7)).strftime(DATE_FMT)
 
     dfs = make_dataframe(archiver.window_uuids(UUIDS, end, start, INTERVAL))
 

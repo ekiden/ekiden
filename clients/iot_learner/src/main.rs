@@ -23,8 +23,10 @@ fn main() {
     let data_output = std::process::Command::new("python2")
         .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/src/gen_data.py"))
         .args(&[
-            "--api-proto",
-            "/code/contracts/learner/api/src/generated/api_pb2.py",
+            // "--api-proto",
+            // "/code/contracts/learner/api/src/generated/api_pb2.py",
+            "--data-proto",
+            "/code/clients/iot_learner/iot_data.pb",
         ])
         .output()
         .expect("Could not fetch data.");
