@@ -4,29 +4,29 @@ kind: Service
 metadata:
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  name: ekiden-token
+  name: ethermint
   labels:
-    app: ekiden-token
+    app: ethermint
 spec:
   ports:
     - port: 46656
       name: tendermint-p2p
   clusterIP: None
   selector:
-    app: ekiden-token
+    app: ethermint
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tendermint-config
 data:
-  seeds: "ekiden-token-0,ekiden-token-1,ekiden-token-2,ekiden-token-3"
-  validators: "ekiden-token-0,ekiden-token-1,ekiden-token-2,ekiden-token-3"
+  seeds: "ethermint-0,ethermint-1,ethermint-2,ethermint-3"
+  validators: "ethermint-0,ethermint-1,ethermint-2,ethermint-3"
   validator.power: "10"
   genesis.json: |-
     {
       "genesis_time": "2018-01-25T00:00:00.000Z",
-      "chain_id": "ekiden-token-test-net",
+      "chain_id": "ethermint-test-net",
       "validators": [],
       "app_hash": ""
     }
@@ -36,31 +36,70 @@ data:
       listen [::]:80 default_server ipv6only=on;
       location /pub_key.json { root /usr/share/nginx/; }
     }
+  ethermint-keystore.json: |-
+    {
+      "address":"7eff122b94897ea5b0e2a9abf47b86337fafebdc",
+      "crypto":{
+        "cipher":"aes-128-ctr",
+        "ciphertext":"19de8a919e2f4cbdde2b7352ebd0be8ead2c87db35fc8e4c9acaf74aaaa57dad",
+        "cipherparams":{"iv":"ba2bd370d6c9d5845e92fbc6f951c792"},
+        "kdf":"scrypt",
+        "kdfparams":{
+          "dklen":32,
+          "n":262144,
+          "p":1,
+          "r":8,
+          "salt":"c7cc2380a96adc9eb31d20bd8d8a7827199e8b16889582c0b9089da6a9f58e84"
+        },
+        "mac":"ff2c0caf051ca15d8c43b6f321ec10bd99bd654ddcf12dd1a28f730cc3c13730"
+      },
+      "id":"f86a62b4-0621-4616-99af-c4b7f38fcc48",
+      "version":3
+    }
+  ethermint-genesis.json: |-
+    {
+        "config": {
+            "chainId": 15,
+            "homesteadBlock": 0,
+            "eip155Block": 0,
+            "eip158Block": 0
+        },
+        "nonce": "0xdeadbeefdeadbeef",
+        "timestamp": "0x00",
+        "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "difficulty": "0x40",
+        "gasLimit": "0x8000000",
+        "alloc": {
+            "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc": { "balance": "100000000000000" },
+            "0xc6713982649D9284ff56c32655a9ECcCDA78422A": { "balance": "10000000000000000000000000000000000" }
+        }
+    }
 ---
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
-  name: ekiden-token-budget
+  name: ethermint-budget
 spec:
   selector:
     matchLabels:
-      app: ekiden-token
+      app: ethermint
   minAvailable: 2
 ---
 apiVersion: apps/v1beta2
 kind: StatefulSet
 metadata:
-  name: ekiden-token
+  name: ethermint
 spec:
   selector:
     matchLabels:
-      app: ekiden-token
-  serviceName: ekiden-token
+      app: ethermint
+  serviceName: ethermint
   replicas: 4
   template:
     metadata:
       labels:
-        app: ekiden-token
+        app: ethermint
     spec:
       initContainers:
         # An initialization container, which generates the validator key pair if it doesn't yet
@@ -176,9 +215,7 @@ spec:
               tendermint node \
                 --p2p.seeds="$seeds" \
                 --moniker="`hostname`" \
-                --consensus.create_empty_blocks=false \
-                --rpc.laddr tcp://0.0.0.0:46666 \
-                --rpc.grpc_laddr tcp://0.0.0.0:46657
+                --consensus.create_empty_blocks=false
 
           volumeMounts:
             - name: tmdir
@@ -187,72 +224,53 @@ spec:
               mountPath: /etc/tendermint/genesis.json
               subPath: genesis.json
 
-        # Container running an Ekiden consensus node.
-        - name: consensus
-          imagePullPolicy: Always
-          image: ekiden/core:latest
+        # Container running an Ethermint node.
+        - name: ethermint
+          imagePullPolicy: IfNotPresent
+          image: tendermint/ethermint:develop
           command:
             - bash
             - "-c"
             - |
-              consensus \
-                --tendermint-host localhost \
-                --tendermint-port 46657 \
-                --tendermint-abci-port 46658 \
-                --grpc-port 9002
+              cd /ethermint-init
+              ethermint --datadir /ethermint init
 
-        # Container running an Ekiden key manager contract.
-        - name: key-manager
-          imagePullPolicy: Always
-          image: ekiden/core:latest
-          command:
-            - bash
-            - "-c"
-            - |
-              compute \
-                --grpc-threads 4 \
-                --port 9003 \
-                --disable-key-manager \
-                /ekiden/lib/key-manager.signed.so
+              ethermint \
+                --datadir /ethermint \
+                --rpc \
+                --rpcaddr=0.0.0.0 \
+                --ws \
+                --wsaddr=0.0.0.0 \
+                --rpcapi eth,net,web3,personal,admin
+
           volumeMounts:
-            - name: ias
-              mountPath: /ias
-              readOnly: true
-
-        # Container running an Ekiden contract.
-        # TODO: Currently all compute nodes must use the same key manager.
-        - name: contract
-          imagePullPolicy: Always
-          image: ekiden/core:latest
-          command:
-            - bash
-            - "-c"
-            - |
-              fqdn_suffix=$(hostname -f | sed 's#[^.]*\.\(\)#\1#')
-
-              compute \
-                --grpc-threads 4 \
-                --port 9001 \
-                --key-manager-host ekiden-token-0.${fqdn_suffix} \
-                --key-manager-port 9003 \
-                /ekiden/lib/token.signed.so
-          volumeMounts:
-            - name: ias
-              mountPath: /ias
-              readOnly: true
+            - name: emdir
+              mountPath: /ethermint
+            - mountPath: /ethermint-init/genesis.json
+              name: tmconfigdir
+              subPath: ethermint-genesis.json
+            - mountPath: /ethermint-init/keystore/UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc
+              name: tmconfigdir
+              subPath: ethermint-keystore.json
 
       volumes:
         - name: tmconfigdir
           configMap:
             name: tendermint-config
-        - name: ias
-          secret:
-            secretName: ias
 
 
   volumeClaimTemplates:
     - metadata:
         name: tmdir
+        annotations:
+          volume.alpha.kubernetes.io/storage-class: anything
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+    - metadata:
+        name: emdir
         annotations:
           volume.alpha.kubernetes.io/storage-class: anything
       spec:

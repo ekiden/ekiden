@@ -46,3 +46,12 @@ $ ./docker/deployment/build-images.sh
 ```
 
 This will build `ekiden/core` locally and you can then push the image to your preferred registry.
+
+## Deploying on AWS
+
+Using [kops](https://github.com/kubernetes/kops/blob/master/docs/aws.md) is recommended to set up a Kubernetes cluster on AWS.
+
+To set up AWS in multiple availability zones and use 4 nodes, set up the cluster as following:
+```bash
+$ kops create cluster --zones us-west-2a,us-west-2b,us-west-2c --node-count 4 ${NAME}
+```
