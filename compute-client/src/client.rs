@@ -323,6 +323,12 @@ impl SecureChannelContext {
 impl<Backend: ContractClientBackend> Drop for ContractClient<Backend> {
     /// Close secure channel when going out of scope.
     fn drop(&mut self) {
-        self.close_secure_channel().unwrap();
+        match self.close_secure_channel() {
+            Ok(()) => {}
+            _ => {
+                // Ignore errors, since we are dropping the client anyway and this
+                // will needlessly cause a panic.
+            }
+        }
     }
 }
