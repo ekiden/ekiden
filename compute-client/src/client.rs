@@ -6,8 +6,9 @@ use protobuf::{Message, MessageStatic};
 use libcontract_common::{api, random};
 use libcontract_common::quote::{AttestationReport, MrEnclave};
 use libcontract_common::secure_channel::{create_box, open_box, MonotonicNonceGenerator,
-                                         RandomNonceGenerator, SessionState, NONCE_CONTEXT_INIT,
-                                         NONCE_CONTEXT_REQUEST, NONCE_CONTEXT_RESPONSE};
+                                         NonceGenerator, RandomNonceGenerator, SessionState,
+                                         NONCE_CONTEXT_INIT, NONCE_CONTEXT_REQUEST,
+                                         NONCE_CONTEXT_RESPONSE};
 
 use super::backend::ContractClientBackend;
 use super::errors::Error;
@@ -229,6 +230,14 @@ impl SecureChannelContext {
         // Clear contract keys.
         self.contract_long_term_public_key = [0; sodalite::BOX_PUBLIC_KEY_LEN];
         self.contract_short_term_public_key = [0; sodalite::BOX_PUBLIC_KEY_LEN];
+
+        // Clear session keys.
+        self.shared_request_key = None;
+        self.shared_response_key = None;
+
+        // Reset session nonce.
+        self.short_term_nonce_generator.reset();
+
         self.state.transition_to(SessionState::Init)?;
 
         Ok(())
