@@ -37,9 +37,21 @@ struct ComputeNodes {
 }
 
 impl ComputeNodes {
+    /// Construct new pool of compute nodes.
+    fn new(nodes: &[ComputeNodeAddress]) -> Result<Self, Error> {
+        let mut instance = ComputeNodes::default();
+
+        for node in nodes {
+            instance.add_node(node)?;
+        }
+
+        Ok(instance)
+    }
+
     /// Add a new compute node.
-    fn add_node(&mut self, host: &str, port: u16) -> Result<(), Error> {
-        let client = match ComputeClient::new_plain(&host, port, Default::default()) {
+    fn add_node(&mut self, address: &ComputeNodeAddress) -> Result<(), Error> {
+        let client = match ComputeClient::new_plain(&address.host, address.port, Default::default())
+        {
             Ok(client) => client,
             _ => return Err(Error::new("Failed to initialize gRPC client")),
         };
@@ -111,21 +123,15 @@ impl Web3ContractClientBackend {
 
     /// Construct new Web3 contract client backend with a pool of nodes.
     pub fn new_pool(nodes: &[ComputeNodeAddress]) -> Result<Self, Error> {
-        let backend = Web3ContractClientBackend {
-            nodes: Mutex::new(ComputeNodes::default()),
-        };
-
-        for node in nodes {
-            backend.add_node(node)?;
-        }
-
-        Ok(backend)
+        Ok(Web3ContractClientBackend {
+            nodes: Mutex::new(ComputeNodes::new(&nodes)?),
+        })
     }
 
     /// Add a new compute node for this client.
     pub fn add_node(&self, address: &ComputeNodeAddress) -> Result<(), Error> {
         let mut nodes = self.nodes.lock().unwrap();
-        nodes.add_node(&address.host, address.port)?;
+        nodes.add_node(&address)?;
 
         Ok(())
     }
