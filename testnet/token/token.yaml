@@ -213,6 +213,7 @@ spec:
                 --grpc-threads 4 \
                 --port 9003 \
                 --disable-key-manager \
+                --consensus-host disabled \
                 /ekiden/lib/key-manager.signed.so
           volumeMounts:
             - name: ias

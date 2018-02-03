@@ -29,6 +29,9 @@ pub const NONCE_CONTEXT_RESPONSE: NonceContext = [
 
 /// Nonce generator.
 pub trait NonceGenerator {
+    /// Reset nonce generator.
+    fn reset(&mut self);
+
     /// Generate a new nonce.
     fn get_nonce(&mut self, context: &NonceContext) -> Result<sodalite::BoxNonce, ContractError>;
 
@@ -80,6 +83,10 @@ impl RandomNonceGenerator {
 }
 
 impl NonceGenerator for RandomNonceGenerator {
+    fn reset(&mut self) {
+        // No reset needed.
+    }
+
     #[cfg(feature = "sgx")]
     fn get_nonce(&mut self, context: &NonceContext) -> Result<sodalite::BoxNonce, ContractError> {
         let mut nonce: sodalite::BoxNonce = [0; sodalite::BOX_NONCE_LEN];
@@ -130,6 +137,12 @@ impl MonotonicNonceGenerator {
 }
 
 impl NonceGenerator for MonotonicNonceGenerator {
+    /// Reset nonce generator.
+    fn reset(&mut self) {
+        self.next_send_nonce = 0;
+        self.last_received_nonce = None;
+    }
+
     fn get_nonce(&mut self, context: &NonceContext) -> Result<sodalite::BoxNonce, ContractError> {
         let mut nonce: Vec<u8> = context.to_vec();
         nonce.append(&mut vec![0; 8]);

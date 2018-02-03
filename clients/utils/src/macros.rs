@@ -17,6 +17,10 @@ macro_rules! default_app {
                  .takes_value(true)
                  .default_value("9001")
                  .display_order(2))
+            .arg(Arg::with_name("nodes")
+                .long("nodes")
+                .help("A list of comma-separated compute node addresses (e.g. host1:9001,host2:9004)")
+                .takes_value(true))
             .arg(Arg::with_name("mr-enclave")
                  .long("mr-enclave")
                  .value_name("MRENCLAVE")
@@ -30,10 +34,32 @@ macro_rules! default_app {
 #[macro_export]
 macro_rules! default_backend {
     ($args:ident) => {
-        compute_client::backend::Web3ContractClientBackend::new(
-            $args.value_of("host").unwrap(),
-            value_t!($args, "port", u16).unwrap_or(9001)
-        ).unwrap()
+        if $args.is_present("nodes") {
+            // Pool of compute nodes.
+            use std::str::FromStr;
+            use compute_client::backend::web3::ComputeNodeAddress;
+
+            let nodes: Vec<ComputeNodeAddress> = $args
+                .value_of("nodes")
+                .unwrap()
+                .split(",")
+                .map(|address: &str| {
+                    let parts: Vec<&str> = address.split(":").collect();
+
+                    ComputeNodeAddress {
+                        host: parts[0].to_string(),
+                        port: u16::from_str(&parts[1]).unwrap(),
+                    }
+                })
+                .collect();
+
+            compute_client::backend::Web3ContractClientBackend::new_pool(&nodes).unwrap()
+        } else {
+            compute_client::backend::Web3ContractClientBackend::new(
+                $args.value_of("host").unwrap(),
+                value_t!($args, "port", u16).unwrap_or(9001)
+            ).unwrap()
+        }
     };
 }
 

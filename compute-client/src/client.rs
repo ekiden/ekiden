@@ -6,8 +6,9 @@ use protobuf::{Message, MessageStatic};
 use libcontract_common::{api, random};
 use libcontract_common::quote::{AttestationReport, MrEnclave};
 use libcontract_common::secure_channel::{create_box, open_box, MonotonicNonceGenerator,
-                                         RandomNonceGenerator, SessionState, NONCE_CONTEXT_INIT,
-                                         NONCE_CONTEXT_REQUEST, NONCE_CONTEXT_RESPONSE};
+                                         NonceGenerator, RandomNonceGenerator, SessionState,
+                                         NONCE_CONTEXT_INIT, NONCE_CONTEXT_REQUEST,
+                                         NONCE_CONTEXT_RESPONSE};
 
 use super::backend::ContractClientBackend;
 use super::errors::Error;
@@ -47,6 +48,8 @@ pub struct ContractClient<Backend: ContractClientBackend> {
     mr_enclave: MrEnclave,
     /// Secure channel context.
     secure_channel: SecureChannelContext,
+    /// Client attestation required flag.
+    client_attestation: bool,
 }
 
 impl<Backend: ContractClientBackend> ContractClient<Backend> {
@@ -60,6 +63,7 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
             backend: backend,
             mr_enclave: mr_enclave,
             secure_channel: SecureChannelContext::default(),
+            client_attestation: client_attestation,
         };
 
         // Initialize a secure session.
@@ -90,14 +94,8 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
 
         let mut client_response = self.backend.call(client_request)?;
 
-        if self.secure_channel.must_encrypt() && !client_response.has_encrypted_response() {
-            return Err(Error::new(
-                "Contract returned plain response for encrypted request",
-            ));
-        }
-
         let mut plain_response = {
-            if self.secure_channel.must_encrypt() {
+            if client_response.has_encrypted_response() {
                 // Encrypted response.
                 self.secure_channel
                     .open_response_box(&client_response.get_encrypted_response())?
@@ -106,6 +104,30 @@ impl<Backend: ContractClientBackend> ContractClient<Backend> {
                 client_response.take_plain_response()
             }
         };
+
+        if self.secure_channel.must_encrypt() && !client_response.has_encrypted_response() {
+            match plain_response.get_code() {
+                api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL => {
+                    // Request the secure channel to be reset.
+                    // NOTE: This opens us up to potential adversarial interference as an
+                    //       adversarial compute node can force the channel to be reset by
+                    //       crafting a non-authenticated response. But a compute node can
+                    //       always deny service or prevent the secure channel from being
+                    //       established in the first place, so this is not really an issue.
+                    if method != api::METHOD_CHANNEL_INIT {
+                        let client_attestation = self.client_attestation;
+                        self.init_secure_channel(client_attestation)?;
+
+                        return Err(Error::new("Secure channel reset"));
+                    }
+                }
+                _ => {}
+            }
+
+            return Err(Error::new(
+                "Contract returned plain response for encrypted request",
+            ));
+        }
 
         // Validate response code.
         match plain_response.get_code() {
@@ -208,6 +230,14 @@ impl SecureChannelContext {
         // Clear contract keys.
         self.contract_long_term_public_key = [0; sodalite::BOX_PUBLIC_KEY_LEN];
         self.contract_short_term_public_key = [0; sodalite::BOX_PUBLIC_KEY_LEN];
+
+        // Clear session keys.
+        self.shared_request_key = None;
+        self.shared_response_key = None;
+
+        // Reset session nonce.
+        self.short_term_nonce_generator.reset();
+
         self.state.transition_to(SessionState::Init)?;
 
         Ok(())
@@ -302,6 +332,12 @@ impl SecureChannelContext {
 impl<Backend: ContractClientBackend> Drop for ContractClient<Backend> {
     /// Close secure channel when going out of scope.
     fn drop(&mut self) {
-        self.close_secure_channel().unwrap();
+        match self.close_secure_channel() {
+            Ok(()) => {}
+            _ => {
+                // Ignore errors, since we are dropping the client anyway and this
+                // will needlessly cause a panic.
+            }
+        }
     }
 }

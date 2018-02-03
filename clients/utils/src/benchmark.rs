@@ -249,6 +249,7 @@ where
         });
 
         // Finalize.
+        let mut client = self.client_factory.create();
         finalize(&mut client, self.runs, self.pool.max_count());
 
         // Collect benchmark results.
