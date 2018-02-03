@@ -2,6 +2,10 @@ FROM ekiden/rust-sgx-sdk
 
 ENV HOME="/root"
 ENV PATH="${HOME}/.cargo/bin:${PATH}"
+ENV INTEL_SGX_SDK="/opt/sgxsdk"
+ENV RUST_SGX_SDK="/sgx"
+ENV SGX_MODE="SIM"
+ENV SGX_ARCH="x64"
 
 # Copy code.
 ADD . /code
@@ -12,13 +16,21 @@ RUN git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx && 
     cd /code && \
     cargo make build-flow && \
     cd /code/clients/token && \
-    cargo build --features benchmark
+    cargo build --features benchmark && \
+    cd /code/compute && \
+    mv /code/target/debug/compute /code/target/debug/compute-orig && \
+    cargo build --features "no_diffs" && \
+    mv /code/target/debug/compute /code/target/debug/compute-no_diffs && \
+    cargo build --features "no_diffs no_cache" && \
+    mv /code/target/debug/compute /code/target/debug/compute-no_diffs-no_cache
 
 # Package all binaries.
 RUN mkdir -p /package/bin /package/lib && \
     cp /code/target/enclave/*.signed.so /package/lib && \
     cp /code/target/enclave/*.mrenclave /package/lib && \
-    cp /code/target/debug/compute /package/bin && \
+    cp /code/target/debug/compute-orig /package/bin/compute && \
+    cp /code/target/debug/compute-no_diffs /package/bin && \
+    cp /code/target/debug/compute-no_diffs-no_cache /package/bin && \
     cp /code/target/debug/consensus /package/bin && \
     cp /code/target/debug/token-client /package/bin && \
     cp /code/target/debug/benchmark-token-transfer /package/bin && \
