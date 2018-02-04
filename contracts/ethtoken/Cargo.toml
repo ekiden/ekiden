@@ -1,0 +1,26 @@
+[package]
+name = "ethtoken"
+version = "0.1.0"
+authors = ["Noah Johnson <noahj@berkeley.edu>"]
+build = "build.rs"
+
+[lib]
+name = "ethtoken"
+crate-type = ["staticlib"]
+
+[features]
+default = []
+
+[dependencies]
+etcommon-bigint = { version = "0.2", features = ["string", "rlp"], default-features = false }
+etcommon-hexutil = { version = "0.2", default-features = false }
+sha3 = "0.6"
+ethtoken-api = { path = "./api", features = ["sgx"], default-features = false }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
+libcontract-trusted = { path = "../../libcontract/trusted" }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
+sputnikvm = { version = "0.9", default-features = false }
+
+[build-dependencies]
+libcontract-utils = { path = "../../libcontract/utils" }

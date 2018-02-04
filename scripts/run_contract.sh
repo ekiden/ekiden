@@ -12,5 +12,5 @@ if [ "$1" = "--client" ]; then
 else
   contract="$1"
   shift 1
-  cargo run -p compute "$PROJ_ROOT/target/enclave/$contract.signed.so" -- --ias-spid "$ias_spid" --ias-pkcs12 "$ias_pkcs" "$@"
+  cargo run -p compute "$PROJ_ROOT/target/enclave/$contract.signed.so" -- "$@"
 fi

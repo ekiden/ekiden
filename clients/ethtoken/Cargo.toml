@@ -1,0 +1,13 @@
+[package]
+name = "ethtoken-client"
+version = "0.1.0"
+authors = [
+    "Noah Johnson <noahj@berkeley.edu>"
+]
+
+[dependencies]
+client-utils = { path = "../utils" }
+libcontract-common = { path = "../../libcontract/common" }
+compute-client = { path = "../../compute-client" }
+ethtoken-api = { path = "../../contracts/ethtoken/api" }
+clap = "2.29.1"
