@@ -1,6 +1,5 @@
 use std::sync::Arc;
-use std::sync::mpsc::{channel, Sender};
-use std::thread;
+use std::sync::mpsc::channel;
 
 use histogram::Histogram;
 use threadpool::ThreadPool;
@@ -41,13 +40,14 @@ pub struct Benchmark<Factory: ClientFactory> {
 /// All time values are in nanoseconds.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct BenchmarkResult {
-    /// Flag showing that a benchmark run failed.
-    pub failed: bool,
     /// Amount of time taken for client initialization. This includes the time it
     /// takes to establish a secure channel.
     pub client_initialization: u64,
     /// Amount of time taken to run the scenario.
     pub scenario: u64,
+    /// Amount of time taken for client dropping. This includes the
+    /// time it takes to close a secure channel.
+    pub client_drop: u64,
 }
 
 /// Benchmark results for the entire set of runs.
@@ -55,52 +55,21 @@ pub struct BenchmarkResult {
 /// All time values are in nanoseconds.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct BenchmarkOverallResult {
-    /// Amount of time taken to run all runs.
-    pub time_total: u64,
-}
-
-/// Sentinel that sends the benchmark results back to the main thread.
-///
-/// Using this sentinel ensures that results are sent even if the thread panicks and
-/// unwinds.
-struct BenchmarkSentinel {
-    /// Benchmark result.
-    result: BenchmarkResult,
-    /// Channel to send the result over.
-    sender: Sender<BenchmarkResult>,
-}
-
-impl BenchmarkSentinel {
-    /// Create a new benchmark sentinel.
-    fn new(sender: Sender<BenchmarkResult>) -> Self {
-        BenchmarkSentinel {
-            result: BenchmarkResult::default(),
-            sender: sender,
-        }
-    }
-
-    /// Get mutable reference to benchmark result.
-    fn result_mut(&mut self) -> &mut BenchmarkResult {
-        &mut self.result
-    }
-}
-
-impl Drop for BenchmarkSentinel {
-    /// Send result back to the main thread.
-    fn drop(&mut self) {
-        if thread::panicking() {
-            // Mark result as failed.
-            self.result.failed = true;
-        }
-
-        // Send result.
-        self.sender.send(self.result).unwrap();
-    }
+    /// Amount of time taken for client initialization. This includes the time it
+    /// takes to establish a secure channel.
+    pub client_initialization: u64,
+    /// Amount of time taken to run the scenario.
+    pub scenario: u64,
+    /// Amount of time taken for client dropping. This includes the
+    /// time it takes to close a secure channel.
+    pub client_drop: u64,
 }
 
 /// Set of benchmark results for all runs.
 pub struct BenchmarkResults {
-    /// Benchmark results from individual runs.
+    /// Number of runs.
+    pub runs: usize,
+    /// Benchmark results from non-panicked individual runs.
     pub results: Vec<BenchmarkResult>,
     /// Benchmark results from overall measurements.
     pub overall_result: BenchmarkOverallResult,
@@ -133,50 +102,65 @@ impl BenchmarkResults {
         // Prepare histograms.
         let mut histogram_client_init = Histogram::new();
         let mut histogram_scenario = Histogram::new();
-        let mut failures = 0;
+        let mut histogram_client_drop = Histogram::new();
         let mut total_time = 0;
 
         for result in &self.results {
-            if result.failed {
-                failures += 1;
-                continue;
-            }
-
             histogram_client_init
                 .increment(result.client_initialization / 1_000_000)
                 .unwrap();
             histogram_scenario
                 .increment(result.scenario / 1_000_000)
                 .unwrap();
+            histogram_client_drop
+                .increment(result.client_drop / 1_000_000)
+                .unwrap();
 
-            total_time += result.client_initialization + result.scenario;
+            total_time += result.client_initialization + result.scenario + result.client_drop;
         }
 
         let count = self.results.len() as u64;
+        let failures = self.runs as u64 - count;
 
         println!("=== Benchmark Results ===");
-        println!("Threads:               {}", self.threads);
-        println!("Runs:                  {}", count);
-        println!("Failures:              {}", failures);
+        println!("Threads:                   {}", self.threads);
+        println!("Runs:                      {}", self.runs);
+        println!("Non-panicked (npr):        {}", count);
+        println!("Panicked:                  {}", failures);
+
         println!("--- Latency ---");
         println!(
-            "Total time:            {} ms ({} ms / run)",
+            "Total time:                {} ms ({} ms / npr)",
             total_time / 1_000_000,
             total_time / (1_000_000 * count)
         );
-
         self.show_result("Client initialization", &histogram_client_init);
         self.show_result("Scenario", &histogram_scenario);
+        self.show_result("Client drop", &histogram_client_drop);
+
+        let total_time_nonoverlapping = self.overall_result.client_initialization
+            + self.overall_result.scenario
+            + self.overall_result.client_drop;
 
         println!("--- Throughput ---");
         println!(
-            "Total time:            {} ms",
-            self.overall_result.time_total / 1_000_000
+            "Total time nonoverlapping: {} ms",
+            total_time_nonoverlapping / 1_000_000
         );
         println!(
-            "Total runs:            {} ({} / sec)",
-            count,
-            count as f64 / (self.overall_result.time_total as f64 / 1e9)
+            "Client Initialization:     {} ms ({} npr / sec)",
+            self.overall_result.client_initialization / 1_000_000,
+            count as f64 / (self.overall_result.client_initialization as f64 / 1e9)
+        );
+        println!(
+            "Scenario:                  {} ms ({} npr / sec)",
+            self.overall_result.scenario / 1_000_000,
+            count as f64 / (self.overall_result.scenario as f64 / 1e9)
+        );
+        println!(
+            "Client drop:               {} ms ({} npr / sec)",
+            self.overall_result.client_drop / 1_000_000,
+            count as f64 / (self.overall_result.client_drop as f64 / 1e9)
         );
     }
 }
@@ -190,6 +174,11 @@ macro_rules! time_block {
 
         result
     }}
+}
+
+/// Helper to collect into a Vec without redeclaring an item type.
+fn collect_vec<I: Iterator>(i: I) -> Vec<I::Item> {
+    i.collect()
 }
 
 impl<Factory> Benchmark<Factory>
@@ -220,32 +209,75 @@ where
         scenario: fn(&mut Factory::Client),
         finalize: fn(&mut Factory::Client, usize, usize),
     ) -> BenchmarkResults {
-        let (tx, rx) = channel();
+        let mut overall_result = BenchmarkOverallResult::default();
 
         // Initialize.
         let mut client = self.client_factory.create();
         init(&mut client, self.runs, self.pool.max_count());
 
-        // Run the given number of scenarios.
-        let mut overall_result = BenchmarkOverallResult::default();
-        let results = time_block!(overall_result, time_total, {
+        // Create the clients for the scenarios.
+        let cr = time_block!(overall_result, client_initialization, {
+            let (tx, rx) = channel();
             for _ in 0..self.runs {
                 let client_factory = self.client_factory.clone();
                 let tx = tx.clone();
 
                 self.pool.execute(move || {
-                    let mut sentinel = BenchmarkSentinel::new(tx);
-                    let result = sentinel.result_mut();
+                    let mut result = BenchmarkResult::default();
 
-                    // Create client, run the scenario.
-                    let mut client =
+                    // Create the client.
+                    let client =
                         time_block!(result, client_initialization, { client_factory.create() });
-                    time_block!(result, scenario, { scenario(&mut client) });
+
+                    tx.send((client, result));
+                });
+            }
+
+            // Collect pairs of initialized client and partial results
+            // from runs that have not panicked.
+            self.pool.join();
+            collect_vec(rx.try_iter())
+        });
+
+        // Run the given number of scenarios.
+        let cr = time_block!(overall_result, scenario, {
+            let (tx, rx) = channel();
+            for (mut client, mut result) in cr {
+                let tx = tx.clone();
+
+                self.pool.execute(move || {
+                    // Run the scenario.
+                    time_block!(result, scenario, {
+                        scenario(&mut client);
+                    });
+
+                    tx.send((client, result));
+                });
+            }
+
+            self.pool.join();
+            collect_vec(rx.try_iter())
+        });
+
+        // Drop the clients for the scenarios.
+        let results = time_block!(overall_result, client_drop, {
+            let (tx, rx) = channel();
+            for (client, mut result) in cr {
+                let tx = tx.clone();
+
+                self.pool.execute(move || {
+                    // Run the scenario.
+                    time_block!(result, client_drop, {
+                        drop(client);
+                    });
+
+                    tx.send(result);
                 });
             }
 
             // Collect benchmark results.
-            rx.iter().take(self.runs).collect()
+            self.pool.join();
+            collect_vec(rx.try_iter())
         });
 
         // Finalize.
@@ -254,6 +286,7 @@ where
 
         // Collect benchmark results.
         BenchmarkResults {
+            runs: self.runs,
             results: results,
             overall_result: overall_result,
             threads: self.pool.max_count(),

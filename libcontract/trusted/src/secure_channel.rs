@@ -29,10 +29,8 @@ struct ClientSession {
     contract_public_key: sodalite::BoxPublicKey,
     /// Contract short-term private key.
     contract_private_key: sodalite::BoxSecretKey,
-    /// Cached shared request key.
-    shared_request_key: Option<sodalite::SecretboxKey>,
-    /// Cached shared response key.
-    shared_response_key: Option<sodalite::SecretboxKey>,
+    /// Cached shared key.
+    shared_key: Option<sodalite::SecretboxKey>,
     /// Short-term nonce generator.
     nonce_generator: MonotonicNonceGenerator,
     /// Session state.
@@ -289,6 +287,18 @@ impl ClientSession {
             &seed,
         );
 
+        // Cache shared channel key.
+        {
+            let mut key = session
+                .shared_key
+                .get_or_insert([0u8; sodalite::SECRETBOX_KEY_LEN]);
+            sodalite::box_beforenm(
+                &mut key,
+                &session.client_public_key,
+                &session.contract_private_key,
+            );
+        }
+
         Ok(session)
     }
 
@@ -313,7 +323,7 @@ impl ClientSession {
             &mut self.nonce_generator,
             &self.client_public_key,
             &self.contract_private_key,
-            &mut self.shared_request_key,
+            &mut self.shared_key,
         )?;
 
         let plain_request: api::PlainClientRequest = protobuf::parse_from_bytes(&plain_request)?;
@@ -344,7 +354,7 @@ impl ClientSession {
             &mut self.nonce_generator,
             &self.client_public_key,
             &self.contract_private_key,
-            &mut self.shared_response_key,
+            &mut self.shared_key,
         )?)
     }
 
