@@ -211,7 +211,7 @@ dependencies = [
  "libcontract-common 0.1.0",
  "libcontract-untrusted 0.1.0",
  "libcontract-utils 0.1.0",
- "prometheus 0.3.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prometheus 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "protoc-rust-grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -965,7 +965,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "prometheus"
-version = "0.3.10"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -987,7 +987,7 @@ dependencies = [
 [[package]]
 name = "protobuf-sgx"
 version = "1.4.1"
-source = "git+https://github.com/ekiden/rust-protobuf#8384f2e53ddc6c94533bd0e2b27faaef86f2478b"
+source = "git+https://github.com/ekiden/rust-protobuf#7cca2c05b96ae2d681c43587b3820d4a328b982f"
 dependencies = [
  "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
 ]
@@ -1840,7 +1840,7 @@ dependencies = [
 "checksum phf_generator 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)" = "6b07ffcc532ccc85e3afc45865469bf5d9e4ef5bfcf9622e3cfe80c2d275ec03"
 "checksum phf_shared 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)" = "07e24b0ca9643bdecd0632f2b3da6b1b89bbb0030e0b992afc1113b23a7bc2f2"
 "checksum pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3a8b4c6b8165cd1a1cd4b9b120978131389f64bdaf456435caa41e630edba903"
-"checksum prometheus 0.3.10 (registry+https://github.com/rust-lang/crates.io-index)" = "c601a15017b4fc969845b0b0aa9a44388d3cb1a181c2738b8918b0679dfebf81"
+"checksum prometheus 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)" = "71a963c5a59b4459a8133e60f8170df6fd29b67c0e6de5d45521d3056465bbfc"
 "checksum protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "bec26e67194b7d991908145fdf21b7cae8b08423d96dcb9e860cd31f854b9506"
 "checksum protobuf-sgx 1.4.1 (git+https://github.com/ekiden/rust-protobuf)" = "<none>"
 "checksum protoc 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "5379c34ea2f9c69b99e6f25f6d0e6619876195ae7a3dcaf69f66bdb6c2e4dceb"
