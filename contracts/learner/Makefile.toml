@@ -1,4 +1,1 @@
 extend = "../Makefile.toml"
-
-[tasks.post-build]
-alias = "empty"

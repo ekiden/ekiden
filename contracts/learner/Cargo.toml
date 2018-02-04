@@ -2,27 +2,24 @@
 name = "learner"
 version = "0.1.0"
 authors = ["Nick Hynes <nhynes@berkeley.edu>"]
+build = "build.rs"
 
 [lib]
 name = "learner"
-
-[features]
-default = ["sgx"]
-sgx = ["learner-api/sgx", "libcontract-common/sgx", "protobuf-sgx", "rusty-machine-sgx", "serde-sgx", "serde_cbor-sgx", "sgx_tstd"]
-no-sgx = ["protobuf", "rusty-machine", "serde", "serde_cbor", "learner-api/no-sgx", "libcontract-common/no-sgx"]
+crate-type = ["staticlib"]
 
 [dependencies]
-learner-api = { path = "./api", default-features = false }
-libcontract-common = { path = "../../libcontract/common", default-features = false }
-protobuf = { version = "1.4.2", optional = true }
-protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true}
-rusty-machine = { git = "https://github.com/ekiden/rusty-machine", optional = true }
-rusty-machine-sgx = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
-serde = { version = "1.0.27", optional = true }
-serde-sgx = { git = "https://github.com/ekiden/serde", optional = true }
-serde_cbor = { version = "0.8.2", optional = true }
-serde_cbor-sgx = { git = "https://github.com/ekiden/cbor", optional = true }
-sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
+learner-api = { path = "./api", default-features = false, features = ["sgx"] }
+libcontract-common = { path = "../../libcontract/common", default-features = false, features = ["sgx"] }
+libcontract-trusted = { path = "../../libcontract/trusted" }
+ndarray-sgx = { git = "https://github.com/ekiden/rust-ndarray", features = ["serde-1"] }
+ndarray-rand-sgx = { git = "https://github.com/ekiden/rust-ndarray" }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf"}
+serde_derive = { git = "https://github.com/ekiden/serde" }
+serde-sgx = { git = "https://github.com/ekiden/serde" }
+serde_cbor-sgx = { git = "https://github.com/ekiden/cbor" }
+sgx_rand = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 
 [build-dependencies]
 libcontract-utils = { path = "../../libcontract/utils" }

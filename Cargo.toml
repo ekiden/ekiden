@@ -13,7 +13,6 @@ members = [
   "contracts/dummy",
   "contracts/token",
   "contracts/learner",
-  "contracts/credit_scoring_learner",
 
   "libcontract/common",
   "libcontract/untrusted",
@@ -23,6 +22,6 @@ members = [
   "clients/benchmark-token-transfer",
   "clients/benchmark-token-get-balance",
   "clients/token",
-  "clients/credit_scoring_learner",
+  "clients/learner",
 ]
 exclude = ["third_party"]

@@ -1,8 +1,8 @@
 #[macro_export]
 macro_rules! check_owner {
-    ($model:ty, $state:ident, $req:ident) => {
+    ($state:ident, $req:ident) => {
         {
-            let learner = Learner::<$model>::from_state(&$state);
+            let learner = Learner::from_state(&$state);
             if !Address::from($req.get_requester().to_string()).eq(learner.get_owner()?) {
                 return Err(ContractError::new("Insufficient permissions."));
             }

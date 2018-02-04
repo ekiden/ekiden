@@ -9,12 +9,11 @@ extern crate client_utils;
 extern crate compute_client;
 extern crate libcontract_common;
 
-extern crate learner as learner_contract;
+extern crate learner_api as api;
 
+use api::*;
 use clap::{App, Arg};
 use std::process::{Command, Stdio};
-
-use learner_contract::api::*;
 
 create_client_api!();
 
@@ -39,6 +38,8 @@ fn main() {
     let mut client = contract_client!(learner);
     let user = "Rusty Lerner".to_string();
 
+    println!("SENDING CREATE");
+
     let _create_res = client
         .create({
             let mut req = CreateRequest::new();
@@ -46,6 +47,8 @@ fn main() {
             req
         })
         .expect("error: create");
+
+    println!("SENDING TRAIN");
 
     let _train_res = client
         .train({
@@ -56,6 +59,8 @@ fn main() {
             req
         })
         .expect("error: train");
+
+    println!("HERE");
 
     let mut infer_res = client
         .infer({
