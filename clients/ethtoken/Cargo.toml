@@ -5,6 +5,10 @@ authors = [
     "Noah Johnson <noahj@berkeley.edu>"
 ]
 
+[features]
+default = []
+benchmark = ["client-utils/benchmark"]
+
 [dependencies]
 client-utils = { path = "../utils" }
 libcontract-common = { path = "../../libcontract/common" }

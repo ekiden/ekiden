@@ -8,9 +8,9 @@ contract_api! {
 
     rpc init_genesis_state(InitStateRequest) -> (state, InitStateResponse);
 
-    rpc create_token(state, CreateTokenRequest) -> (state, CreateTokenResponse);
+    rpc create(state, CreateTokenRequest) -> (state, CreateTokenResponse);
 
-    rpc transfer_tokens(state, TransferTokenRequest) -> (state, TransferTokenResponse);
+    rpc transfer(state, TransferTokenRequest) -> (state, TransferTokenResponse);
 
     rpc get_balance(state, GetBalanceRequest) -> GetBalanceResponse;
 }
