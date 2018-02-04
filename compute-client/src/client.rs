@@ -28,10 +28,8 @@ pub struct SecureChannelContext {
     contract_long_term_public_key: sodalite::BoxPublicKey,
     /// Contract contract short-term public key.
     contract_short_term_public_key: sodalite::BoxPublicKey,
-    /// Cached shared request key.
-    shared_request_key: Option<sodalite::SecretboxKey>,
-    /// Cached shared response key.
-    shared_response_key: Option<sodalite::SecretboxKey>,
+    /// Cached shared key.
+    shared_key: Option<sodalite::SecretboxKey>,
     /// Session state.
     state: SessionState,
     /// Long-term nonce generator.
@@ -232,8 +230,7 @@ impl SecureChannelContext {
         self.contract_short_term_public_key = [0; sodalite::BOX_PUBLIC_KEY_LEN];
 
         // Clear session keys.
-        self.shared_request_key = None;
-        self.shared_response_key = None;
+        self.shared_key = None;
 
         // Reset session nonce.
         self.short_term_nonce_generator.reset();
@@ -270,6 +267,15 @@ impl SecureChannelContext {
 
         self.state.transition_to(SessionState::Established)?;
 
+        // Cache shared channel key.
+        let mut key = self.shared_key
+            .get_or_insert([0u8; sodalite::SECRETBOX_KEY_LEN]);
+        sodalite::box_beforenm(
+            &mut key,
+            &self.contract_short_term_public_key,
+            &self.client_private_key,
+        );
+
         Ok(())
     }
 
@@ -302,7 +308,7 @@ impl SecureChannelContext {
             &mut self.short_term_nonce_generator,
             &self.contract_short_term_public_key,
             &self.client_private_key,
-            &mut self.shared_request_key,
+            &mut self.shared_key,
         )?;
 
         // Set public key so the contract knows which client this is.
@@ -322,7 +328,7 @@ impl SecureChannelContext {
             &mut self.short_term_nonce_generator,
             &self.contract_short_term_public_key,
             &self.client_private_key,
-            &mut self.shared_response_key,
+            &mut self.shared_key,
         )?;
 
         Ok(protobuf::parse_from_bytes(&plain_response)?)
