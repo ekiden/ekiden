@@ -109,8 +109,8 @@ impl EkidenEnclave {
 
     /// Perform a raw RPC call against the enclave.
     pub fn call_raw(&self, mut request: Vec<u8>) -> Result<Vec<u8>, errors::Error> {
-        // Maximum size of serialized response is 16K.
-        let mut response: Vec<u8> = Vec::with_capacity(16 * 1024);
+        // Maximum size of serialized response is 64K.
+        let mut response: Vec<u8> = Vec::with_capacity(64 * 1024);
 
         // Ensure that request is actually allocated as the length of the actual request
         // may be zero and in that case the OCALL will fail with SGX_ERROR_INVALID_PARAMETER.

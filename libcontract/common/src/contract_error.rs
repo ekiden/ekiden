@@ -27,3 +27,9 @@ impl From<io::Error> for ContractError {
         ContractError::new(e.description())
     }
 }
+
+impl From<String> for ContractError {
+    fn from(msg: String) -> Self {
+        ContractError::new(&msg)
+    }
+}

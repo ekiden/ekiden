@@ -1,41 +1,51 @@
 use std::error::Error;
 
-use rusty_machine::learning::lin_reg::LinRegressor;
-use rusty_machine::prelude::*;
+use dpml;
+use ndarray::{Array1, Array2};
 use serde_cbor;
+use std;
 
 use libcontract_common::{Address, Contract, ContractError};
 
-use learner_api::LearnerState;
+use api::LearnerState;
 
 pub struct Learner {
     owner: Address,
-    model: LinRegressor,
+    model: Model,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Model {
+    params: Array2<f64>,
 }
 
 impl Learner {
     pub fn new(owner: Address) -> Learner {
         Learner {
             owner: owner,
-            model: LinRegressor::default(),
+            model: Model {
+                params: Array2::default((4, 2)),
+            },
         }
     }
 
-    pub fn train(
-        &mut self,
-        inputs: &Matrix<f64>,
-        targets: &Vector<f64>,
-    ) -> Result<String, ContractError> {
-        match self.model.train(inputs, targets) {
-            Ok(_) => Ok("The model trained, hooray!".to_string()),
-            Err(err) => Err(ContractError::new(err.description())),
-        }
+    pub fn train(&mut self, x: &Array2<f64>, y: &Array2<f64>) -> Result<(), ContractError> {
+        let params = dpml::dp_logistic_regression(
+            x,
+            y,
+            0.0001, // weight decay
+            0.01,   // learning rate
+            1.0,    // eps
+            1.0,    // delta
+        );
+        self.model.params = params;
+        Ok(())
     }
 
-    pub fn infer(&self, inputs: &Matrix<f64>) -> Result<Vector<f64>, ContractError> {
-        self.model
-            .predict(inputs)
-            .map_err(|err| ContractError::new(err.description()))
+    pub fn infer(&self, inputs: &Array2<f64>) -> Result<Array2<f64>, ContractError> {
+        Ok(inputs
+            .dot(&self.model.params)
+            .map(|&v| 1.0 / (1.0 + std::f64::consts::E.powf(-v))))
     }
 
     pub fn get_owner(&self) -> Result<&Address, ContractError> {
@@ -51,7 +61,6 @@ impl Contract<LearnerState> for Learner {
         state
     }
 
-    /// Create contract instance from serialized state.
     fn from_state(state: &LearnerState) -> Learner {
         Learner {
             owner: Address::from(state.get_owner().to_string()),
