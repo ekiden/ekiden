@@ -56,6 +56,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "benchmark-dp-credit-scoring-infer"
+version = "0.1.0"
+dependencies = [
+ "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "client-utils 0.1.0",
+ "compute-client 0.1.0",
+ "dp-credit-scoring-api 0.1.0",
+ "libcontract-common 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "benchmark-dp-credit-scoring-train"
 version = "0.1.0"
 dependencies = [
@@ -100,18 +112,6 @@ dependencies = [
  "compute-client 0.1.0",
  "libcontract-common 0.1.0",
  "token-api 0.1.0",
-]
-
-[[package]]
-name = "benchmarkdp-credit-scoring-infer"
-version = "0.1.0"
-dependencies = [
- "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "client-utils 0.1.0",
- "compute-client 0.1.0",
- "dp-credit-scoring-api 0.1.0",
- "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -675,6 +675,33 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "iot-learner"
+version = "0.1.0"
+dependencies = [
+ "learner 0.1.0",
+ "libcontract-common 0.1.0",
+ "libcontract-trusted 0.1.0",
+ "libcontract-utils 0.1.0",
+ "protobuf-sgx 1.4.1 (git+https://github.com/ekiden/rust-protobuf)",
+ "rusty-machine-sgx 0.5.4 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
+name = "iot-learner-client"
+version = "0.1.0"
+dependencies = [
+ "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "client-utils 0.1.0",
+ "compute-client 0.1.0",
+ "learner 0.1.0",
+ "libcontract-common 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rulinalg 0.4.2 (git+https://github.com/ekiden/rulinalg.git)",
+ "serde_cbor 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "iovec"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -756,6 +783,36 @@ dependencies = [
 name = "lazycell"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "learner"
+version = "0.1.0"
+dependencies = [
+ "learner-api 0.1.0",
+ "libcontract-common 0.1.0",
+ "libcontract-utils 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protobuf-sgx 1.4.1 (git+https://github.com/ekiden/rust-protobuf)",
+ "rusty-machine 0.5.4 (git+https://github.com/ekiden/rusty-machine)",
+ "rusty-machine-sgx 0.5.4 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde-sgx 1.0.27 (git+https://github.com/ekiden/serde)",
+ "serde_cbor 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_cbor-sgx 0.8.1 (git+https://github.com/ekiden/cbor)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
+name = "learner-api"
+version = "0.1.0"
+dependencies = [
+ "libcontract-common 0.1.0",
+ "libcontract-utils 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protobuf-sgx 1.4.1 (git+https://github.com/ekiden/rust-protobuf)",
+ "protoc 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
 
 [[package]]
 name = "libc"
@@ -870,6 +927,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "matrixmultiply"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "rawpointer 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -979,6 +1044,27 @@ version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "num"
+version = "0.1.40"
+source = "git+https://github.com/ekiden/rust-sgx-sdk#36221da08ad25052a563b96f40354ae83fbaa609"
+dependencies = [
+ "num-derive 0.1.41 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "num-integer 0.1.35 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "num-iter 0.1.34 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "num-traits 0.1.40 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
+name = "num"
+version = "0.1.41"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num-integer 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-iter 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1000,10 +1086,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-derive"
+version = "0.1.41"
+source = "git+https://github.com/ekiden/rust-sgx-sdk#36221da08ad25052a563b96f40354ae83fbaa609"
+dependencies = [
+ "quote 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "num-integer"
+version = "0.1.35"
+source = "git+https://github.com/ekiden/rust-sgx-sdk#36221da08ad25052a563b96f40354ae83fbaa609"
+dependencies = [
+ "num-traits 0.1.40 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "num-traits 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.34"
+source = "git+https://github.com/ekiden/rust-sgx-sdk#36221da08ad25052a563b96f40354ae83fbaa609"
+dependencies = [
+ "num-integer 0.1.35 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "num-traits 0.1.40 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num-integer 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1178,6 +1301,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "quote"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "quote"
+version = "0.3.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "quote"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
@@ -1273,9 +1406,57 @@ dependencies = [
 ]
 
 [[package]]
+name = "rulinalg"
+version = "0.4.2"
+source = "git+https://github.com/ekiden/rulinalg.git#196fa4a9ca3b254d6fdcb76b77e22787a17de9d5"
+dependencies = [
+ "matrixmultiply 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rulinalg"
+version = "0.4.2"
+source = "git+https://github.com/ekiden/rust-sgx-sdk#36221da08ad25052a563b96f40354ae83fbaa609"
+dependencies = [
+ "matrixmultiply 0.1.14 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "num 0.1.40 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "serde-sgx 1.0.27 (git+https://github.com/ekiden/serde)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
 name = "rustc-serialize"
 version = "0.3.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "rusty-machine"
+version = "0.5.4"
+source = "git+https://github.com/ekiden/rusty-machine#33c541939b1db9b7415966db67a41de0502c2589"
+dependencies = [
+ "num 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rulinalg 0.4.2 (git+https://github.com/ekiden/rulinalg.git)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rusty-machine-sgx"
+version = "0.5.4"
+source = "git+https://github.com/ekiden/rust-sgx-sdk#36221da08ad25052a563b96f40354ae83fbaa609"
+dependencies = [
+ "num 0.1.40 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "rulinalg 0.4.2 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "serde-sgx 1.0.27 (git+https://github.com/ekiden/serde)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_rand 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
 
 [[package]]
 name = "safemem"
@@ -1347,6 +1528,15 @@ version = "1.0.27"
 source = "git+https://github.com/ekiden/serde#dc5dce9093e47abdae704f04e83818268f3f5dd3"
 
 [[package]]
+name = "serde_cbor"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "serde_cbor-sgx"
 version = "0.8.1"
 source = "git+https://github.com/ekiden/cbor#396ac423ddf284afceb0ffdbe3dbcb41acfb21c5"
@@ -1368,12 +1558,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_derive"
+version = "1.0.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive_internals 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "serde_derive_internals"
 version = "0.19.0"
 source = "git+https://github.com/ekiden/serde#dc5dce9093e47abdae704f04e83818268f3f5dd3"
 dependencies = [
  "proc-macro2 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.12.12 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "serde_derive_internals"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1574,12 +1783,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "syn"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "quote 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "syn"
+version = "0.11.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "syn"
 version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "proc-macro2 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "synom"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1815,6 +2050,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "unicode-xid"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "unicode-xid"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
@@ -1980,6 +2220,7 @@ dependencies = [
 "checksum log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "89f010e843f2b1a31dbd316b3b8d443758bc634bed37aabade59c686d644e0a2"
 "checksum matches 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "100aabe6b8ff4e4a7e32c1c13523379802df0772b82466207ac25b013f193376"
 "checksum matrixmultiply 0.1.14 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
+"checksum matrixmultiply 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "cac1a66eab356036af85ea093101a14223dc6e3f4c02a59b7d572e5b93270bf7"
 "checksum mime 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "e2e00e17be181010a91dbfefb01660b17311059dc8c7f48b9017677721e732bd"
 "checksum mime_guess 2.0.0-alpha.3 (registry+https://github.com/rust-lang/crates.io-index)" = "013572795763289e14710c7b279461295f2673b2b338200c235082cd7ca9e495"
 "checksum mio 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)" = "75f72a93f046f1517e3cfddc0a096eb756a2ba727d36edc8227dee769a50a9b0"
@@ -1990,9 +2231,15 @@ dependencies = [
 "checksum ndarray-sgx 0.11.0 (git+https://github.com/ekiden/rust-ndarray)" = "<none>"
 "checksum net2 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)" = "3a80f842784ef6c9a958b68b7516bc7e35883c614004dd94959a4dca1b716c09"
 "checksum nodrop 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)" = "9a2228dca57108069a5262f2ed8bd2e82496d2e074a06d1ccc7ce1687b6ae0a2"
+"checksum num 0.1.40 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
+"checksum num 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)" = "cc4083e14b542ea3eb9b5f33ff48bd373a92d78687e74f4cc0a30caeb754f0ca"
 "checksum num-bigint 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)" = "bdc1494b5912f088f260b775799468d9b9209ac60885d8186a547a0476289e23"
 "checksum num-complex 0.1.41 (git+https://github.com/ekiden/num-complex)" = "<none>"
+"checksum num-derive 0.1.41 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
+"checksum num-integer 0.1.35 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
 "checksum num-integer 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)" = "d1452e8b06e448a07f0e6ebb0bb1d92b8890eea63288c0b627331d53514d0fba"
+"checksum num-iter 0.1.34 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
+"checksum num-iter 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)" = "7485fcc84f85b4ecd0ea527b14189281cf27d60e583ae65ebc9c088b13dffe01"
 "checksum num-traits 0.1.40 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
 "checksum num-traits 0.1.42 (git+https://github.com/ekiden/num-traits)" = "<none>"
 "checksum num-traits 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)" = "9936036cc70fe4a8b2d338ab665900323290efb03983c86cbe235ae800ad8017"
@@ -2013,6 +2260,8 @@ dependencies = [
 "checksum protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "e211a7f56b2d020a59d483f652cfdfa6fd42e37bf544c0231e373807aa316c45"
 "checksum protoc-rust-grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "68bc8fa6685f274fe41d6d47e3c7d702662ff7c268e5bfa8d5e7a809784418c6"
 "checksum quick-error 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7ac990ab4e038dd8481a5e3fd00641067fcfc674ad663f3222752ed5284e05d4"
+"checksum quote 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "b0f1847d90ff21d41b08f7f9f8e82dff613c3e2c5ebc9f8a10aeee1a0c4d7d17"
+"checksum quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6e920b65c65f10b2ae65c831a81a073a89edd28c7cce89475bff467ab4167a"
 "checksum quote 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1eca14c727ad12702eb4b6bfb5a232287dcf8385cb8ca83a3eeaf6519c44c408"
 "checksum rand 0.3.20 (registry+https://github.com/rust-lang/crates.io-index)" = "512870020642bb8c221bf68baa1b2573da814f6ccfe5c9699b1c303047abe9b1"
 "checksum rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "eba5f8cb59cc50ed56be8880a5c7b496bfd9bd26394e176bc67884094145c2c5"
@@ -2023,7 +2272,11 @@ dependencies = [
 "checksum remove_dir_all 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b5d2f806b0fcdabd98acd380dc8daef485e22bcb7cddc811d1337967f2528cf5"
 "checksum reqwest 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)" = "449c45f593ce9af9417c91e22f274fb8cea013bcf3d37ec1b5fb534b623bc708"
 "checksum ripemd160 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a347777d54218aec5d50f31ea04e8c0bceb1dea0282323f0cac42853178f07e9"
+"checksum rulinalg 0.4.2 (git+https://github.com/ekiden/rulinalg.git)" = "<none>"
+"checksum rulinalg 0.4.2 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
 "checksum rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)" = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
+"checksum rusty-machine 0.5.4 (git+https://github.com/ekiden/rusty-machine)" = "<none>"
+"checksum rusty-machine-sgx 0.5.4 (git+https://github.com/ekiden/rust-sgx-sdk)" = "<none>"
 "checksum safemem 0.2.0 (git+https://github.com/ekiden/safemem)" = "<none>"
 "checksum safemem 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e27a8b19b835f7aea908818e871f5cc3a5a186550c30773be987e155e8163d8f"
 "checksum schannel 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "acece75e0f987c48863a6c792ec8b7d6c4177d4a027f8ccc72f849794f437016"
@@ -2033,9 +2286,12 @@ dependencies = [
 "checksum serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)" = "db99f3919e20faa51bb2996057f5031d8685019b5a06139b1ce761da671b8526"
 "checksum serde-pickle 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8422cc0591b8aa588335fabfa88e05fed7c65e75f226b9881441bd1a71e4d2b2"
 "checksum serde-sgx 1.0.27 (git+https://github.com/ekiden/serde)" = "<none>"
+"checksum serde_cbor 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b4ad7872ff6e6c2a9221f4c1abe681e7eefc56ca5b3e87196afbfc717d141dc8"
 "checksum serde_cbor-sgx 0.8.1 (git+https://github.com/ekiden/cbor)" = "<none>"
 "checksum serde_derive 1.0.27 (git+https://github.com/ekiden/serde)" = "<none>"
+"checksum serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)" = "f4ba7591cfe93755e89eeecdbcc668885624829b020050e6aec99c2a03bd3fd0"
 "checksum serde_derive_internals 0.19.0 (git+https://github.com/ekiden/serde)" = "<none>"
+"checksum serde_derive_internals 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6e03f1c9530c3fb0a0a5c9b826bdd9246a5921ae995d75f512ac917fc4dd55b5"
 "checksum serde_json 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)" = "c9db7266c7d63a4c4b7fe8719656ccdd51acf1bed6124b174f933b009fb10bcb"
 "checksum serde_json-sgx 1.0.9 (git+https://github.com/ekiden/json)" = "<none>"
 "checksum serde_urlencoded 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ce0fd303af908732989354c6f02e05e2e6d597152870f2c6990efb0577137480"
@@ -2059,7 +2315,10 @@ dependencies = [
 "checksum spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "7e4deb3c2455c73779e6d3eebceae9599fc70957e54c69fe88f93aa48e62f432"
 "checksum sputnikvm 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ad817ba279ac715a9a2cb77bdd506c3456af6e013cab0bb1d498e8cbc719eda5"
 "checksum strsim 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b4d15c810519a91cf877e7e36e63fe068815c678181439f2f29e2562147c3694"
+"checksum syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)" = "d3b891b9015c88c576343b9b3e41c2c11a51c219ef067b264bd9c8aa9b441dad"
 "checksum syn 0.12.12 (registry+https://github.com/rust-lang/crates.io-index)" = "9e1c669ed757c0ebd04337f6a5bb972d05e0c08fe2540dd3ee3dd9e4daf1604c"
+"checksum syn 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2d25c61533bd33b0badb0b96178731a19407586f8a2547753095109c142e5242"
+"checksum synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a393066ed9010ebaed60b9eafa373d4b1baac186dd7e008555b0f702b51945b6"
 "checksum take 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b157868d8ac1f56b64604539990685fa7611d8fa9e5476cf0c02cf34d32917c5"
 "checksum tempdir 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "f73eebdb68c14bcb24aef74ea96079830e7fa7b31a6106e42ea7ee887c1e134e"
 "checksum termion 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "689a3bdfaab439fd92bc87df5c4c78417d3cbe537487274e9b0b2dce76e92096"
@@ -2082,6 +2341,7 @@ dependencies = [
 "checksum unicode-bidi 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "49f2bd0c6468a8230e1db229cff8029217cf623c767ea5d60bfbd42729ea54d5"
 "checksum unicode-normalization 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "51ccda9ef9efa3f7ef5d91e8f9b83bbe6955f9bf86aec89d5cce2c874625920f"
 "checksum unicode-width 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "bf3a113775714a22dcb774d8ea3655c53a32debae63a063acc00a91cc586245f"
+"checksum unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f860d7d29cf02cb2f3f359fd35991af3d30bac52c57d265a3c461074cb4dc"
 "checksum unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc72304796d0818e357ead4e000d19c9c174ab23dc11093ac919054d20a6a7fc"
 "checksum unreachable 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "382810877fe448991dfc7f0dd6e3ae5d58088fd0ea5e35189655f84e6814fa56"
 "checksum url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fa35e768d4daf1d85733418a49fb42e10d7f633e394fccab4ab7aba897053fe2"

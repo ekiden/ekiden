@@ -29,5 +29,6 @@ members = [
   "clients/token",
   "clients/dp_credit_scoring",
   "clients/ethtoken",
+  "clients/iot_learner",
 ]
 exclude = ["third_party"]

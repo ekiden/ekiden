@@ -1,0 +1,23 @@
+[package]
+name = "iot-learner"
+version = "0.1.0"
+authors = ["Nick Hynes <nhynes@berkeley.edu>"]
+build = "build.rs"
+
+[lib]
+name = "iot_learner"
+crate-type = ["staticlib"]
+
+[features]
+default = []
+
+[dependencies]
+learner = { path = "../learner" }
+libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
+libcontract-trusted = { path = "../../libcontract/trusted" }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
+rusty-machine-sgx = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+
+[build-dependencies]
+libcontract-utils = { path = "../../libcontract/utils" }
