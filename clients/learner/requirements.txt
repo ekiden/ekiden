@@ -1,4 +1,5 @@
 pandas
 protobuf
-pytz
-xbos
+scipy
+sklearn
+xlrd

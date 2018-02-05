@@ -8,6 +8,8 @@ authors = [
 [features]
 default = []
 benchmark = ["client-utils/benchmark"]
+benchmark_transfer = []
+benchmark_get_balance = []
 
 [dependencies]
 client-utils = { path = "../utils" }

@@ -86,24 +86,48 @@ fn scenario<Backend>(client: &mut ethtoken::Client<Backend>)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
-    // Transfer tokens from the creator to a given address.
-    println!(
-        "Transferring {} tokens from {} to {}",
-        TRANSFER_AMOUNT, TOKEN_CREATOR, TRANSFER_TO_ADDR
-    );
+    #[cfg(feature = "benchmark_transfer")]
+    {
+        // Transfer tokens from the creator to a given address.
+        println!(
+            "Transferring {} tokens from {} to {}",
+            TRANSFER_AMOUNT, TOKEN_CREATOR, TRANSFER_TO_ADDR
+        );
 
-    client
-        .transfer({
-            let mut req = ethtoken::TransferTokenRequest::new();
-            unsafe {
-                req.set_contract_address(CONTRACT_ADDR.as_ref().unwrap().clone());
-            }
-            req.set_from_address(TOKEN_CREATOR.to_string());
-            req.set_to_address(TRANSFER_TO_ADDR.to_string());
-            req.set_amount(TRANSFER_AMOUNT);
-            req
-        })
-        .unwrap();
+        client
+            .transfer({
+                let mut req = ethtoken::TransferTokenRequest::new();
+                unsafe {
+                    req.set_contract_address(CONTRACT_ADDR.as_ref().unwrap().clone());
+                }
+                req.set_from_address(TOKEN_CREATOR.to_string());
+                req.set_to_address(TRANSFER_TO_ADDR.to_string());
+                req.set_amount(TRANSFER_AMOUNT);
+                req
+            })
+            .unwrap();
+    }
+    #[cfg(feature = "benchmark_get_balance")]
+    {
+        // Transfer tokens from the creator to a given address.
+        println!(
+            "Transferring {} tokens from {} to {}",
+            TRANSFER_AMOUNT, TOKEN_CREATOR, TRANSFER_TO_ADDR
+        );
+
+        client
+            .transfer({
+                let mut req = ethtoken::TransferTokenRequest::new();
+                unsafe {
+                    req.set_contract_address(CONTRACT_ADDR.as_ref().unwrap().clone());
+                }
+                req.set_from_address(TOKEN_CREATOR.to_string());
+                req.set_to_address(TRANSFER_TO_ADDR.to_string());
+                req.set_amount(TRANSFER_AMOUNT);
+                req
+            })
+            .unwrap();
+    }
 }
 
 /// Finalize the ethtoken scenario.
@@ -128,6 +152,7 @@ where
         "\nBalance of address {} = {}",
         TOKEN_CREATOR, creator_balance
     );
+    #[cfg(feature = "benchmark_transfer")]
     assert_eq!(
         creator_balance,
         INITIAL_SUPPLY - TRANSFER_AMOUNT * runs as u64,
@@ -148,6 +173,7 @@ where
         .get_balance();
 
     println!("Balance of address {} = {}", TRANSFER_TO_ADDR, dest_balance);
+    #[cfg(feature = "benchmark_transfer")]
     assert_eq!(
         dest_balance,
         TRANSFER_AMOUNT * runs as u64,

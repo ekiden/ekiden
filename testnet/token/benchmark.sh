@@ -11,6 +11,7 @@ benchmark() {
         --command \
         --quiet \
         --image=ekiden/core:latest \
+        --image-pull-policy=Always \
         --restart=Never \
         -- bash -c "${script}"
 }

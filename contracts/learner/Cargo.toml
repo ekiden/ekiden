@@ -8,16 +8,17 @@ build = "build.rs"
 name = "learner"
 crate-type = ["staticlib"]
 
-[features]
-default = []
-
 [dependencies]
-learner-api = { path = "./api", features = ["sgx"], default-features = false }
-libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
+learner-api = { path = "./api", default-features = false, features = ["sgx"] }
+libcontract-common = { path = "../../libcontract/common", default-features = false, features = ["sgx"] }
 libcontract-trusted = { path = "../../libcontract/trusted" }
-protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
-rusty-machine-sgx = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+ndarray-sgx = { git = "https://github.com/ekiden/rust-ndarray", features = ["serde-1"] }
+ndarray-rand-sgx = { git = "https://github.com/ekiden/rust-ndarray" }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf"}
+serde_derive = { git = "https://github.com/ekiden/serde" }
+serde-sgx = { git = "https://github.com/ekiden/serde" }
 serde_cbor-sgx = { git = "https://github.com/ekiden/cbor" }
+sgx_rand = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 
 [build-dependencies]

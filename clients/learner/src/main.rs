@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate clap;
 extern crate protobuf;
-extern crate rulinalg;
+extern crate serde_pickle;
 
 #[macro_use]
 extern crate client_utils;
@@ -9,25 +9,20 @@ extern crate client_utils;
 extern crate compute_client;
 extern crate libcontract_common;
 
-#[macro_use]
-extern crate learner_api;
+extern crate learner_api as api;
 
+use api::*;
 use clap::{App, Arg};
-use rulinalg::norm::Euclidean;
-use rulinalg::vector::Vector;
-
-use learner_api::*;
+use std::process::{Command, Stdio};
 
 create_client_api!();
 
 fn main() {
-    let client_dir = env!("CARGO_MANIFEST_DIR").to_string();
-    let contract_dir = client_dir.replace("clients", "contracts");
-    let data_output = std::process::Command::new("python2")
-        .arg(&(client_dir + "/src/gen_data.py"))
+    let data_output = Command::new("python2")
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/src/prep_data.py"))
         .args(&[
             "--api-proto",
-            &(contract_dir + "/api/src/generated/api_pb2.py"),
+            "/code/contracts/learner/api/src/generated/api_pb2.py",
         ])
         .output()
         .expect("Could not fetch data.");
@@ -37,12 +32,13 @@ fn main() {
         String::from_utf8(data_output.stderr).unwrap_or("Could not generate data".to_string())
     );
 
-    let examples_proto: Examples =
-        protobuf::parse_from_bytes(&data_output.stdout).expect("Unable to parse Examples.");
-    let examples = examples_proto.get_examples();
+    let mut ds_proto: Dataset =
+        protobuf::parse_from_bytes(&data_output.stdout).expect("Unable to parse Dataset.");
 
     let mut client = contract_client!(learner);
-    let user = "benbitdiddle".to_string();
+    let user = "Rusty Lerner".to_string();
+
+    println!("SENDING CREATE");
 
     let _create_res = client
         .create({
@@ -52,39 +48,40 @@ fn main() {
         })
         .expect("error: create");
 
-    // let _train_res = client
-    //     .train({
-    //         let mut req = learner::TrainingRequest::new();
-    //         req.set_requester(user.clone());
-    //         req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
-    //         req
-    //     })
-    //     .expect("error: train");
-    //
-    // let infer_res = client
-    //     .infer({
-    //         let mut req = learner::InferenceRequest::new();
-    //         req.set_requester(user.clone());
-    //         req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
-    //         req
-    //     })
-    //     .expect("error: infer");
-    //
-    // let ground_truth: Vector<f64> = examples
-    //     .iter()
-    //     .filter_map(|example| unpack_val!(&example.get_features().feature, next_temp))
-    //     .collect();
-    //
-    // let preds: Vector<f64> = infer_res
-    //     .get_predictions()
-    //     .iter()
-    //     .filter_map(|example| unpack_val!(&example.get_features().feature, next_temp))
-    //     .collect();
-    //
-    // assert!(preds.size() == ground_truth.size());
-    //
-    // println!(
-    //     "Training loss: {:?}",
-    //     (preds - ground_truth).norm(Euclidean)
-    // );
+    println!("SENDING TRAIN");
+
+    let _train_res = client
+        .train({
+            let mut req = TrainingRequest::new();
+            req.set_requester(user.clone());
+            req.set_inputs(ds_proto.take_train_inputs());
+            req.set_targets(ds_proto.take_train_targets());
+            req
+        })
+        .expect("error: train");
+
+    println!("HERE");
+
+    let mut infer_res = client
+        .infer({
+            let mut req = learner::InferenceRequest::new();
+            req.set_requester(user.clone());
+            req.set_inputs(ds_proto.take_test_inputs());
+            req
+        })
+        .expect("error: infer");
+
+    let preds = (infer_res.take_predictions(), ds_proto.take_test_targets());
+
+    let mut evaluator = Command::new("python2")
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/src/evaluate.py"))
+        .stdin(Stdio::piped())
+        .spawn()
+        .expect("Could not run evaluation script.");
+    serde_pickle::to_writer(
+        evaluator.stdin.as_mut().unwrap(),
+        &preds,
+        false, /* use pickle 3 */
+    ).expect("Could not send predictions.");
+    evaluator.wait().expect("Evaluator script failed.");
 }

@@ -19,25 +19,3 @@ mod api;
 mod generated;
 
 pub use generated::api::*;
-
-#[macro_export]
-macro_rules! unpack_vals {
-    ($features:expr, ($($ks:ident),+), $dofn:block) => {
-        match ($(unpack_val!($features, $ks),)+) {
-            ($(Some($ks),)+) => $dofn,
-            _ => None
-        }
-    };
-    ($features:expr, ($($ks:ident),+)) => {
-        unpack_vals!($features, ($($ks),+), { Some(($($ks,)+)) })
-    }
-}
-
-#[macro_export]
-macro_rules! unpack_val {
-    ($features:expr, $k:ident) => {
-        $features.get(stringify!($k)).map(|v| {
-            v.get_float_list().get_value().first().map(|&v| v as f64).unwrap_or(0f64)
-        })
-    }
-}
