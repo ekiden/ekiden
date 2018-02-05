@@ -53,7 +53,7 @@ where
 }
 
 /// Finalize the token transfer scenario.
-fn finalize<Backend>(client: &mut token::Client<Backend>, runs: usize, _threads: usize)
+fn finalize<Backend>(client: &mut token::Client<Backend>, runs: usize, threads: usize)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
@@ -65,7 +65,7 @@ where
             request
         })
         .unwrap();
-    assert_eq!(response.get_balance(), runs as u64);
+    assert_eq!(response.get_balance(), (threads * runs) as u64);
 }
 
 fn main() {
