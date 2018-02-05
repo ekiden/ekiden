@@ -35,7 +35,7 @@ pub struct Benchmark<Factory: ClientFactory> {
     client_factory: Arc<Factory>,
 }
 
-/// Benchmark results for a single scenario run.
+/// Benchmark results for a single thread.
 ///
 /// All time values are in nanoseconds.
 #[derive(Debug, Clone, Default)]
@@ -43,7 +43,8 @@ pub struct BenchmarkResult {
     /// Amount of time taken for client initialization. This includes the time it
     /// takes to establish a secure channel.
     pub client_initialization: u64,
-    /// Amount of time taken to run each scenario run.
+    /// A vector of pairs `(start_time, end_time)` containing timestamps of when the
+    /// scenario has started and when it has finished.
     pub scenario: Vec<(u64, u64)>,
     /// Amount of time taken for client dropping. This includes the
     /// time it takes to close a secure channel.

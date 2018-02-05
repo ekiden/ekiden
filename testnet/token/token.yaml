@@ -232,7 +232,7 @@ spec:
               fqdn_suffix=$(hostname -f | sed 's#[^.]*\.\(\)#\1#')
 
               compute \
-                --grpc-threads 4 \
+                --grpc-threads 128 \
                 --port 9001 \
                 --key-manager-host ekiden-token-0.${fqdn_suffix} \
                 --key-manager-port 9003 \
