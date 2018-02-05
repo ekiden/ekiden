@@ -65,28 +65,37 @@ where
 fn main() {
     let args = std::sync::Arc::new(
         default_app!()
-            .arg(Arg::with_name("benchmark-threads")
-                 .long("benchmark-threads")
-                 .help("Number of benchmark threads")
-                 .takes_value(true)
-                 .default_value("4"))
-            .arg(Arg::with_name("benchmark-runs")
-                 .long("benchmark-runs")
-                 .help("Number of scenario runs")
-                 .takes_value(true)
-                 .default_value("1000"))
-            .arg(Arg::with_name("data")
-                 .long("data")
-                 .help("A file with the output of prep_data.py from the learner contract")
-                 .takes_value(true)
-                 .required(true))
-            .get_matches()
+            .arg(
+                Arg::with_name("benchmark-threads")
+                    .long("benchmark-threads")
+                    .help("Number of benchmark threads")
+                    .takes_value(true)
+                    .default_value("4"),
+            )
+            .arg(
+                Arg::with_name("benchmark-runs")
+                    .long("benchmark-runs")
+                    .help("Number of scenario runs")
+                    .takes_value(true)
+                    .default_value("1000"),
+            )
+            .arg(
+                Arg::with_name("data")
+                    .long("data")
+                    .help("A file with the output of prep_data.py from the learner contract")
+                    .takes_value(true)
+                    .required(true),
+            )
+            .get_matches(),
     );
 
     let data_filename = value_t!(args, "data", String).unwrap();
     unsafe {
         // Safe because we have exclusive access at this time.
-        DS_PROTO = Some(protobuf::parse_from_reader(&mut std::fs::File::open(data_filename).expect("Unable to open dataset.")).expect("Unable to parse dataset."));
+        DS_PROTO = Some(
+            protobuf::parse_from_reader(&mut std::fs::File::open(data_filename).expect("Unable to open dataset."))
+                .expect("Unable to parse dataset."),
+        );
     }
 
     let benchmark = client_utils::benchmark::Benchmark::new(
@@ -95,7 +104,7 @@ fn main() {
         move || {
             let args = args.clone();
             contract_client!(learner, args)
-        }
+        },
     );
 
     let results = benchmark.run(init, scenario, finalize);
