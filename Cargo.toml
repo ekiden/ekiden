@@ -22,6 +22,8 @@ members = [
   "clients/benchmark-token-failover",
   "clients/benchmark-token-transfer",
   "clients/benchmark-token-get-balance",
+  "clients/benchmark-learner-train",
+  "clients/benchmark-learner-infer",
   "clients/token",
   "clients/learner",
   "clients/ethtoken",
