@@ -14,6 +14,8 @@ members = [
   "contracts/ethtoken",
   "contracts/token",
   "contracts/dp_credit_scoring",
+  "contracts/learner",
+  "contracts/iot_learner",
 
   "libcontract/common",
   "libcontract/untrusted",
@@ -27,5 +29,6 @@ members = [
   "clients/token",
   "clients/dp_credit_scoring",
   "clients/ethtoken",
+  "clients/iot_learner",
 ]
 exclude = ["third_party"]
