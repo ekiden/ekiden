@@ -13,7 +13,7 @@ members = [
   "contracts/dummy",
   "contracts/ethtoken",
   "contracts/token",
-  "contracts/learner",
+  "contracts/dp_credit_scoring",
 
   "libcontract/common",
   "libcontract/untrusted",
@@ -22,10 +22,10 @@ members = [
   "clients/benchmark-token-failover",
   "clients/benchmark-token-transfer",
   "clients/benchmark-token-get-balance",
-  "clients/benchmark-learner-train",
-  "clients/benchmark-learner-infer",
+  "clients/benchmark-dp-credit-scoring-train",
+  "clients/benchmark-dp-credit-scoring-infer",
   "clients/token",
-  "clients/learner",
+  "clients/dp_credit_scoring",
   "clients/ethtoken",
 ]
 exclude = ["third_party"]

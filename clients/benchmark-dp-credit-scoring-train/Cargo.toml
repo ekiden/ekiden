@@ -1,5 +1,5 @@
 [package]
-name = "benchmark-learner-infer"
+name = "benchmark-dp-credit-scoring-train"
 version = "0.1.0"
 authors = [
     "w <none>"
@@ -9,6 +9,6 @@ authors = [
 clap = "2.29.1"
 client-utils = { path = "../utils", features = ["benchmark"] }
 compute-client = { path = "../../compute-client" }
-learner-api = { path = "../../contracts/learner/api" }
+dp-credit-scoring-api = { path = "../../contracts/dp_credit_scoring/api" }
 libcontract-common = { path = "../../libcontract/common" }
 protobuf = "1.4.2"

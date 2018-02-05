@@ -9,7 +9,7 @@ extern crate client_utils;
 extern crate compute_client;
 extern crate libcontract_common;
 
-extern crate learner_api as api;
+extern crate dp_credit_scoring_api as api;
 
 use api::*;
 use clap::{App, Arg};
@@ -22,7 +22,7 @@ fn main() {
         .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/src/prep_data.py"))
         .args(&[
             "--api-proto",
-            "/code/contracts/learner/api/src/generated/api_pb2.py",
+            "/code/contracts/dp-credit-scoring/api/src/generated/api_pb2.py",
         ])
         .output()
         .expect("Could not fetch data.");
@@ -35,10 +35,8 @@ fn main() {
     let mut ds_proto: Dataset =
         protobuf::parse_from_bytes(&data_output.stdout).expect("Unable to parse Dataset.");
 
-    let mut client = contract_client!(learner);
+    let mut client = contract_client!(dp_credit_scoring);
     let user = "Rusty Lerner".to_string();
-
-    println!("SENDING CREATE");
 
     let _create_res = client
         .create({
@@ -47,8 +45,6 @@ fn main() {
             req
         })
         .expect("error: create");
-
-    println!("SENDING TRAIN");
 
     let _train_res = client
         .train({
@@ -60,11 +56,9 @@ fn main() {
         })
         .expect("error: train");
 
-    println!("HERE");
-
     let mut infer_res = client
         .infer({
-            let mut req = learner::InferenceRequest::new();
+            let mut req = InferenceRequest::new();
             req.set_requester(user.clone());
             req.set_inputs(ds_proto.take_test_inputs());
             req

@@ -8,7 +8,7 @@ extern crate client_utils;
 extern crate compute_client;
 extern crate libcontract_common;
 
-extern crate learner_api as api;
+extern crate dp_credit_scoring_api as api;
 
 use api::*;
 use clap::{App, Arg};
@@ -18,7 +18,7 @@ create_client_api!();
 const USER: &str = "Rusty Lerner";
 static mut DS_PROTO: Option<Dataset> = None;
 
-fn init<Backend>(client: &mut learner::Client<Backend>, _runs: usize, _threads: usize)
+fn init<Backend>(client: &mut dp_credit_scoring::Client<Backend>, _runs: usize, _threads: usize)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
@@ -50,7 +50,7 @@ where
         .expect("error: train");
 }
 
-fn scenario<Backend>(client: &mut learner::Client<Backend>)
+fn scenario<Backend>(client: &mut dp_credit_scoring::Client<Backend>)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
@@ -63,7 +63,7 @@ where
 
     let mut _infer_res = client
         .infer({
-            let mut req = learner::InferenceRequest::new();
+            let mut req = dp_credit_scoring::InferenceRequest::new();
             req.set_requester(USER.to_owned());
             req.set_inputs(ds_ref.get_test_inputs().clone());
             req
@@ -71,8 +71,11 @@ where
         .expect("error: infer");
 }
 
-fn finalize<Backend>(_client: &mut learner::Client<Backend>, _runs: usize, _threads: usize)
-where
+fn finalize<Backend>(
+    _client: &mut dp_credit_scoring::Client<Backend>,
+    _runs: usize,
+    _threads: usize,
+) where
     Backend: compute_client::backend::ContractClientBackend,
 {
     // No actions.
@@ -119,7 +122,7 @@ fn main() {
         value_t!(args, "benchmark-threads", usize).unwrap_or_else(|e| e.exit()),
         move || {
             let args = args.clone();
-            contract_client!(learner, args)
+            contract_client!(dp_credit_scoring, args)
         },
     );
 

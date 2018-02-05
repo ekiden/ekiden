@@ -1,6 +1,6 @@
 contract_api! {
     metadata {
-        name = learner;
+        name = dp_credit_scoring;
         version = "0.1.0";
         state_type = LearnerState;
         client_attestation_required = false;

@@ -1,15 +1,15 @@
 [package]
-name = "learner"
+name = "dp-credit-scoring"
 version = "0.1.0"
 authors = ["Nick Hynes <nhynes@berkeley.edu>"]
 build = "build.rs"
 
 [lib]
-name = "learner"
+name = "dp_credit_scoring"
 crate-type = ["staticlib"]
 
 [dependencies]
-learner-api = { path = "./api", default-features = false, features = ["sgx"] }
+dp-credit-scoring-api = { path = "./api", default-features = false, features = ["sgx"] }
 libcontract-common = { path = "../../libcontract/common", default-features = false, features = ["sgx"] }
 libcontract-trusted = { path = "../../libcontract/trusted" }
 ndarray-sgx = { git = "https://github.com/ekiden/rust-ndarray", features = ["serde-1"] }

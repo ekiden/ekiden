@@ -56,25 +56,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "benchmark-learner-infer"
+name = "benchmark-dp-credit-scoring-train"
 version = "0.1.0"
 dependencies = [
  "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "client-utils 0.1.0",
  "compute-client 0.1.0",
- "learner-api 0.1.0",
- "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "benchmark-learner-train"
-version = "0.1.0"
-dependencies = [
- "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "client-utils 0.1.0",
- "compute-client 0.1.0",
- "learner-api 0.1.0",
+ "dp-credit-scoring-api 0.1.0",
  "libcontract-common 0.1.0",
  "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -112,6 +100,18 @@ dependencies = [
  "compute-client 0.1.0",
  "libcontract-common 0.1.0",
  "token-api 0.1.0",
+]
+
+[[package]]
+name = "benchmarkdp-credit-scoring-infer"
+version = "0.1.0"
+dependencies = [
+ "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "client-utils 0.1.0",
+ "compute-client 0.1.0",
+ "dp-credit-scoring-api 0.1.0",
+ "libcontract-common 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -329,6 +329,49 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "generic-array 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "dp-credit-scoring"
+version = "0.1.0"
+dependencies = [
+ "dp-credit-scoring-api 0.1.0",
+ "libcontract-common 0.1.0",
+ "libcontract-trusted 0.1.0",
+ "libcontract-utils 0.1.0",
+ "ndarray-rand-sgx 0.7.0 (git+https://github.com/ekiden/rust-ndarray)",
+ "ndarray-sgx 0.11.0 (git+https://github.com/ekiden/rust-ndarray)",
+ "protobuf-sgx 1.4.1 (git+https://github.com/ekiden/rust-protobuf)",
+ "serde-sgx 1.0.27 (git+https://github.com/ekiden/serde)",
+ "serde_cbor-sgx 0.8.1 (git+https://github.com/ekiden/cbor)",
+ "serde_derive 1.0.27 (git+https://github.com/ekiden/serde)",
+ "sgx_rand 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
+name = "dp-credit-scoring-api"
+version = "0.1.0"
+dependencies = [
+ "libcontract-common 0.1.0",
+ "libcontract-utils 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protobuf-sgx 1.4.1 (git+https://github.com/ekiden/rust-protobuf)",
+ "protoc 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
+]
+
+[[package]]
+name = "dp-credit-scoring-client"
+version = "0.1.0"
+dependencies = [
+ "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "client-utils 0.1.0",
+ "compute-client 0.1.0",
+ "dp-credit-scoring-api 0.1.0",
+ "libcontract-common 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde-pickle 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -713,49 +756,6 @@ dependencies = [
 name = "lazycell"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "learner"
-version = "0.1.0"
-dependencies = [
- "learner-api 0.1.0",
- "libcontract-common 0.1.0",
- "libcontract-trusted 0.1.0",
- "libcontract-utils 0.1.0",
- "ndarray-rand-sgx 0.7.0 (git+https://github.com/ekiden/rust-ndarray)",
- "ndarray-sgx 0.11.0 (git+https://github.com/ekiden/rust-ndarray)",
- "protobuf-sgx 1.4.1 (git+https://github.com/ekiden/rust-protobuf)",
- "serde-sgx 1.0.27 (git+https://github.com/ekiden/serde)",
- "serde_cbor-sgx 0.8.1 (git+https://github.com/ekiden/cbor)",
- "serde_derive 1.0.27 (git+https://github.com/ekiden/serde)",
- "sgx_rand 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
- "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
-]
-
-[[package]]
-name = "learner-api"
-version = "0.1.0"
-dependencies = [
- "libcontract-common 0.1.0",
- "libcontract-utils 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "protobuf-sgx 1.4.1 (git+https://github.com/ekiden/rust-protobuf)",
- "protoc 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "sgx_tstd 0.9.1 (git+https://github.com/ekiden/rust-sgx-sdk)",
-]
-
-[[package]]
-name = "learner-client"
-version = "0.1.0"
-dependencies = [
- "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "client-utils 0.1.0",
- "compute-client 0.1.0",
- "learner-api 0.1.0",
- "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde-pickle 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "libc"

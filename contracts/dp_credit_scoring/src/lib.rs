@@ -22,7 +22,7 @@ extern crate libcontract_common;
 extern crate libcontract_trusted;
 
 #[macro_use]
-extern crate learner_api as api;
+extern crate dp_credit_scoring_api as api;
 
 mod contract;
 mod dpml;

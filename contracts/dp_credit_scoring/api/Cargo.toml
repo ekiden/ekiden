@@ -1,5 +1,5 @@
 [package]
-name = "learner-api"
+name = "dp-credit-scoring-api"
 version = "0.1.0"
 authors = ["Nick Hynes <nhynes@berkeley.edu>"]
 build = "build.rs"
