@@ -26,16 +26,19 @@ use rpc::ConsensusServerImpl;
 use state::State;
 use tendermint::TendermintProxy;
 
-pub fn run() -> Result<(), Box<Error>> {
+pub struct Config {
+    pub tendermint_host: String,
+    pub tendermint_port: u16,
+    pub grpc_port: u16,
+}
+
+pub fn run(config: &Config) -> Result<(), Box<Error>> {
 
     // Create a shared State object
     let state = Arc::new(Mutex::new(State::new()));
 
-    //// Create Tendermint proxy.
-    //let tendermint = TendermintProxy::new(
-    //    &args.value_of("tendermint-host").unwrap().to_string(),
-    //    value_t!(args, "tendermint-port", u16).unwrap_or_else(|e| e.exit()),
-    //);
+    // Create Tendermint proxy.
+    let tendermint = TendermintProxy::new(&config.tendermint_host, config.tendermint_port);
 
     //// Start the Ekiden consensus gRPC server.
     //let port = value_t!(args, "grpc-port", u16).unwrap_or_else(|e| e.exit());
