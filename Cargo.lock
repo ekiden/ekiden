@@ -63,6 +63,7 @@ dependencies = [
  "client-utils 0.1.0",
  "compute-client 0.1.0",
  "dp-credit-scoring-api 0.1.0",
+ "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcontract-common 0.1.0",
  "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
