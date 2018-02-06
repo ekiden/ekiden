@@ -27,7 +27,7 @@ fn processes_requests() {
 
     // Get latest state - should be empty
     let req = consensus::GetRequest::new();
-    let (_, resp , _) = client.get(grpc::RequestOptions::new(), req).wait().unwrap();
+    let (_, resp, _) = client.get(grpc::RequestOptions::new(), req).wait().unwrap();
     assert_eq!(
         resp.get_checkpoint().get_payload(),
         String::from("helloworld").as_bytes()
