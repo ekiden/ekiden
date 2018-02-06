@@ -27,11 +27,26 @@ fn processes_requests() {
 
     // Get latest state - should be empty
     let req = consensus::GetRequest::new();
-    let (_, resp, _) = client.get(grpc::RequestOptions::new(), req).wait().unwrap();
-    assert_eq!(
-        resp.get_checkpoint().get_payload(),
-        String::from("helloworld").as_bytes()
-    );
+    match client.get(grpc::RequestOptions::new(), req).wait() {
+        Ok(resp) => {
+            panic!("First `get` should return an error");
+        }
+        Err(err) => {
+            assert!(true);
+        },
+    }
+
+    // Get diffs - should be empty
+    let mut req = consensus::GetDiffsRequest::new();
+    req.set_since_height(0);
+    match client.get_diffs(grpc::RequestOptions::new(), req).wait() {
+        Ok(resp) => {
+            panic!("First `get` should return an error");
+        }
+        Err(err) => {
+            assert!(true);
+        },
+    }
 
     // Set state to `helloworld`
     //let mut consensus_set_request = consensus::SetRequest::new();
@@ -91,6 +106,6 @@ fn processes_requests() {
 
     // See https://github.com/sunblaze-ucb/ekiden/issues/223
     // We can't gracefully shut down the server yet.
-    assert_eq!(4, 5);
+    panic!("Test passed, just need to panic to get out");
     server_handle.join();
 }
