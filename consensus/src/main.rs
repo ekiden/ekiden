@@ -37,15 +37,15 @@ fn main() {
     let config = consensus::Config {
         tendermint_host: matches.value_of("tendermint-host").unwrap().to_string(),
         tendermint_port: value_t!(matches, "tendermint-port", u16).unwrap_or_else(|e| e.exit()),
+        tendermint_abci_port: value_t!(matches, "tendermint-abci-port", u16).unwrap_or_else(|e| e.exit()),
         grpc_port: value_t!(matches, "grpc-port", u16).unwrap_or_else(|e| e.exit()),
     };
 
-    println!("Ekiden Consensus Node starting... ");
+    println!("Ekiden Consensus Node starting on port {} ... ", config.grpc_port);
     if let Err(e) = consensus::run(&config) {
         println!("Application error: {}", e);
         std::process::exit(1);
     }
 
-    println!("Consensus node listening at {}", config.grpc_port);
 }
 
