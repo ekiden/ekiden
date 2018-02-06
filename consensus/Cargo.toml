@@ -6,15 +6,16 @@ build = "build.rs"
 
 [dependencies]
 abci = { path = "../abci" }
+clap = "2.29.1"
 futures = "0.1"
 grpc = "0.2.1"
 hex = "0.3.1"
 hyper = "0.11"
 protobuf = "1.4.2"
+rand = "0.4.2"
 tls-api = "0.1.12"
 tokio-core = "0.1"
 tokio-proto = "0.1"
-clap = "2.29.1"
 
 [build-dependencies]
 libcontract-utils = { path = "../libcontract/utils" }
