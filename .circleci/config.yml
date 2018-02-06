@@ -14,8 +14,14 @@ jobs:
             - v1-omni-{{ .Branch }}-
             - v1-omni-master-
 
+      # Rustfmt
+      - run: cargo make checkstyle
+
       # Build
       - run: cargo make build-flow
+
+      # Cargo tests
+      - run: cargo test -p consensus 
 
       # Test: end-to-end token contract
       - run:
@@ -33,9 +39,6 @@ jobs:
           command: ./target/debug/compute target/enclave/key-manager.signed.so -p 9003 --disable-key-manager
           background: true
       - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
-
-      # Rustfmt
-      - run: cargo make checkstyle
 
       # Save cache
       - save_cache:
