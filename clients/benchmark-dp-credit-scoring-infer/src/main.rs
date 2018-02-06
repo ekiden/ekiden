@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate lazy_static;
 extern crate protobuf;
 
 #[macro_use]
@@ -12,39 +14,49 @@ extern crate dp_credit_scoring_api as api;
 
 use api::*;
 use clap::{App, Arg};
+use std::process::Command;
 
 create_client_api!();
 
 const USER: &str = "Rusty Lerner";
-static mut DS_PROTO: Option<Dataset> = None;
+lazy_static! {
+    static ref DATASET: Dataset = {
+        let data_output = Command::new("python2")
+            .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../dp_credit_scoring/src/prep_data.py"))
+            .args(&[
+                "--api-proto",
+                "/code/contracts/dp-credit-scoring/api/src/generated/api_pb2.py",
+            ])
+            .output()
+            .expect("Could not fetch data.");
+        assert!(
+            data_output.status.success(),
+            "{}",
+            String::from_utf8(data_output.stderr).unwrap_or("Could not generate data".to_string())
+        );
+
+        protobuf::parse_from_bytes(&data_output.stdout).expect("Unable to parse Dataset.")
+    };
+}
 
 fn init<Backend>(client: &mut dp_credit_scoring::Client<Backend>, _runs: usize, _threads: usize)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
-    println!("SENDING CREATE");
-
     let _create_res = client
         .create({
             let mut req = CreateRequest::new();
-            req.set_requester(USER.to_owned());
+            req.set_requester(USER.to_string());
             req
         })
         .expect("error: create");
 
-    let ds_ref = unsafe {
-        // Safe because not mutations will happen during the scenario runs.
-        DS_PROTO.as_ref().unwrap()
-    };
-
-    println!("SENDING TRAIN");
-
     let _train_res = client
         .train({
             let mut req = TrainingRequest::new();
-            req.set_requester(USER.to_owned());
-            req.set_inputs(ds_ref.get_train_inputs().clone());
-            req.set_targets(ds_ref.get_train_targets().to_vec());
+            req.set_requester(USER.to_string());
+            req.set_inputs(DATASET.get_train_inputs().clone());
+            req.set_targets(DATASET.get_train_targets().to_vec());
             req
         })
         .expect("error: train");
@@ -54,18 +66,11 @@ fn scenario<Backend>(client: &mut dp_credit_scoring::Client<Backend>)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
-    let ds_ref = unsafe {
-        // Safe because not mutations will happen during the scenario runs.
-        DS_PROTO.as_ref().unwrap()
-    };
-
-    println!("HERE");
-
     let mut _infer_res = client
         .infer({
             let mut req = dp_credit_scoring::InferenceRequest::new();
             req.set_requester(USER.to_owned());
-            req.set_inputs(ds_ref.get_test_inputs().clone());
+            req.set_inputs(DATASET.get_test_inputs().clone());
             req
         })
         .expect("error: infer");
@@ -98,24 +103,8 @@ fn main() {
                     .takes_value(true)
                     .default_value("1000"),
             )
-            .arg(
-                Arg::with_name("data")
-                    .long("data")
-                    .help("A file with the output of prep_data.py from the learner contract")
-                    .takes_value(true)
-                    .required(true),
-            )
             .get_matches(),
     );
-
-    let data_filename = value_t!(args, "data", String).unwrap();
-    unsafe {
-        // Safe because we have exclusive access at this time.
-        DS_PROTO = Some(
-            protobuf::parse_from_reader(&mut std::fs::File::open(data_filename).expect("Unable to open dataset."))
-                .expect("Unable to parse dataset."),
-        );
-    }
 
     let benchmark = client_utils::benchmark::Benchmark::new(
         value_t!(args, "benchmark-runs", usize).unwrap_or_else(|e| e.exit()),
