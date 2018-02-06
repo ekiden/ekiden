@@ -9,6 +9,11 @@ To deploy:
 $ make create
 ```
 
+Before running benchmarks on the cluster, one of the nodes should be tagged to run the benchmark client. If no node
+is tagged, running the following command will fail with an instruction on how to tag a node. The reason for this is
+to ensure that different benchmarks are run in a consistent manner as otherwise Kubernetes may schedule the benchmark
+client on an arbitrary node.
+
 To run benchmarks on the cluster:
 ```bash
 $ make benchmark

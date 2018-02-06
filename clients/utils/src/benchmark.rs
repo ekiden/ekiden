@@ -35,31 +35,17 @@ pub struct Benchmark<Factory: ClientFactory> {
     client_factory: Arc<Factory>,
 }
 
-/// Benchmark results for a single scenario run.
+/// Benchmark results for a single thread.
 ///
 /// All time values are in nanoseconds.
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BenchmarkResult {
     /// Amount of time taken for client initialization. This includes the time it
     /// takes to establish a secure channel.
     pub client_initialization: u64,
-    /// Amount of time taken to run the scenario.
-    pub scenario: u64,
-    /// Amount of time taken for client dropping. This includes the
-    /// time it takes to close a secure channel.
-    pub client_drop: u64,
-}
-
-/// Benchmark results for the entire set of runs.
-///
-/// All time values are in nanoseconds.
-#[derive(Debug, Copy, Clone, Default)]
-pub struct BenchmarkOverallResult {
-    /// Amount of time taken for client initialization. This includes the time it
-    /// takes to establish a secure channel.
-    pub client_initialization: u64,
-    /// Amount of time taken to run the scenario.
-    pub scenario: u64,
+    /// A vector of pairs `(start_time, end_time)` containing timestamps of when the
+    /// scenario has started and when it has finished.
+    pub scenario: Vec<(u64, u64)>,
     /// Amount of time taken for client dropping. This includes the
     /// time it takes to close a secure channel.
     pub client_drop: u64,
@@ -71,8 +57,6 @@ pub struct BenchmarkResults {
     pub runs: usize,
     /// Benchmark results from non-panicked individual runs.
     pub results: Vec<BenchmarkResult>,
-    /// Benchmark results from overall measurements.
-    pub overall_result: BenchmarkOverallResult,
     /// The number of threads the experiment was run with.
     pub threads: usize,
 }
@@ -100,67 +84,47 @@ impl BenchmarkResults {
     /// Show benchmark results in a human-readable form.
     pub fn show(&self) {
         // Prepare histograms.
-        let mut histogram_client_init = Histogram::new();
         let mut histogram_scenario = Histogram::new();
-        let mut histogram_client_drop = Histogram::new();
-        let mut total_time = 0;
+        let mut count = 0;
+
+        let mut throughput_runs: Vec<(u64, u64)> = vec![];
 
         for result in &self.results {
-            histogram_client_init
-                .increment(result.client_initialization / 1_000_000)
-                .unwrap();
-            histogram_scenario
-                .increment(result.scenario / 1_000_000)
-                .unwrap();
-            histogram_client_drop
-                .increment(result.client_drop / 1_000_000)
-                .unwrap();
+            for &(start, end) in &result.scenario {
+                histogram_scenario
+                    .increment((end - start) / 1_000_000)
+                    .unwrap();
 
-            total_time += result.client_initialization + result.scenario + result.client_drop;
+                count += 1;
+                throughput_runs.push((start, end));
+            }
         }
 
-        let count = self.results.len() as u64;
-        let failures = self.runs as u64 - count;
+        // Sort by start timestamp.
+        throughput_runs.sort_by(|a, b| a.0.cmp(&b.0));
+        // Cut 10% at the beginning and the end.
+        let cut_amount = (throughput_runs.len() as f64 * 0.10).floor() as usize;
+        let throughput_runs = &throughput_runs[cut_amount..throughput_runs.len() - cut_amount];
+        let total_nonoverlapping =
+            throughput_runs.last().unwrap().1 - throughput_runs.first().unwrap().0;
+
+        let failures = (self.threads * self.runs) as u64 - count;
 
         println!("=== Benchmark Results ===");
         println!("Threads:                   {}", self.threads);
-        println!("Runs:                      {}", self.runs);
+        println!("Runs per thread:           {}", self.runs);
         println!("Non-panicked (npr):        {}", count);
         println!("Panicked:                  {}", failures);
 
         println!("--- Latency ---");
-        println!(
-            "Total time:                {} ms ({} ms / npr)",
-            total_time / 1_000_000,
-            total_time / (1_000_000 * count)
-        );
-        self.show_result("Client initialization", &histogram_client_init);
         self.show_result("Scenario", &histogram_scenario);
-        self.show_result("Client drop", &histogram_client_drop);
-
-        let total_time_nonoverlapping = self.overall_result.client_initialization
-            + self.overall_result.scenario
-            + self.overall_result.client_drop;
 
         println!("--- Throughput ---");
+        println!("Middle 80%:                {} npr", throughput_runs.len());
         println!(
-            "Total time nonoverlapping: {} ms",
-            total_time_nonoverlapping / 1_000_000
-        );
-        println!(
-            "Client Initialization:     {} ms ({} npr / sec)",
-            self.overall_result.client_initialization / 1_000_000,
-            count as f64 / (self.overall_result.client_initialization as f64 / 1e9)
-        );
-        println!(
-            "Scenario:                  {} ms ({} npr / sec)",
-            self.overall_result.scenario / 1_000_000,
-            count as f64 / (self.overall_result.scenario as f64 / 1e9)
-        );
-        println!(
-            "Client drop:               {} ms ({} npr / sec)",
-            self.overall_result.client_drop / 1_000_000,
-            count as f64 / (self.overall_result.client_drop as f64 / 1e9)
+            "Scenario (middle 80%):     {} ms ({} npr / sec)",
+            total_nonoverlapping / 1_000_000,
+            throughput_runs.len() as f64 / (total_nonoverlapping as f64 / 1e9)
         );
     }
 }
@@ -209,78 +173,50 @@ where
         scenario: fn(&mut Factory::Client),
         finalize: fn(&mut Factory::Client, usize, usize),
     ) -> BenchmarkResults {
-        let mut overall_result = BenchmarkOverallResult::default();
-
         // Initialize.
+        println!("Initializing benchmark...");
         let mut client = self.client_factory.create();
         init(&mut client, self.runs, self.pool.max_count());
 
-        // Create the clients for the scenarios.
-        let cr = time_block!(overall_result, client_initialization, {
-            let (tx, rx) = channel();
-            for _ in 0..self.runs {
-                let client_factory = self.client_factory.clone();
-                let tx = tx.clone();
+        println!(
+            "Running benchmark with {} threads, each doing {} requests...",
+            self.pool.max_count(),
+            self.runs
+        );
 
-                self.pool.execute(move || {
-                    let mut result = BenchmarkResult::default();
+        let (tx, rx) = channel();
+        for _ in 0..self.pool.max_count() {
+            let tx = tx.clone();
+            let client_factory = self.client_factory.clone();
+            let runs = self.runs;
 
-                    // Create the client.
-                    let client =
-                        time_block!(result, client_initialization, { client_factory.create() });
+            self.pool.execute(move || {
+                let mut result = BenchmarkResult::default();
 
-                    tx.send((client, result));
-                });
-            }
+                // Create the client.
+                let mut client =
+                    time_block!(result, client_initialization, { client_factory.create() });
 
-            // Collect pairs of initialized client and partial results
-            // from runs that have not panicked.
-            self.pool.join();
-            collect_vec(rx.try_iter())
-        });
+                // Run the scenario multiple times.
+                for _ in 0..runs {
+                    let start = time::precise_time_ns();
+                    scenario(&mut client);
+                    let end = time::precise_time_ns();
 
-        // Run the given number of scenarios.
-        let cr = time_block!(overall_result, scenario, {
-            let (tx, rx) = channel();
-            for (mut client, mut result) in cr {
-                let tx = tx.clone();
+                    result.scenario.push((start, end));
+                }
 
-                self.pool.execute(move || {
-                    // Run the scenario.
-                    time_block!(result, scenario, {
-                        scenario(&mut client);
-                    });
+                time_block!(result, client_drop, { drop(client) });
 
-                    tx.send((client, result));
-                });
-            }
+                tx.send(result).unwrap();
+            });
+        }
 
-            self.pool.join();
-            collect_vec(rx.try_iter())
-        });
-
-        // Drop the clients for the scenarios.
-        let results = time_block!(overall_result, client_drop, {
-            let (tx, rx) = channel();
-            for (client, mut result) in cr {
-                let tx = tx.clone();
-
-                self.pool.execute(move || {
-                    // Run the scenario.
-                    time_block!(result, client_drop, {
-                        drop(client);
-                    });
-
-                    tx.send(result);
-                });
-            }
-
-            // Collect benchmark results.
-            self.pool.join();
-            collect_vec(rx.try_iter())
-        });
+        self.pool.join();
+        let results = collect_vec(rx.try_iter());
 
         // Finalize.
+        println!("Finalizing benchmark...");
         let mut client = self.client_factory.create();
         finalize(&mut client, self.runs, self.pool.max_count());
 
@@ -288,7 +224,6 @@ where
         BenchmarkResults {
             runs: self.runs,
             results: results,
-            overall_result: overall_result,
             threads: self.pool.max_count(),
         }
     }
