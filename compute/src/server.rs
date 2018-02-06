@@ -8,6 +8,8 @@ use thread_local::ThreadLocal;
 use futures::Future;
 use futures::sync::oneshot;
 
+use time;
+
 use std;
 use std::error::Error;
 use std::fmt::Write;
@@ -61,6 +63,12 @@ struct ComputeServerWorker {
 }
 
 impl ComputeServerWorker {
+    // TODO: Make these runtime configurable.
+    /// Maximum batch size (number of requests).
+    const MAX_BATCH_SIZE: usize = 1000;
+    /// Maximum batch timeout (in nsec).
+    const MAX_BATCH_TIMEOUT: u64 = 1000 * 1_000_000;
+
     fn new(contract_filename: String, consensus_host: String, consensus_port: u16) -> Self {
         // Connect to consensus node
         ComputeServerWorker {
@@ -362,9 +370,14 @@ impl ComputeServerWorker {
             let mut request_batch = Vec::new();
             request_batch.push(queued_request);
 
-            // Additionally dequeue any remaining requests.
-            while let Ok(queued_request) = request_receiver.try_recv() {
-                request_batch.push(queued_request);
+            // Queue up requests up to MAX_BATCH_SIZE, but for at most MAX_BATCH_TIMEOUT.
+            let batch_start = time::precise_time_ns();
+            while request_batch.len() < Self::MAX_BATCH_SIZE
+                && time::precise_time_ns() - batch_start < Self::MAX_BATCH_TIMEOUT
+            {
+                if let Ok(queued_request) = request_receiver.try_recv() {
+                    request_batch.push(queued_request);
+                }
             }
 
             // Process the requests.

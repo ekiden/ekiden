@@ -7,6 +7,7 @@ extern crate grpc;
 extern crate protobuf;
 extern crate reqwest;
 extern crate thread_local;
+extern crate time;
 extern crate tls_api;
 
 #[macro_use]
