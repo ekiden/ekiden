@@ -3,7 +3,7 @@ extern crate consensus;
 use std::thread;
 
 //use super::generated::consensus;
-//use super::generated::consensus_grpc;
+use consensus::generated::consensus_grpc;
 //use super::generated::consensus_grpc::Consensus;
 //use grpc;
 
@@ -20,14 +20,13 @@ fn processes_requests() {
         consensus::run(&config).unwrap();
     });
     
-    assert_eq!(4, 5);
 
-    //let consensus_client =
-        //    consensus_grpc::ConsensusClient::new_plain("localhost", 9002, Default::default())
-        //        .unwrap();
+    let client =
+        consensus_grpc::ConsensusClient::new_plain("localhost", config.grpc_port, Default::default())
+        .unwrap();
 
-        //// Set state to `helloworld`
-        //let mut consensus_set_request = consensus::SetRequest::new();
+    // Set state to `helloworld`
+    //let mut consensus_set_request = consensus::SetRequest::new();
         //consensus_set_request.set_payload(String::from("helloworld").into_bytes());
         //consensus_client
         //    .set(grpc::RequestOptions::new(), consensus_set_request)
@@ -85,5 +84,6 @@ fn processes_requests() {
 
     // See https://github.com/sunblaze-ucb/ekiden/issues/223
     // We can't gracefully shut down the server yet.
+    assert_eq!(4, 5);
     server_handle.join();
 }

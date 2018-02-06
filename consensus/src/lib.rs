@@ -10,7 +10,7 @@ extern crate tokio_proto;
 mod ekidenmint;
 mod errors;
 mod tendermint;
-mod generated;
+pub mod generated;
 mod rpc;
 mod state;
 

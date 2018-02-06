@@ -14,11 +14,11 @@ jobs:
             - v1-omni-{{ .Branch }}-
             - v1-omni-master-
 
-      # Rustfmt
-      - run: cargo make checkstyle
-
       # Build
       - run: cargo make build-flow
+
+      # Rustfmt
+      - run: cargo make checkstyle
 
       # Cargo tests
       #- run: cargo test -p consensus 
