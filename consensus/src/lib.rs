@@ -52,8 +52,8 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
 
     // Start the Tendermint ABCI listener
     let abci_listen_addr = SocketAddr::new(
-    	IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 
-    	config.tendermint_abci_port
+        IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+        config.tendermint_abci_port,
     );
     let mut app_server = TcpServer::new(AbciProto, abci_listen_addr);
     app_server.threads(1);
