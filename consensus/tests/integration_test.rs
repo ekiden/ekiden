@@ -1,7 +1,7 @@
 extern crate consensus as lib;
 extern crate grpc;
 
-use std::thread;
+use std::{thread, time};
 
 use lib::generated::consensus;
 use lib::generated::consensus_grpc;
@@ -17,9 +17,12 @@ fn processes_requests() {
     };
     let client_port = config.grpc_port;
 
-    let server_handle = thread::spawn(move || {
+    let _server_handle = thread::spawn(move || {
         lib::run(&config).unwrap();
     });
+
+    // Give time for Tendermint to connect
+    thread::sleep(time::Duration::from_millis(3000));
 
     let client =
         consensus_grpc::ConsensusClient::new_plain("localhost", client_port, Default::default())
@@ -28,10 +31,10 @@ fn processes_requests() {
     // Get latest state - should be empty
     let req = consensus::GetRequest::new();
     match client.get(grpc::RequestOptions::new(), req).wait() {
-        Ok(resp) => {
+        Ok(_resp) => {
             panic!("First `get` should return an error");
         }
-        Err(err) => {
+        Err(_err) => {
             assert!(true);
         }
     }
@@ -40,72 +43,77 @@ fn processes_requests() {
     let mut req = consensus::GetDiffsRequest::new();
     req.set_since_height(0);
     match client.get_diffs(grpc::RequestOptions::new(), req).wait() {
-        Ok(resp) => {
+        Ok(_resp) => {
             panic!("First `get` should return an error");
         }
-        Err(err) => {
+        Err(_err) => {
             assert!(true);
         }
     }
 
     // Set state to `helloworld`
-    //let mut consensus_set_request = consensus::SetRequest::new();
-    //consensus_set_request.set_payload(String::from("helloworld").into_bytes());
-    //consensus_client
-    //    .set(grpc::RequestOptions::new(), consensus_set_request)
-    //    .wait()
-    //    .unwrap();
+    let mut req = consensus::ReplaceRequest::new();
+    req.set_payload(String::from("helloworld").into_bytes());
+    client
+        .replace(grpc::RequestOptions::new(), req)
+        .wait()
+        .unwrap();
 
-    //let consensus_get_request = consensus::GetRequest::new();
-    //let (_, consensus_get_response, _) = consensus_client
-    //    .get(grpc::RequestOptions::new(), consensus_get_request)
-    //    .wait()
-    //    .unwrap();
-    //assert_eq!(
-    //    consensus_get_response.get_payload(),
-    //    String::from("helloworld").as_bytes()
-    //);
+    let req = consensus::GetRequest::new();
+    let (_, resp, _) = client.get(grpc::RequestOptions::new(), req).wait().unwrap();
+    assert_eq!(
+        resp.get_checkpoint().get_payload(),
+        String::from("helloworld").as_bytes()
+    );
 
-    //// Set state to `successor`
-    //let mut consensus_set_request = consensus::SetRequest::new();
-    //consensus_set_request.set_payload(String::from("successor").into_bytes());
-    //consensus_client
-    //    .set(grpc::RequestOptions::new(), consensus_set_request)
-    //    .wait()
-    //    .unwrap();
+    // Set state to `successor`
+    let mut req = consensus::ReplaceRequest::new();
+    req.set_payload(String::from("successor").into_bytes());
+    client
+        .replace(grpc::RequestOptions::new(), req)
+        .wait()
+        .unwrap();
 
-    //let consensus_get_request = consensus::GetRequest::new();
-    //let (_, consensus_get_response, _) = consensus_client
-    //    .get(grpc::RequestOptions::new(), consensus_get_request)
-    //    .wait()
-    //    .unwrap();
-    //assert_eq!(
-    //    consensus_get_response.get_payload(),
-    //    String::from("successor").as_bytes()
-    //);
+    // Add `diff1`
+    let mut req = consensus::AddDiffRequest::new();
+    req.set_payload(String::from("diff1").into_bytes());
+    client
+        .add_diff(grpc::RequestOptions::new(), req)
+        .wait()
+        .unwrap();
 
-    //// Set state to a sequence of all byte values
-    //let mut scale: Vec<u8> = vec![0; 256];
-    //for i in 0..256 {
-    //    scale[i] = i as u8;
-    //}
+    // Add `diff2`
+    let mut req = consensus::AddDiffRequest::new();
+    req.set_payload(String::from("diff2").into_bytes());
+    client
+        .add_diff(grpc::RequestOptions::new(), req)
+        .wait()
+        .unwrap();
 
-    //let mut consensus_set_request = consensus::SetRequest::new();
-    //consensus_set_request.set_payload(scale.clone());
-    //consensus_client
-    //    .set(grpc::RequestOptions::new(), consensus_set_request)
-    //    .wait()
-    //    .unwrap();
+    // Call get, check checkpoint, diffs
+    let req = consensus::GetRequest::new();
+    let (_, resp, _) = client.get(grpc::RequestOptions::new(), req).wait().unwrap();
+    assert_eq!(
+        resp.get_checkpoint().get_payload(),
+        String::from("successor").as_bytes()
+    );
+    assert_eq!(resp.get_checkpoint().get_height(), 2);
+    assert_eq!(resp.get_diffs().len(), 2);
+    assert_eq!(resp.get_diffs()[0], String::from("diff1").as_bytes());
+    assert_eq!(resp.get_diffs()[1], String::from("diff2").as_bytes());
 
-    //let consensus_get_request = consensus::GetRequest::new();
-    //let (_, consensus_get_response, _) = consensus_client
-    //    .get(grpc::RequestOptions::new(), consensus_get_request)
-    //    .wait()
-    //    .unwrap();
-    //assert_eq!(consensus_get_response.get_payload(), &scale[..]);
+    // Call get_diffs
+    let mut req = consensus::GetDiffsRequest::new();
+    req.set_since_height(3);
+    let (_, resp, _) = client
+        .get_diffs(grpc::RequestOptions::new(), req)
+        .wait()
+        .unwrap();
+    assert_eq!(resp.get_diffs().len(), 1);
+    assert_eq!(resp.get_diffs()[0], String::from("diff2").as_bytes());
 
     // See https://github.com/sunblaze-ucb/ekiden/issues/223
     // We can't gracefully shut down the server yet.
     panic!("Test passed, just need to panic to get out");
-    server_handle.join();
+    //server_handle.join();
 }
