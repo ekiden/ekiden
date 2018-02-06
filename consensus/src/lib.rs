@@ -67,7 +67,7 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
 
 #[cfg(test)]
 mod tests {
-    use super::generated::consensus;
+    //use super::generated::consensus;
 
     #[test]
     fn empty() {

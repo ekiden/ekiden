@@ -1,15 +1,15 @@
-extern crate consensus;
+extern crate consensus as lib;
+extern crate grpc;
 
 use std::thread;
 
-//use super::generated::consensus;
-use consensus::generated::consensus_grpc;
-//use super::generated::consensus_grpc::Consensus;
-//use grpc;
+use lib::generated::consensus;
+use lib::generated::consensus_grpc;
+use lib::generated::consensus_grpc::Consensus;
 
 #[test]
 fn processes_requests() {
-    let config = consensus::Config {
+    let config = lib::Config {
         tendermint_host: String::from("localhost"),
         tendermint_port: 46657,
         tendermint_abci_port: 46658,
@@ -18,7 +18,7 @@ fn processes_requests() {
     let client_port = config.grpc_port;
 
     let server_handle = thread::spawn(move || {
-        consensus::run(&config).unwrap();
+        lib::run(&config).unwrap();
     });
 
     let client =
@@ -26,13 +26,10 @@ fn processes_requests() {
             .unwrap();
 
     // Get latest state - should be empty
-    let consensus_get_request = consensus::GetRequest::new();
-    let (_, consensus_get_response, _) = consensus_client
-        .get(grpc::RequestOptions::new(), consensus_get_request)
-        .wait()
-        .unwrap();
+    let req = consensus::GetRequest::new();
+    let (_, resp , _) = client.get(grpc::RequestOptions::new(), req).wait().unwrap();
     assert_eq!(
-        consensus_get_response.get_payload(),
+        resp.get_checkpoint().get_payload(),
         String::from("helloworld").as_bytes()
     );
 
