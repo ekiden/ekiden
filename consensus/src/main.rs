@@ -1,10 +1,14 @@
+#[macro_use]
+extern crate clap;
+
+extern crate consensus;
 
 use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("Ekiden Compute Node")
         .version("0.1.0")
-        .about("Ekident consensus node")
+        .about("Ekiden consensus node")
         .arg(
             Arg::with_name("tendermint-host")
                 .long("tendermint-host")
@@ -31,9 +35,14 @@ fn main() {
         )
         .get_matches();
 
-    println!("Ekiden Consensus starting... ");
-
     let port = value_t!(matches, "grpc-port", u16).unwrap_or_else(|e| e.exit());
+
+    println!("Ekiden Consensus Node starting... ");
+    if let Err(e) = consensus::run() {
+        println!("Application error: {}", e);
+        std::process::exit(1);
+    }
+
     println!("Consensus node listening at {}", port);
 }
 

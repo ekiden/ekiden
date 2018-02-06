@@ -20,3 +20,11 @@ clap = "2.29.1"
 libcontract-utils = { path = "../libcontract/utils" }
 protoc-rust = "1.4"
 protoc-rust-grpc = "0.2.1"
+
+[lib]
+name = "consensus"
+path = "src/lib.rs"
+
+[[bin]]
+name = "consensus"
+path = "src/main.rs"

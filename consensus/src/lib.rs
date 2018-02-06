@@ -7,9 +7,6 @@ extern crate tls_api;
 extern crate tokio_core;
 extern crate tokio_proto;
 
-#[macro_use]
-extern crate clap;
-
 mod ekidenmint;
 mod errors;
 mod tendermint;
@@ -23,46 +20,47 @@ use std::sync::{Arc, Mutex};
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
 
+use errors::Error;
 use generated::consensus_grpc::ConsensusServer;
 use rpc::ConsensusServerImpl;
 use state::State;
 use tendermint::TendermintProxy;
 
-pub fn run(config: Config) -> Result<(), Box<Error>> {
+pub fn run() -> Result<(), Box<Error>> {
 
     // Create a shared State object
     let state = Arc::new(Mutex::new(State::new()));
 
-    // Create Tendermint proxy.
-    let tendermint = TendermintProxy::new(
-        &matches.value_of("tendermint-host").unwrap().to_string(),
-        value_t!(matches, "tendermint-port", u16).unwrap_or_else(|e| e.exit()),
-    );
+    //// Create Tendermint proxy.
+    //let tendermint = TendermintProxy::new(
+    //    &args.value_of("tendermint-host").unwrap().to_string(),
+    //    value_t!(args, "tendermint-port", u16).unwrap_or_else(|e| e.exit()),
+    //);
 
-    // Start the Ekiden consensus gRPC server.
-    let port = value_t!(matches, "grpc-port", u16).unwrap_or_else(|e| e.exit());
-    let mut rpc_server = grpc::ServerBuilder::new_plain();
-    rpc_server.http.set_port(port);
-    rpc_server.http.set_cpu_pool_threads(1);
-    rpc_server.add_service(ConsensusServer::new_service_def(ConsensusServerImpl::new(
-        Arc::clone(&state),
-        tendermint.get_channel(),
-    )));
-    let _server = rpc_server.build().expect("rpc_server");
+    //// Start the Ekiden consensus gRPC server.
+    //let port = value_t!(args, "grpc-port", u16).unwrap_or_else(|e| e.exit());
+    //let mut rpc_server = grpc::ServerBuilder::new_plain();
+    //rpc_server.http.set_port(port);
+    //rpc_server.http.set_cpu_pool_threads(1);
+    //rpc_server.add_service(ConsensusServer::new_service_def(ConsensusServerImpl::new(
+    //    Arc::clone(&state),
+    //    tendermint.get_channel(),
+    //)));
+    //let _server = rpc_server.build().expect("rpc_server");
 
-    // Start the Tendermint ABCI listener
-    let abci_listen_addr = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-        value_t!(matches, "tendermint-abci-port", u16).unwrap_or_else(|e| e.exit()),
-    );
-    let mut app_server = TcpServer::new(AbciProto, abci_listen_addr);
-    app_server.threads(1);
-    app_server.serve(move || {
-        Ok(AbciService {
-            app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&state))),
-        })
-    });
-
+    //// Start the Tendermint ABCI listener
+    //let abci_listen_addr = SocketAddr::new(
+    //    IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+    //    value_t!(args, "tendermint-abci-port", u16).unwrap_or_else(|e| e.exit()),
+    //);
+    //let mut app_server = TcpServer::new(AbciProto, abci_listen_addr);
+    //app_server.threads(1);
+    //app_server.serve(move || {
+    //    Ok(AbciService {
+    //        app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&state))),
+    //    })
+    //});
+    Ok(())
 }
 
 #[cfg(test)]
