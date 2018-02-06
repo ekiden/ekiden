@@ -33,7 +33,7 @@ fn processes_requests() {
         }
         Err(err) => {
             assert!(true);
-        },
+        }
     }
 
     // Get diffs - should be empty
@@ -45,7 +45,7 @@ fn processes_requests() {
         }
         Err(err) => {
             assert!(true);
-        },
+        }
     }
 
     // Set state to `helloworld`
