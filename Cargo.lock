@@ -56,18 +56,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "benchmark-dp-credit-scoring-infer"
-version = "0.1.0"
-dependencies = [
- "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "client-utils 0.1.0",
- "compute-client 0.1.0",
- "dp-credit-scoring-api 0.1.0",
- "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "benchmark-dp-credit-scoring-train"
 version = "0.1.0"
 dependencies = [
@@ -112,6 +100,18 @@ dependencies = [
  "compute-client 0.1.0",
  "libcontract-common 0.1.0",
  "token-api 0.1.0",
+]
+
+[[package]]
+name = "benchmarkdp-credit-scoring-infer"
+version = "0.1.0"
+dependencies = [
+ "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "client-utils 0.1.0",
+ "compute-client 0.1.0",
+ "dp-credit-scoring-api 0.1.0",
+ "libcontract-common 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
