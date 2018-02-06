@@ -26,7 +26,7 @@ members = [
   "clients/benchmark-token-get-balance",
   "clients/benchmark-dp-credit-scoring-train",
   "clients/benchmark-dp-credit-scoring-infer",
-  # "clients/benchmark-iot-learner-train",
+  "clients/benchmark-iot-learner-train",
   "clients/benchmark-iot-learner-infer",
   "clients/token",
   "clients/dp_credit_scoring",
