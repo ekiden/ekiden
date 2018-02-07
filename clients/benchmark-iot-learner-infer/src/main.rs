@@ -30,7 +30,9 @@ lazy_static! {
             .expect("Unable to open dataset.");
         let examples_proto: api::Examples = protobuf::parse_from_reader(&mut ds_proto)
             .expect("Unable to parse dataset.");
-        examples_proto.get_examples().to_vec()
+        let mut examples = examples_proto.get_examples().to_vec();
+        examples.resize(32, api::Example::new());
+        examples
     };
 }
 
