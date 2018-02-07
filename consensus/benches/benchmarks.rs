@@ -56,7 +56,7 @@ fn benchmark_get(b: &mut Bencher) {
 
     // See https://github.com/sunblaze-ucb/ekiden/issues/223
     // We can't gracefully shut down the server yet.
-    // panic!("Test passed, just need to panic to get out");
+    panic!("Test passed, just need to panic to get out");
     //server_handle.join();
 }
 
@@ -78,6 +78,6 @@ fn benchmark_replace(b: &mut Bencher) {
 
     // See https://github.com/sunblaze-ucb/ekiden/issues/223
     // We can't gracefully shut down the server yet.
-    // panic!("Test passed, just need to panic to get out");
+    panic!("Test passed, just need to panic to get out");
     //server_handle.join();
 }

@@ -12,7 +12,6 @@ grpc = "0.2.1"
 hex = "0.3.1"
 hyper = "0.11"
 protobuf = "1.4.2"
-rand = "0.4.2"
 tls-api = "0.1.12"
 tokio-core = "0.1"
 tokio-proto = "0.1"
@@ -21,6 +20,7 @@ tokio-proto = "0.1"
 libcontract-utils = { path = "../libcontract/utils" }
 protoc-rust = "1.4"
 protoc-rust-grpc = "0.2.1"
+rand = "0.4.2"
 
 [lib]
 name = "consensus"

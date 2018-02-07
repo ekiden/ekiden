@@ -61,7 +61,7 @@ fn main() {
         config.grpc_port
     );
     if let Err(e) = consensus::run(&config) {
-        println!("Application error: {}", e);
+        eprintln!("Application error: {}", e);
         std::process::exit(1);
     }
 }

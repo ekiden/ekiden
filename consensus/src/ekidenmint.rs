@@ -6,7 +6,7 @@
 use abci::application::Application;
 use abci::types;
 use protobuf;
-use std::error;
+use std;
 use std::sync::{Arc, Mutex};
 
 use generated::consensus;
@@ -23,7 +23,7 @@ impl Ekidenmint {
         Ekidenmint { state: state }
     }
 
-    pub fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<error::Error>> {
+    pub fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<std::error::Error>> {
         state::State::check_tx(tx)?;
         let mut stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
         // Set the state
@@ -42,13 +42,13 @@ impl Ekidenmint {
         } else if stored.has_diff() {
             let si = s.everything
                 .as_mut()
-                .ok_or::<Box<error::Error>>(From::from("Can't add diff to uninitialized state."))?;
+                .ok_or::<Box<std::error::Error>>(From::from("Can't add diff to uninitialized state."))?;
             si.diffs.push(stored.take_diff());
             Ok(())
         } else if stored.has_checkpoint() {
             let si = s.everything
                 .as_mut()
-                .ok_or::<Box<error::Error>>(From::from("Can't checkpoint uninitialized state."))?;
+                .ok_or::<Box<std::error::Error>>(From::from("Can't checkpoint uninitialized state."))?;
             si.checkpoint = stored.take_checkpoint();
             si.checkpoint_height += si.diffs.len() as u64;
             si.diffs.clear();
