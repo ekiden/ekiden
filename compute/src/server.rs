@@ -378,6 +378,9 @@ impl ComputeServerWorker {
                 if let Ok(queued_request) = request_receiver.try_recv() {
                     request_batch.push(queued_request);
                 }
+
+                // Yield thread for 10 ms while we wait.
+                std::thread::sleep(std::time::Duration::from_millis(10));
             }
 
             // Process the requests.
