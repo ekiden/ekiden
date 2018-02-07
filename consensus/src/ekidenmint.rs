@@ -7,12 +7,8 @@ use abci::application::Application;
 use abci::types;
 use protobuf;
 use std::error;
-use std::thread;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::Receiver;
 
-use tendermint::BroadcastRequest;
-use generated::tendermint::ResponseBroadcastTx;
 use generated::consensus;
 use state;
 
@@ -23,22 +19,11 @@ pub struct Ekidenmint {
 }
 
 impl Ekidenmint {
-    pub fn new(state: Arc<Mutex<state::State>>, queue_option: Option<Receiver<BroadcastRequest>>) -> Ekidenmint {
-        let app = Ekidenmint { state: state };
-        
-        // Setup short circuit
-        if let Some(queue) = queue_option {
-            thread::spawn(|| {
-                for req in queue {
-                    println!("{:?}", req.payload);
-                    req.response.send(Ok(ResponseBroadcastTx::new())).unwrap();
-                }
-            });
-        }
-        app
+    pub fn new(state: Arc<Mutex<state::State>>) -> Ekidenmint {
+        Ekidenmint { state: state }
     }
 
-    fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<error::Error>> {
+    pub fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<error::Error>> {
         state::State::check_tx(tx)?;
         let mut stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
         // Set the state

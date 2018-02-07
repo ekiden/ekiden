@@ -14,7 +14,6 @@ pub mod generated;
 mod rpc;
 mod state;
 
-use std::thread;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
@@ -24,6 +23,7 @@ use tokio_proto::TcpServer;
 
 use errors::Error;
 use generated::consensus_grpc::ConsensusServer;
+use generated::tendermint::ResponseBroadcastTx;
 use rpc::ConsensusServerImpl;
 use state::State;
 use tendermint::TendermintProxy;
@@ -56,10 +56,13 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
     
     // Short circuit Tendermint if `-x` is enabled
     if config.no_tendermint {
-        let _app = ekidenmint::Ekidenmint::new(Arc::clone(&state), Some(receiver));
-        loop {
-            thread::park();
+        let app = ekidenmint::Ekidenmint::new(Arc::clone(&state));
+        // Setup short circuit
+        for req in receiver {
+            app.deliver_tx_fallible(&req.payload).unwrap();
+            req.response.send(Ok(ResponseBroadcastTx::new())).unwrap();
         }
+        return Ok(());
     }
 
     // Create Tendermint proxy/app.
@@ -74,7 +77,7 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
     app_server.threads(1);
     app_server.serve(move || {
         Ok(AbciService {
-            app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&state), None)),
+            app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&state))),
         })
     });
     Ok(())
