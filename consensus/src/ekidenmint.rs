@@ -9,7 +9,7 @@ use protobuf;
 use std::error;
 use std::thread;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::Receiver;
 
 use tendermint::BroadcastRequest;
 use generated::tendermint::ResponseBroadcastTx;

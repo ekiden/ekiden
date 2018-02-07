@@ -56,14 +56,14 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
     
     // Short circuit Tendermint if `-x` is enabled
     if config.no_tendermint {
-        let ekidenmint_app = ekidenmint::Ekidenmint::new(Arc::clone(&state), Some(receiver));
+        let _app = ekidenmint::Ekidenmint::new(Arc::clone(&state), Some(receiver));
         loop {
             thread::park();
         }
     }
 
     // Create Tendermint proxy/app.
-    let tendermint = TendermintProxy::new(&config.tendermint_host, config.tendermint_port, receiver);
+    let _tendermint = TendermintProxy::new(&config.tendermint_host, config.tendermint_port, receiver);
 
     // Start the Tendermint ABCI listener
     let abci_listen_addr = SocketAddr::new(
