@@ -1,4 +1,4 @@
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use grpc;
@@ -16,8 +16,7 @@ pub struct BroadcastRequest {
 }
 
 /// Proxy that runs the tendermint client in a separate thread.
-pub struct TendermintProxy {
-}
+pub struct TendermintProxy {}
 
 impl TendermintProxy {
     /// Create a new Tendermint proxy instance.

@@ -17,8 +17,8 @@ mod state;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
-use std::time;
 use std::thread;
+use std::time;
 
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
@@ -57,7 +57,7 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
         sender,
     )));
     let _server = rpc_server.build().expect("rpc_server");
-    
+
     // Short circuit Tendermint if `-x` is enabled
     if config.no_tendermint {
         let app = ekidenmint::Ekidenmint::new(Arc::clone(&state));
@@ -71,7 +71,8 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
     }
 
     // Create Tendermint proxy/app.
-    let _tendermint = TendermintProxy::new(&config.tendermint_host, config.tendermint_port, receiver);
+    let _tendermint =
+        TendermintProxy::new(&config.tendermint_host, config.tendermint_port, receiver);
 
     // Start the Tendermint ABCI listener
     let abci_listen_addr = SocketAddr::new(

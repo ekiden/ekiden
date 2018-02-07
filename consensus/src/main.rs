@@ -35,7 +35,7 @@ fn main() {
         .arg(
             Arg::with_name("no-tendermint")
                 .long("no-tendermint")
-                .short("x")
+                .short("x"),
         )
         .arg(
             Arg::with_name("artificial-delay")
