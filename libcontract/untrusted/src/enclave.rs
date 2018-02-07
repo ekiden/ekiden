@@ -2,7 +2,7 @@ use sgx_types::*;
 use sgx_urts::SgxEnclave;
 
 use protobuf;
-use protobuf::{Message, MessageStatic};
+use protobuf::{Message, MessageStatic, RepeatedField};
 
 use libcontract_common::api;
 
@@ -14,6 +14,9 @@ pub struct EkidenEnclave {
 }
 
 impl EkidenEnclave {
+    /// Maximum response size (in kilobytes).
+    const MAX_RESPONSE_SIZE: usize = 1024;
+
     /// Initializes a new Ekiden enclave.
     ///
     /// The created enclave is assumed to implement the Ekiden RPC protocol
@@ -60,7 +63,7 @@ impl EkidenEnclave {
         client_request.set_plain_request(plain_request);
 
         let mut enclave_request = api::EnclaveRequest::new();
-        enclave_request.set_client_request(client_request);
+        enclave_request.set_client_request(RepeatedField::from_slice(&[client_request]));
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
         let enclave_response_bytes = self.call_raw(enclave_request_bytes)?;
@@ -71,7 +74,7 @@ impl EkidenEnclave {
                 _ => return Err(errors::Error::ParseError),
             };
 
-        let client_response = enclave_response.get_client_response();
+        let client_response = &enclave_response.get_client_response()[0];
 
         // Plain request requires a plain response.
         assert!(client_response.has_plain_response());
@@ -109,8 +112,9 @@ impl EkidenEnclave {
 
     /// Perform a raw RPC call against the enclave.
     pub fn call_raw(&self, mut request: Vec<u8>) -> Result<Vec<u8>, errors::Error> {
-        // Maximum size of serialized response is 64K.
-        let mut response: Vec<u8> = Vec::with_capacity(64 * 1024);
+        // Reserve space up to the maximum size of serialized response.
+        // TODO: Can we avoid allocating large response buffers each time?
+        let mut response: Vec<u8> = Vec::with_capacity(Self::MAX_RESPONSE_SIZE * 1024);
 
         // Ensure that request is actually allocated as the length of the actual request
         // may be zero and in that case the OCALL will fail with SGX_ERROR_INVALID_PARAMETER.

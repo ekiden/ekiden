@@ -39,14 +39,14 @@ macro_rules! create_enclave {
     ) => {
         mod enclave_rpc {
             use protobuf;
+            use protobuf::Message;
 
             use libcontract_common::{api, ContractError};
 
-            use $crate::dispatcher::{parse_request, return_error, return_success, RawResponse,
-                                     Request};
+            use $crate::dispatcher::{parse_request, return_response, Request, Response};
             use $crate::secure_channel::{channel_init, contract_init, contract_restore};
             #[allow(unused)]
-            use $crate::state_crypto::decrypt_state;
+            use $crate::state_crypto::{decrypt_state, encrypt_state};
 
             use $crate::state_diffs;
 
@@ -59,26 +59,80 @@ macro_rules! create_enclave {
                                        response_capacity: usize,
                                        response_length: *mut usize) {
 
-                let mut raw_response = RawResponse {
-                    data: response_data,
-                    capacity: response_capacity,
-                    length: response_length,
-                    public_key: vec![],
-                };
-
                 // Parse request.
-                #[allow(unused)]
-                let (encrypted_state, request) = match parse_request(
+                let (encrypted_state, requests) = match parse_request(
                     request_data,
                     request_length,
-                    &mut raw_response
                 ) {
                     Ok(value) => value,
-                    _ => {
-                        // Parsing failed, and a suitable error response has been sent.
-                        return;
-                    }
+                    _ => unreachable!()
                 };
+
+                // Decrypt starting state.
+                let mut state: Option<$metadata_state_type> = match encrypted_state {
+                    Some(encrypted_state) =>
+                        match decrypt_state(&encrypted_state) {
+                            Ok(value) =>
+                                match protobuf::parse_from_bytes(&value) {
+                                    Ok(value) => Some(value),
+                                    Err(_) => None,
+                                },
+                            Err(_) => None,
+                        },
+                    None => None,
+                };
+
+                // Process requests.
+                let mut have_state_updates = false;
+                let mut responses = vec![];
+                for request in requests {
+                    let response = if let &Some(ref error) = request.get_error() {
+                        // Error occurred during request processing, forward it.
+                        Response::error(&request, error.code, &error.message)
+                    } else {
+                        let mut response = handle_request(&state, &request);
+                        match response.take_state() {
+                            Some(new_state) => {
+                                // Response updates state.
+                                state = Some(new_state);
+                                have_state_updates = true;
+                            },
+                            None => {}
+                        }
+
+                        response
+                    };
+
+                    responses.push(response);
+                }
+
+                // Encrypt state if there were any updates.
+                let encrypted_state = if have_state_updates {
+                    match state {
+                        Some(state) => {
+                            let state_bytes = state.write_to_bytes().expect("Failed to serialize state");
+                            Some(encrypt_state(state_bytes).expect("Failed to encrypt state"))
+                        }
+                        None => None,
+                    }
+                } else {
+                    None
+                };
+
+                // Generate response.
+                return_response(
+                    encrypted_state,
+                    responses,
+                    response_data,
+                    response_capacity,
+                    response_length,
+                );
+            }
+
+            fn handle_request(
+                state: &Option<$metadata_state_type>,
+                request: &Request<api::PlainClientRequest>
+            ) -> Response<$metadata_state_type> {
 
                 // Special handling methods.
                 match request.get_method() {
@@ -86,62 +140,59 @@ macro_rules! create_enclave {
                     // channel identity and to generate the response before closing the channel.
                     "_channel_close" => {
                         // Prepare response before closing the channel.
-                        let response = api::ChannelCloseResponse::new();
-                        return_success(
-                            None::<$metadata_state_type>, response, &raw_response
+                        let response = Response::success(
+                            &request,
+                            api::ChannelCloseResponse::new()
                         );
 
-                        match $crate::secure_channel::channel_close(&raw_response.public_key) {
-                            Ok(_) => {},
-                            _ => {
-                                // Errors are ignored.
+                        if let &Some(ref public_key) = request.get_client_public_key() {
+                            match $crate::secure_channel::channel_close(&public_key) {
+                                Ok(_) => {},
+                                _ => {
+                                    // Errors are ignored.
+                                }
                             }
-                        };
-                        return;
+                        }
+
+                        return response;
                     },
                     _ => {},
                 }
 
                 // Meta methods. Keep these names in sync with libcontract/common/src/protocol.rs.
                 create_enclave_method!(
-                    encrypted_state,
+                    state,
                     request,
-                    raw_response,
                     $metadata_state_type,
                     _metadata(api::MetadataRequest) -> api::MetadataResponse
                 );
                 create_enclave_method!(
-                    encrypted_state,
+                    state,
                     request,
-                    raw_response,
                     $metadata_state_type,
                     _contract_init(api::ContractInitRequest) -> api::ContractInitResponse
                 );
                 create_enclave_method!(
-                    encrypted_state,
+                    state,
                     request,
-                    raw_response,
                     $metadata_state_type,
                     _contract_restore(api::ContractRestoreRequest) -> api::ContractRestoreResponse
                 );
                 create_enclave_method!(
-                    encrypted_state,
+                    state,
                     request,
-                    raw_response,
                     $metadata_state_type,
                     _channel_init(api::ChannelInitRequest) -> api::ChannelInitResponse
                 );
                 create_enclave_method!(
-                    encrypted_state,
+                    state,
                     request,
-                    raw_response,
                     $metadata_state_type,
                     _state_diff(api::StateDiffRequest) -> api::StateDiffResponse
                 );
                 create_enclave_method!(
-                    encrypted_state,
+                    state,
                     request,
-                    raw_response,
                     $metadata_state_type,
                     _state_apply(api::StateApplyRequest) -> api::StateApplyResponse
                 );
@@ -149,19 +200,18 @@ macro_rules! create_enclave {
                 // User-defined methods.
                 $(
                     create_enclave_method!(
-                        encrypted_state,
+                        state,
                         request,
-                        raw_response,
                         $metadata_state_type,
                         $method_name $method_in -> $method_out
                     );
                 )*
 
                 // If we are still here, the method could not be found.
-                return_error(
+                return Response::error(
+                    &request,
                     api::PlainClientResponse_Code::ERROR_METHOD_NOT_FOUND,
-                    "Method not found",
-                    &raw_response
+                    "Method not found"
                 );
             }
 
@@ -218,60 +268,33 @@ macro_rules! create_enclave {
 
 #[macro_export]
 macro_rules! parse_enclave_method_state {
-    ( $state: ident, $response: ident, $state_type: ty ) => {{
-        // Decrypt starting state.
-        let state: $state_type = match $state {
-            Some(encrypted_state) =>
-                match decrypt_state(&encrypted_state) {
-                    Ok(value) =>
-                        match protobuf::parse_from_bytes(&value) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                return_error(
-                                    api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                                    "Unable to parse request state",
-                                    &$response
-                                );
-                                return;
-                            }
-                        },
-                    Err(e) => {
-                        return_error(
-                            api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                            &e.message,
-                            &$response
-                        );
-                        return;
-                    }
-                },
-            None => {
-                return_error(
-                    api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                    "Request must come with state",
-                    &$response
-                );
-                return;
-            },
-        };
+    ( $state: ident, $request: ident, $state_type: ty ) => {{
+        // Ensure state is passed.
+        if $state.is_none() {
+            return Response::error(
+                &$request,
+                api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
+                "Request must come with state",
+            );
+        }
 
-        state
+        $state.as_ref().unwrap()
     }}
 }
 
 #[macro_export]
 macro_rules! parse_enclave_method_request {
-    ( $request: ident, $response: ident, $request_type: ty ) => {{
+    ( $request: ident, $request_type: ty ) => {{
         let payload: Request<$request_type> = match protobuf::parse_from_bytes(
             &$request.get_payload()
         ) {
             Ok(value) => $request.copy_metadata_to(value),
             _ => {
-                return_error(
+                return Response::error(
+                    &$request,
                     api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
                     "Unable to parse request payload",
-                    &$response
                 );
-                return;
             }
         };
 
@@ -281,16 +304,17 @@ macro_rules! parse_enclave_method_request {
 
 #[macro_export]
 macro_rules! handle_enclave_method_invocation {
-    ( $response: ident, $invocation: expr ) => {{
+    ( $request: ident, $invocation: expr ) => {{
         match $invocation {
-            Ok(value) => value,
+            Ok(value) => {
+                value
+            }
             Err(ContractError { message }) => {
-                return_error(
+                return Response::error(
+                    &$request,
                     api::PlainClientResponse_Code::ERROR,
                     message.as_str(),
-                    &$response
                 );
-                return;
             }
         }
     }}
@@ -301,68 +325,64 @@ macro_rules! handle_enclave_method_invocation {
 macro_rules! create_enclave_method {
     // State in, state out. E.g., transactions
     (
-        $state: ident, $request: ident, $response: ident, $state_type: ty,
+        $state: ident, $request: ident, $state_type: ty,
         $method_name: ident ( state , $request_type: ty ) -> ( state , $response_type: ty )
     ) => {
         if $request.method == stringify!($method_name) {
-            let state = parse_enclave_method_state!($state, $response, $state_type);
-            let payload = parse_enclave_method_request!($request, $response, $request_type);
+            let state = parse_enclave_method_state!($state, $request, $state_type);
+            let payload = parse_enclave_method_request!($request, $request_type);
 
             // Invoke method implementation.
             let (new_state, response): ($state_type, $response_type) =
-                handle_enclave_method_invocation!($response, $method_name(&state, &payload));
+                handle_enclave_method_invocation!($request, $method_name(&state, &payload));
 
-            return_success(Some(new_state), response, &$response);
-            return;
+            return Response::success(&$request, response).with_state(new_state);
         }
     };
     // No state in, state out. E.g., initializers
     (
-        $state: ident, $request: ident, $response: ident, $state_type: ty,
+        $state: ident, $request: ident, $state_type: ty,
         $method_name: ident ( $request_type: ty ) -> ( state , $response_type: ty )
     ) => {
         if $request.method == stringify!($method_name) {
-            let payload = parse_enclave_method_request!($request, $response, $request_type);
+            let payload = parse_enclave_method_request!($request, $request_type);
 
             // Invoke method implementation.
             let (new_state, response): ($state_type, $response_type) =
-                handle_enclave_method_invocation!($response, $method_name(&payload));
+                handle_enclave_method_invocation!($request, $method_name(&payload));
 
-            return_success(Some(new_state), response, &$response);
-            return;
+            return Response::success(&$request, response).with_state(new_state);
         }
     };
     // State in, no state out. E.g., reads
     (
-        $state: ident, $request: ident, $response: ident, $state_type: ty,
+        $state: ident, $request: ident, $state_type: ty,
         $method_name: ident ( state , $request_type: ty ) -> $response_type: ty
     ) => {
         if $request.method == stringify!($method_name) {
-            let state = parse_enclave_method_state!($state, $response, $state_type);
-            let payload = parse_enclave_method_request!($request, $response, $request_type);
+            let state = parse_enclave_method_state!($state, $request, $state_type);
+            let payload = parse_enclave_method_request!($request, $request_type);
 
             // Invoke method implementation.
             let response: $response_type =
-                handle_enclave_method_invocation!($response, $method_name(&state, &payload));
+                handle_enclave_method_invocation!($request, $method_name(&state, &payload));
 
-            return_success(None::<$state_type>, response, &$response);
-            return;
+            return Response::success(&$request, response);
         }
     };
     // No state in, no state out. E.g., _metadata
     (
-        $state: ident, $request: ident, $response: ident, $state_type: ty,
+        $state: ident, $request: ident, $state_type: ty,
         $method_name: ident ( $request_type: ty ) -> $response_type: ty
     ) => {
         if $request.method == stringify!($method_name) {
-            let payload = parse_enclave_method_request!($request, $response, $request_type);
+            let payload = parse_enclave_method_request!($request, $request_type);
 
             // Invoke method implementation.
             let response: $response_type =
-                handle_enclave_method_invocation!($response, $method_name(&payload));
+                handle_enclave_method_invocation!($request, $method_name(&payload));
 
-            return_success(None::<$state_type>, response, &$response);
-            return;
+            return Response::success(&$request, response);
         }
     };
 }
