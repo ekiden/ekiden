@@ -15,6 +15,7 @@ fn processes_requests() {
         tendermint_abci_port: 46658,
         grpc_port: 9002,
         no_tendermint: true,
+        artificial_delay: 0,
     };
     let client_port = config.grpc_port;
 

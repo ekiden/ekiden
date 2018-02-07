@@ -37,6 +37,13 @@ fn main() {
                 .long("no-tendermint")
                 .short("x")
         )
+        .arg(
+            Arg::with_name("artificial-delay")
+                .long("artificial-delay")
+                .help("Artifical delay injected before delivering transactions (ms)")
+                .takes_value(true)
+                .default_value("0"),
+        )
         .get_matches();
 
     let config = consensus::Config {
@@ -46,6 +53,7 @@ fn main() {
             .unwrap_or_else(|e| e.exit()),
         grpc_port: value_t!(matches, "grpc-port", u16).unwrap_or_else(|e| e.exit()),
         no_tendermint: { matches.occurrences_of("no-tendermint") > 0 },
+        artificial_delay: value_t!(matches, "artificial-delay", u64).unwrap_or_else(|e| e.exit()),
     };
 
     println!(

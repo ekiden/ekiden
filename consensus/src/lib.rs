@@ -17,6 +17,8 @@ mod state;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
+use std::time;
+use std::thread;
 
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
@@ -35,11 +37,13 @@ pub struct Config {
     pub tendermint_abci_port: u16,
     pub grpc_port: u16,
     pub no_tendermint: bool,
+    pub artificial_delay: u64,
 }
 
 pub fn run(config: &Config) -> Result<(), Box<Error>> {
     // Create a shared State object and ekidenmint
     let state = Arc::new(Mutex::new(State::new()));
+    let delay = time::Duration::from_millis(config.artificial_delay);
 
     // Create new channel (gRPC broadcast => Tendermint/Ekidenmint).
     let (sender, receiver) = mpsc::channel();
@@ -59,6 +63,7 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
         let app = ekidenmint::Ekidenmint::new(Arc::clone(&state));
         // Setup short circuit
         for req in receiver {
+            thread::sleep(delay);
             app.deliver_tx_fallible(&req.payload).unwrap();
             req.response.send(Ok(ResponseBroadcastTx::new())).unwrap();
         }
