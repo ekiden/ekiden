@@ -27,7 +27,7 @@ lazy_static! {
                 "--api-proto",
                 "/code/contracts/dp_credit_scoring/api/src/generated/api_pb2.py",
             ])
-            .args(&["--max-samples", "512"])
+            .args(&["--max-samples", "32"])
             .output()
             .expect("Could not fetch data.");
         assert!(
