@@ -23,7 +23,7 @@ impl Ekidenmint {
         Ekidenmint { state: state }
     }
 
-    fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<std::error::Error>> {
+    pub fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<std::error::Error>> {
         state::State::check_tx(tx)?;
         let mut stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
         // Set the state

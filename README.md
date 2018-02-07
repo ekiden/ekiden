@@ -129,6 +129,14 @@ To run the token contract client:
 $ scripts/run_contract.sh --client token
 ```
 
+## Developing
+
+We welcome anyone to fork and submit a pull request! Please make sure to run `rustfmt` before submitting.
+
+```bash
+$ cargo make format
+```
+
 ## Packages
 - `abci`: Tendermint Application Blockchain Interface
 - `compute-client`: Ekiden client library
