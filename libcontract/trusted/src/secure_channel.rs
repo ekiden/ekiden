@@ -272,6 +272,7 @@ impl ClientSession {
     /// Create a new client session.
     pub fn new(public_key: sodalite::BoxPublicKey) -> Result<Self, ContractError> {
         let mut session = ClientSession::default();
+        session.transition_to(SessionState::Init)?;
         session.client_public_key = public_key;
 
         // Generate new keypair.

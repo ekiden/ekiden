@@ -1,9 +1,11 @@
 #[macro_use]
 extern crate clap;
+extern crate futures;
 extern crate hex;
 #[macro_use]
 extern crate lazy_static;
 extern crate rand;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
@@ -15,6 +17,7 @@ extern crate libcontract_common;
 extern crate ethtoken_api;
 
 use clap::{App, Arg};
+use futures::Future;
 
 use rand::{thread_rng, Rng};
 
@@ -59,6 +62,7 @@ where
     // Initialize empty state.
     client
         .init_genesis_state(ethtoken::InitStateRequest::new())
+        .wait()
         .unwrap();
 
     // Create new ERC20 token contract. Returns the address of the newly created contract.
@@ -76,6 +80,7 @@ where
             req.set_initial_supply(INITIAL_SUPPLY);
             req
         })
+        .wait()
         .unwrap()
         .get_contract_address()
         .to_string();
@@ -93,6 +98,7 @@ where
             req.set_address(TOKEN_CREATOR.to_string());
             req
         })
+        .wait()
         .unwrap()
         .get_balance();
 
@@ -118,6 +124,7 @@ where
                 req.set_amount(1);
                 req
             })
+            .wait()
             .unwrap();
     }
 }
@@ -146,6 +153,7 @@ where
                 req.set_amount(TRANSFER_AMOUNT);
                 req
             })
+            .wait()
             .unwrap();
     }
     #[cfg(feature = "benchmark_get_balance")]
@@ -160,6 +168,7 @@ where
                 req.set_address(TOKEN_CREATOR.to_string());
                 req
             })
+            .wait()
             .unwrap()
             .get_balance();
 
@@ -185,6 +194,7 @@ where
             req.set_address(TOKEN_CREATOR.to_string());
             req
         })
+        .wait()
         .unwrap()
         .get_balance();
 
@@ -210,6 +220,7 @@ where
             req.set_address(TRANSFER_TO_ADDR.to_string());
             req
         })
+        .wait()
         .unwrap()
         .get_balance();
 

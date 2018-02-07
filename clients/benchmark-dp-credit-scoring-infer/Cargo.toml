@@ -11,3 +11,5 @@ dp-credit-scoring-api = { path = "../../contracts/dp_credit_scoring/api" }
 libcontract-common = { path = "../../libcontract/common" }
 protobuf = "1.4.2"
 lazy_static = "1.0"
+futures = "0.1"
+tokio-core = "0.1"

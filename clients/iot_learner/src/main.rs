@@ -1,7 +1,9 @@
 #[macro_use]
 extern crate clap;
+extern crate futures;
 extern crate protobuf;
 extern crate rulinalg;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
@@ -11,6 +13,7 @@ extern crate libcontract_common;
 
 extern crate learner as learner_contract;
 use clap::{App, Arg};
+use futures::Future;
 use rulinalg::norm::Euclidean;
 use rulinalg::vector::Vector;
 
@@ -58,6 +61,7 @@ fn main() {
             req.set_targets(protobuf::RepeatedField::from_vec(targets));
             req
         })
+        .wait()
         .expect("error: create");
 
     let _train_res = client
@@ -67,6 +71,7 @@ fn main() {
             req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
             req
         })
+        .wait()
         .expect("error: train");
 
     let infer_res = client
@@ -76,6 +81,7 @@ fn main() {
             req.set_examples(protobuf::RepeatedField::from_vec(examples.to_vec()));
             req
         })
+        .wait()
         .expect("error: infer");
 
     let ground_truth: Vector<f64> = unpack_feature_vector(examples, "next_temp").unwrap();

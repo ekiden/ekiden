@@ -199,10 +199,13 @@ impl Default for MonotonicNonceGenerator {
 /// Current state of the secure channel session.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SessionState {
+    /// Session has been closed and must be reset.
+    ///
+    /// After the session is reset, it will transition into `Init`.
+    Closed,
     /// Session is being initialized.
     ///
-    /// From this state, the session will transition into:
-    /// * `Established`.
+    /// From this state, the session will transition into `Established`.
     Init,
     /// Secure channel is established.
     Established,
@@ -212,8 +215,9 @@ impl SessionState {
     /// Transition secure channel to a new state.
     pub fn transition_to(&mut self, new_state: SessionState) -> Result<(), ContractError> {
         match (*self, new_state) {
-            (_, SessionState::Init) => {}
+            (SessionState::Closed, SessionState::Init) => {}
             (SessionState::Init, SessionState::Established) => {}
+            (_, SessionState::Closed) => {}
             transition => {
                 return Err(ContractError::new(&format!(
                     "Invalid secure channel state transition: {:?}",
@@ -231,7 +235,7 @@ impl SessionState {
 
 impl Default for SessionState {
     fn default() -> Self {
-        SessionState::Init
+        SessionState::Closed
     }
 }
 
