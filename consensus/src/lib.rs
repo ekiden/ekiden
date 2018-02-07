@@ -14,8 +14,10 @@ pub mod generated;
 mod rpc;
 mod state;
 
+use std::thread;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
@@ -26,19 +28,21 @@ use rpc::ConsensusServerImpl;
 use state::State;
 use tendermint::TendermintProxy;
 
+#[derive(Debug)]
 pub struct Config {
     pub tendermint_host: String,
     pub tendermint_port: u16,
     pub tendermint_abci_port: u16,
     pub grpc_port: u16,
+    pub no_tendermint: bool,
 }
 
 pub fn run(config: &Config) -> Result<(), Box<Error>> {
-    // Create a shared State object
+    // Create a shared State object and ekidenmint
     let state = Arc::new(Mutex::new(State::new()));
 
-    // Create Tendermint proxy.
-    let tendermint = TendermintProxy::new(&config.tendermint_host, config.tendermint_port);
+    // Create new channel (gRPC broadcast => Tendermint/Ekidenmint).
+    let (sender, receiver) = mpsc::channel();
 
     // Start the Ekiden consensus gRPC server.
     let mut rpc_server = grpc::ServerBuilder::new_plain();
@@ -46,9 +50,20 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
     rpc_server.http.set_cpu_pool_threads(1);
     rpc_server.add_service(ConsensusServer::new_service_def(ConsensusServerImpl::new(
         Arc::clone(&state),
-        tendermint.get_channel(),
+        sender,
     )));
     let _server = rpc_server.build().expect("rpc_server");
+    
+    // Short circuit Tendermint if `-x` is enabled
+    if config.no_tendermint {
+        let ekidenmint_app = ekidenmint::Ekidenmint::new(Arc::clone(&state), Some(receiver));
+        loop {
+            thread::park();
+        }
+    }
+
+    // Create Tendermint proxy/app.
+    let tendermint = TendermintProxy::new(&config.tendermint_host, config.tendermint_port, receiver);
 
     // Start the Tendermint ABCI listener
     let abci_listen_addr = SocketAddr::new(
@@ -59,7 +74,7 @@ pub fn run(config: &Config) -> Result<(), Box<Error>> {
     app_server.threads(1);
     app_server.serve(move || {
         Ok(AbciService {
-            app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&state))),
+            app: Box::new(ekidenmint::Ekidenmint::new(Arc::clone(&state), None)),
         })
     });
     Ok(())

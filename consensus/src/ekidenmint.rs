@@ -6,9 +6,13 @@
 use abci::application::Application;
 use abci::types;
 use protobuf;
-use std;
+use std::error;
+use std::thread;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Sender, Receiver};
 
+use tendermint::BroadcastRequest;
+use generated::tendermint::ResponseBroadcastTx;
 use generated::consensus;
 use state;
 
@@ -19,11 +23,22 @@ pub struct Ekidenmint {
 }
 
 impl Ekidenmint {
-    pub fn new(state: Arc<Mutex<state::State>>) -> Ekidenmint {
-        Ekidenmint { state: state }
+    pub fn new(state: Arc<Mutex<state::State>>, queue_option: Option<Receiver<BroadcastRequest>>) -> Ekidenmint {
+        let app = Ekidenmint { state: state };
+        
+        // Setup short circuit
+        if let Some(queue) = queue_option {
+            thread::spawn(|| {
+                for req in queue {
+                    println!("{:?}", req.payload);
+                    req.response.send(Ok(ResponseBroadcastTx::new())).unwrap();
+                }
+            });
+        }
+        app
     }
 
-    fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<std::error::Error>> {
+    fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<error::Error>> {
         state::State::check_tx(tx)?;
         let mut stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
         // Set the state
@@ -42,7 +57,7 @@ impl Ekidenmint {
         } else if stored.has_diff() {
             let si = s.everything
                 .as_mut()
-                .ok_or::<Box<std::error::Error>>(From::from(
+                .ok_or::<Box<error::Error>>(From::from(
                     "Can't add diff to uninitialized state.",
                 ))?;
             si.diffs.push(stored.take_diff());
@@ -50,7 +65,7 @@ impl Ekidenmint {
         } else if stored.has_checkpoint() {
             let si = s.everything
                 .as_mut()
-                .ok_or::<Box<std::error::Error>>(From::from(
+                .ok_or::<Box<error::Error>>(From::from(
                     "Can't checkpoint uninitialized state.",
                 ))?;
             si.checkpoint = stored.take_checkpoint();

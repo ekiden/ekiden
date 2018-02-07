@@ -32,6 +32,11 @@ fn main() {
                 .takes_value(true)
                 .default_value("9002"),
         )
+        .arg(
+            Arg::with_name("no-tendermint")
+                .long("no-tendermint")
+                .short("x")
+        )
         .get_matches();
 
     let config = consensus::Config {
@@ -40,6 +45,7 @@ fn main() {
         tendermint_abci_port: value_t!(matches, "tendermint-abci-port", u16)
             .unwrap_or_else(|e| e.exit()),
         grpc_port: value_t!(matches, "grpc-port", u16).unwrap_or_else(|e| e.exit()),
+        no_tendermint: { matches.occurrences_of("no-tendermint") > 0 },
     };
 
     println!(

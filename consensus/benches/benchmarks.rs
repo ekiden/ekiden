@@ -19,6 +19,7 @@ fn spawn_client_server() -> consensus_grpc::ConsensusClient {
         tendermint_port: 46657,
         tendermint_abci_port: 46658,
         grpc_port: 9002,
+        no_tendermint: true,
     };
     let client_port = config.grpc_port;
     let _server_handle = thread::spawn(move || {
