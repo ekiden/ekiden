@@ -55,7 +55,7 @@ def _pack_proto(api, train_inputs, train_targets, test_inputs, test_targets):
                        test_targets=test_targets.tolist())
 
 
-def _split_data(data, train_frac, seed):
+def _split_data(data, train_frac, seed, max_samples):
     np.random.seed(seed)
     shuf_data = data.reindex(np.random.permutation(data.index))
     split_idx = int(len(data) * train_frac)
@@ -63,11 +63,18 @@ def _split_data(data, train_frac, seed):
     targets = data.pop('will_default').as_matrix()
     inputs = data.as_matrix()
 
+    max_samples = max_samples or float('inf')
+    train_split = slice(0, min(max_samples, split_idx))
+    test_split = slice(split_idx, min(split_idx + max_samples, len(data)))
 
-    inputs_train = inputs[:split_idx]
-    inputs_test = inputs[split_idx:]
-    targets_train = targets[:split_idx]
-    targets_test = targets[split_idx:]
+    inputs_train = inputs[train_split]
+    inputs_test = inputs[test_split]
+    targets_train = targets[train_split]
+    targets_test = targets[test_split]
+
+    assert max_samples == float('inf') or (
+        len(inputs_train) <= max_samples and len(inputs_test) <= max_samples and
+        len(targets_train) <= max_samples and len(targets_test) <= max_samples)
 
     return inputs_train, targets_train, inputs_test, targets_test
 
@@ -77,10 +84,11 @@ def main():
     parser.add_argument('--api-proto', required=True, type=osp.abspath)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--train-frac', type=float, default=0.8)
+    parser.add_argument('--max-samples', type=int)
     args = parser.parse_args()
 
     prepped_data = _prep_data()
-    split_data = _split_data(prepped_data, args.train_frac, args.seed)
+    split_data = _split_data(prepped_data, args.train_frac, args.seed, args.max_samples)
 
     api_pb2 = imp.load_source('api_pb2', args.api_proto)
     proto_data = _pack_proto(api_pb2, *split_data)
