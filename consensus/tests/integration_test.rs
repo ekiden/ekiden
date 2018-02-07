@@ -114,6 +114,23 @@ fn processes_requests() {
     assert_eq!(resp.get_diffs().len(), 1);
     assert_eq!(resp.get_diffs()[0], String::from("diff2").as_bytes());
 
+    // Set state to a sequence of all byte values
+    let mut scale: Vec<u8> = vec![0; 256];
+    for i in 0..256 {
+        scale[i] = i as u8;
+    }
+
+    let mut req = consensus::ReplaceRequest::new();
+    req.set_payload(scale.clone());
+    client
+        .replace(grpc::RequestOptions::new(), req)
+        .wait()
+        .unwrap();
+
+    let req = consensus::GetRequest::new();
+    let (_, resp, _) = client.get(grpc::RequestOptions::new(), req).wait().unwrap();
+    assert_eq!(resp.get_checkpoint().get_payload(), &scale[..]);
+
     // See https://github.com/sunblaze-ucb/ekiden/issues/223
     // We can't gracefully shut down the server yet.
     panic!("Test passed, just need to panic to get out");
