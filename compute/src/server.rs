@@ -362,8 +362,12 @@ impl ComputeServerWorker {
             while request_batch.len() < Self::MAX_BATCH_SIZE
                 && time::precise_time_ns() - batch_start < Self::MAX_BATCH_TIMEOUT
             {
-                if let Ok(queued_request) = request_receiver.try_recv() {
-                    request_batch.push(queued_request);
+                while request_batch.len() < Self::MAX_BATCH_SIZE {
+                    if let Ok(queued_request) = request_receiver.try_recv() {
+                        request_batch.push(queued_request);
+                    } else {
+                        break;
+                    }
                 }
 
                 // Yield thread for 10 ms while we wait.
