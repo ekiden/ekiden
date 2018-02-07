@@ -14,6 +14,8 @@ use clap::{App, Arg};
 use rulinalg::norm::Euclidean;
 use rulinalg::vector::Vector;
 
+// this macro comes from learner_api
+// confusingly, it creates a module called `learner` which contains the Client
 create_client_api!();
 use learner_contract::api::*;
 
