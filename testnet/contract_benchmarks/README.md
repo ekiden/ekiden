@@ -1,4 +1,4 @@
-# Ekiden Testnet for token contract
+# Ekiden Testnet for contract benchmarking
 
 This is a simple Ekiden testnet implemented using a single Kubernetes cluster. You can deploy it on a local Kubernetes installation by using [minikube](https://github.com/kubernetes/minikube) (see link for installation instructions).
 
@@ -6,9 +6,11 @@ Once you have your Kubernetes installation running and `kubectl` installed you c
 
 To deploy:
 ```bash
-$ make create
+$ make create experiment=[experiment name]
 ```
 
+Where the experiment name is one of `token`, `ethtoken`, `dp_credit_scoring`, `iot_learner`.
+ 
 Before running benchmarks on the cluster, one of the nodes should be tagged to run the benchmark client. If no node
 is tagged, running the following command will fail with an instruction on how to tag a node. The reason for this is
 to ensure that different benchmarks are run in a consistent manner as otherwise Kubernetes may schedule the benchmark
@@ -30,18 +32,20 @@ Note that the destroy command may take some time to complete and may return a ti
 
 If you are using minikube, you can use the following command to get the correct IP and port you need to point your Ekiden client to:
 ```bash
-$ minikube service --url ekiden-token-proxy
+$ minikube service --url ekiden-[experiment name]-proxy
 ```
 
-## Running the token benchmark client
+## Running the benchmark client
 
-To run a simple benchmark against the testnet, build the `token-client` with the `benchmark` feature enabled (note that for some reason this doesn't work when called from the workspace using `-p token-client`):
+To run a simple benchmark against the testnet for the `token` contract, build the client with the `benchmark` feature enabled (note that for some reason this doesn't work when called from the workspace using `-p token-client`):
 ```
 $ cd /code/clients/token
 $ cargo run --features benchmark -- --benchmark-runs 100 --benchmark-threads 4 --mr-enclave <mr-enclave> --host <host> --port <port>
 ```
 
 Where `host` and `port` are values obtained from `minikube service` as above.
+
+You can adapt these instructions to run the benchmark for other contracts.
 
 ## Building the ekiden/core image
 
