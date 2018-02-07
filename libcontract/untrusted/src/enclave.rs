@@ -14,6 +14,9 @@ pub struct EkidenEnclave {
 }
 
 impl EkidenEnclave {
+    /// Maximum response size (in kilobytes).
+    const MAX_RESPONSE_SIZE: usize = 1024;
+
     /// Initializes a new Ekiden enclave.
     ///
     /// The created enclave is assumed to implement the Ekiden RPC protocol
@@ -109,8 +112,9 @@ impl EkidenEnclave {
 
     /// Perform a raw RPC call against the enclave.
     pub fn call_raw(&self, mut request: Vec<u8>) -> Result<Vec<u8>, errors::Error> {
-        // Maximum size of serialized response is 256K.
-        let mut response: Vec<u8> = Vec::with_capacity(256 * 1024);
+        // Reserve space up to the maximum size of serialized response.
+        // TODO: Can we avoid allocating large response buffers each time?
+        let mut response: Vec<u8> = Vec::with_capacity(Self::MAX_RESPONSE_SIZE * 1024);
 
         // Ensure that request is actually allocated as the length of the actual request
         // may be zero and in that case the OCALL will fail with SGX_ERROR_INVALID_PARAMETER.
