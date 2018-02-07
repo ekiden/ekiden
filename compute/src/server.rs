@@ -115,40 +115,6 @@ impl ComputeServerWorker {
         contract
     }
 
-    fn call_contract_fallible(
-        &self,
-        encrypted_state_opt: Option<api::CryptoSecretbox>,
-        rpc_request: &CallContractRequest,
-    ) -> Result<
-        (Option<api::CryptoSecretbox>, CallContractResponse),
-        Box<Error + Sync + Send + 'static>,
-    > {
-        let mut enclave_request = api::EnclaveRequest::new();
-        let client_request = protobuf::parse_from_bytes(rpc_request.get_payload())?;
-        enclave_request.set_client_request(client_request);
-        if let Some(encrypted_state) = encrypted_state_opt {
-            enclave_request.set_encrypted_state(encrypted_state);
-        }
-
-        let enclave_request_bytes = enclave_request.write_to_bytes()?;
-        let enclave_response_bytes = {
-            let _enclave_timer = self.ins.req_time_enclave.start_timer();
-            self.contract.call_raw(enclave_request_bytes)
-        }?;
-
-        let mut enclave_response: api::EnclaveResponse =
-            protobuf::parse_from_bytes(&enclave_response_bytes)?;
-        let mut rpc_response = CallContractResponse::new();
-        rpc_response.set_payload(enclave_response.get_client_response().write_to_bytes()?);
-        let new_encrypted_state_opt = if enclave_response.has_encrypted_state() {
-            Some(enclave_response.take_encrypted_state())
-        } else {
-            None
-        };
-
-        Ok((new_encrypted_state_opt, rpc_response))
-    }
-
     #[cfg(not(feature = "no_cache"))]
     fn get_cached_state_height(&self) -> Option<u64> {
         match self.cached_state.as_ref() {
@@ -201,7 +167,7 @@ impl ComputeServerWorker {
         request_batch: &'a mut [QueuedRequest],
     ) -> Result<Vec<QueuedResponse<'a>>, Box<Error + Sync + Send + 'static>> {
         // Get state updates from consensus
-        let mut encrypted_state_opt = if self.consensus.is_some() {
+        let encrypted_state_opt = if self.consensus.is_some() {
             let _consensus_get_timer = self.ins.consensus_get_time.start_timer();
 
             #[cfg(not(feature = "no_cache"))]
@@ -252,68 +218,88 @@ impl ComputeServerWorker {
         #[cfg(feature = "no_diffs")]
         let orig_encrypted_state_opt = None;
 
-        // Process the requests.
-        let mut ever_update_state = false;
-        let response_batch = request_batch
-            .iter_mut()
-            .map(|queued_request| {
-                let response = match self.call_contract_fallible(
-                    encrypted_state_opt.clone(),
-                    &queued_request.rpc_request,
-                ) {
-                    Ok((new_encrypted_state_opt, rpc_response)) => {
-                        if let Some(new_encrypted_state) = new_encrypted_state_opt {
-                            encrypted_state_opt = Some(new_encrypted_state);
-                            ever_update_state = true;
-                        }
+        // Call contract with batch of requests.
+        let mut enclave_request = api::EnclaveRequest::new();
 
-                        Ok(rpc_response)
-                    }
-                    Err(error) => {
-                        eprintln!("compute: error in call {:?}", error);
-                        Err(error)
-                    }
-                };
+        // Prepare batch of requests.
+        {
+            let client_requests = enclave_request.mut_client_request();
+            for ref queued_request in request_batch.iter() {
+                // TODO: Why doesn't enclave request contain bytes directly?
+                let client_request =
+                    protobuf::parse_from_bytes(queued_request.rpc_request.get_payload())?;
+                client_requests.push(client_request);
+            }
+        }
 
-                QueuedResponse {
-                    queued_request,
-                    response,
-                }
-            })
-            .collect();
-
-        // Set state in consensus
+        // Add state if it is available.
         if let Some(encrypted_state) = encrypted_state_opt {
-            if ever_update_state {
-                let _consensus_set_timer = self.ins.consensus_set_time.start_timer();
-                match orig_encrypted_state_opt {
-                    Some(orig_encrypted_state) => {
-                        let diff_res: api::StateDiffResponse =
-                            self.contract.call(api::METHOD_STATE_DIFF, &{
-                                let mut diff_req = api::StateDiffRequest::new();
-                                diff_req.set_old(orig_encrypted_state);
-                                diff_req.set_new(encrypted_state);
-                                diff_req
-                            })?;
-                        self.consensus
-                            .as_ref()
-                            .unwrap()
-                            .add_diff(grpc::RequestOptions::new(), {
-                                let mut add_diff_req = consensus::AddDiffRequest::new();
-                                add_diff_req.set_payload(diff_res.get_diff().write_to_bytes()?);
-                                add_diff_req
-                            })
-                            .wait()?;
-                    }
-                    None => {
-                        let mut consensus_replace_request = consensus::ReplaceRequest::new();
-                        consensus_replace_request.set_payload(encrypted_state.write_to_bytes()?);
-                        self.consensus
-                            .as_ref()
-                            .unwrap()
-                            .replace(grpc::RequestOptions::new(), consensus_replace_request)
-                            .wait()?;
-                    }
+            enclave_request.set_encrypted_state(encrypted_state);
+        }
+
+        let enclave_request_bytes = enclave_request.write_to_bytes()?;
+        let enclave_response_bytes = {
+            let _enclave_timer = self.ins.req_time_enclave.start_timer();
+            self.contract.call_raw(enclave_request_bytes)
+        }?;
+
+        let mut enclave_response: api::EnclaveResponse =
+            protobuf::parse_from_bytes(&enclave_response_bytes)?;
+
+        // Assert equal number of responses, fail otherwise (corrupted response).
+        if enclave_response.get_client_response().len() != request_batch.len() {
+            // TODO: Use proper error class.
+            return Err(Box::new(grpc::Error::Panic(
+                "Corrupted response (response count != request count)".to_string(),
+            )));
+        }
+
+        let mut response_batch = vec![];
+        for (index, queued_request) in request_batch.iter_mut().enumerate() {
+            let mut response = CallContractResponse::new();
+            // TODO: Why doesn't enclave response contain bytes directly?
+            response
+                .set_payload((&enclave_response.get_client_response()[index]).write_to_bytes()?);
+
+            response_batch.push(QueuedResponse {
+                queued_request,
+                response: Ok(response),
+            });
+        }
+
+        // Check if any state was produced. In case no state was produced, this means that
+        // no request caused a state update and thus no state update is required.
+        if enclave_response.has_encrypted_state() {
+            let encrypted_state = enclave_response.take_encrypted_state();
+
+            let _consensus_set_timer = self.ins.consensus_set_time.start_timer();
+            match orig_encrypted_state_opt {
+                Some(orig_encrypted_state) => {
+                    let diff_res: api::StateDiffResponse =
+                        self.contract.call(api::METHOD_STATE_DIFF, &{
+                            let mut diff_req = api::StateDiffRequest::new();
+                            diff_req.set_old(orig_encrypted_state);
+                            diff_req.set_new(encrypted_state);
+                            diff_req
+                        })?;
+                    self.consensus
+                        .as_ref()
+                        .unwrap()
+                        .add_diff(grpc::RequestOptions::new(), {
+                            let mut add_diff_req = consensus::AddDiffRequest::new();
+                            add_diff_req.set_payload(diff_res.get_diff().write_to_bytes()?);
+                            add_diff_req
+                        })
+                        .wait()?;
+                }
+                None => {
+                    let mut consensus_replace_request = consensus::ReplaceRequest::new();
+                    consensus_replace_request.set_payload(encrypted_state.write_to_bytes()?);
+                    self.consensus
+                        .as_ref()
+                        .unwrap()
+                        .replace(grpc::RequestOptions::new(), consensus_replace_request)
+                        .wait()?;
                 }
             }
         }
@@ -355,6 +341,7 @@ impl ComputeServerWorker {
         for mut queued_request in request_batch {
             let sender = queued_request.response_sender.take().unwrap();
             sender
+                // TODO: Use proper error class.
                 .send(Err(Box::new(grpc::Error::Panic(batch_error.clone()))))
                 .unwrap();
         }

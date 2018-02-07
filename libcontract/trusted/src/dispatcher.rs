@@ -10,26 +10,40 @@ use libcontract_common::{api, ContractError};
 use libcontract_common::client::ClientEndpoint;
 use libcontract_common::quote::MrEnclave;
 
+use super::errors::DispatchError;
 use super::secure_channel::{create_response_box, open_request_box};
 use super::untrusted;
 
 /// Wrapper for requests to provide additional request metadata.
-pub struct Request<T: Message> {
+pub struct Request<T: Message + MessageStatic> {
     /// Underlying request message.
     message: T,
     /// Client short-term public key (if request is authenticated).
     public_key: Option<Vec<u8>>,
     /// Client MRENCLAVE (if channel is mutually authenticated).
     mr_enclave: Option<MrEnclave>,
+    /// Optional error occurred during request processing.
+    error: Option<DispatchError>,
 }
 
-impl<T: Message> Request<T> {
+impl<T: Message + MessageStatic> Request<T> {
     /// Create new request wrapper from message.
     pub fn new(message: T, public_key: Option<Vec<u8>>, mr_enclave: Option<MrEnclave>) -> Self {
         Request {
             message: message,
             public_key: public_key,
             mr_enclave: mr_enclave,
+            error: None,
+        }
+    }
+
+    /// Create new request with dispatch error.
+    pub fn error(error: DispatchError) -> Self {
+        Request {
+            message: T::new(),
+            public_key: None,
+            mr_enclave: None,
+            error: Some(error),
         }
     }
 
@@ -39,11 +53,12 @@ impl<T: Message> Request<T> {
     /// payload) and the caller would like to keep the associated metadata. The
     /// metadata will be cloned and the given `message` will be wrapped into a
     /// `Request` object.
-    pub fn copy_metadata_to<M: Message>(&self, message: M) -> Request<M> {
+    pub fn copy_metadata_to<M: Message + MessageStatic>(&self, message: M) -> Request<M> {
         Request {
             message: message,
             public_key: self.public_key.clone(),
             mr_enclave: self.mr_enclave.clone(),
+            error: None,
         }
     }
 
@@ -61,9 +76,14 @@ impl<T: Message> Request<T> {
     pub fn get_client_mr_enclave(&self) -> &Option<MrEnclave> {
         &self.mr_enclave
     }
+
+    /// Get optional error if any occurred during dispatch.
+    pub fn get_error(&self) -> &Option<DispatchError> {
+        &self.error
+    }
 }
 
-impl<T: Message> Deref for Request<T> {
+impl<T: Message + MessageStatic> Deref for Request<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -71,22 +91,120 @@ impl<T: Message> Deref for Request<T> {
     }
 }
 
-impl<T: Message> DerefMut for Request<T> {
+impl<T: Message + MessageStatic> DerefMut for Request<T> {
     fn deref_mut(&mut self) -> &mut T {
         &mut self.message
     }
 }
 
-/// Raw data needed to generate the response.
-pub struct RawResponse {
-    /// Response output buffer.
-    pub data: *mut u8,
-    /// Response buffer capacity.
-    pub capacity: usize,
-    /// Response output length.
-    pub length: *mut usize,
-    /// Client public key (for encrypted requests).
-    pub public_key: Vec<u8>,
+/// Wrapper for responses.
+pub struct Response<State> {
+    /// Response message.
+    message: api::ClientResponse,
+    /// Optional state.
+    state: Option<State>,
+}
+
+impl<State> Response<State> {
+    /// Create new response.
+    pub fn new<Rq>(request: &Request<Rq>, response: api::PlainClientResponse) -> Self
+    where
+        Rq: Message + MessageStatic,
+    {
+        let mut message = api::ClientResponse::new();
+        if let &Some(ref public_key) = request.get_client_public_key() {
+            // Encrypted response.
+            match create_response_box(&public_key, &response) {
+                Ok(response_box) => message.set_encrypted_response(response_box),
+                _ => {
+                    // Failed to create a cryptographic box for the response. This could
+                    // be due to the session being incorrect or due to other issues. In
+                    // this case, we should generate a plain error message.
+                    message.set_plain_response(Self::generate_error(
+                        api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL,
+                        "Failed to generate secure channel response",
+                    ));
+                }
+            };
+        } else {
+            // Plain response.
+            message.set_plain_response(response);
+        }
+
+        Response {
+            message,
+            state: None,
+        }
+    }
+
+    /// Create success response.
+    pub fn success<Rq, Rs>(request: &Request<Rq>, payload: Rs) -> Self
+    where
+        Rq: Message + MessageStatic,
+        Rs: Message + MessageStatic,
+    {
+        // Prepare response.
+        let mut response = api::PlainClientResponse::new();
+        response.set_code(api::PlainClientResponse_Code::SUCCESS);
+
+        let payload = payload
+            .write_to_bytes()
+            .expect("Failed to serialize payload");
+        response.set_payload(payload);
+
+        Self::new(&request, response)
+    }
+
+    /// Create error response.
+    pub fn error<Rq>(
+        request: &Request<Rq>,
+        error: api::PlainClientResponse_Code,
+        message: &str,
+    ) -> Self
+    where
+        Rq: Message + MessageStatic,
+    {
+        Self::new(&request, Self::generate_error(error, &message))
+    }
+
+    /// Generate error response.
+    fn generate_error(
+        error: api::PlainClientResponse_Code,
+        message: &str,
+    ) -> api::PlainClientResponse {
+        // Prepare response.
+        let mut response = api::PlainClientResponse::new();
+        response.set_code(error);
+
+        let mut error = api::Error::new();
+        error.set_message(message.to_string());
+
+        let payload = error.write_to_bytes().expect("Failed to serialize error");
+        response.set_payload(payload);
+
+        response
+    }
+
+    /// Take response message.
+    ///
+    /// After calling this method, a default message will be left in its place.
+    pub fn take_message(&mut self) -> api::ClientResponse {
+        std::mem::replace(&mut self.message, api::ClientResponse::new())
+    }
+
+    /// Take returned state from response.
+    ///
+    /// After calling this method, `None` will be left in place of state.
+    pub fn take_state(&mut self) -> Option<State> {
+        self.state.take()
+    }
+
+    /// Adds state modification to this response.
+    pub fn with_state(mut self, state: State) -> Self {
+        self.state = Some(state);
+
+        self
+    }
 }
 
 /// List of methods that allow plain requests. All other requests must be done over
@@ -104,11 +222,10 @@ const PLAIN_METHODS: &'static [&'static str] = &[
 pub fn parse_request(
     request_data: *const u8,
     request_length: usize,
-    raw_response: &mut RawResponse,
 ) -> Result<
     (
         Option<api::CryptoSecretbox>,
-        Request<api::PlainClientRequest>,
+        Vec<Request<api::PlainClientRequest>>,
     ),
     (),
 > {
@@ -116,12 +233,8 @@ pub fn parse_request(
     let mut enclave_request: api::EnclaveRequest = match protobuf::parse_from_bytes(raw_request) {
         Ok(enclave_request) => enclave_request,
         _ => {
-            return_error(
-                api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
-                "Unable to parse request",
-                &raw_response,
-            );
-            return Err(());
+            // Malformed outer request, enclave will panic.
+            panic!("Malformed enclave request");
         }
     };
 
@@ -131,85 +244,67 @@ pub fn parse_request(
         None
     };
 
-    let mut client_request = enclave_request.take_client_request();
+    let client_requests = enclave_request.take_client_request();
+    let mut requests = vec![];
 
-    if client_request.has_encrypted_request() {
-        // Encrypted request.
-        let public_key = client_request
-            .get_encrypted_request()
-            .get_public_key()
-            .to_vec();
-
-        raw_response.public_key = public_key.clone();
-
-        let plain_request = match open_request_box(&client_request.get_encrypted_request()) {
-            Ok(plain_request) => plain_request,
-            _ => {
-                return_error(
+    for mut client_request in client_requests.into_iter() {
+        if client_request.has_encrypted_request() {
+            // Encrypted request.
+            let plain_request = match open_request_box(&client_request.get_encrypted_request()) {
+                Ok(plain_request) => plain_request,
+                _ => Request::error(DispatchError::new(
                     api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL,
                     "Unable to open secure channel request",
-                    &raw_response,
-                );
-                return Err(());
-            }
-        };
+                )),
+            };
 
-        Ok((encrypted_state, plain_request))
-    } else {
-        // Plain request.
-        let plain_request = client_request.take_plain_request();
-        match PLAIN_METHODS
-            .iter()
-            .find(|&method| method == &plain_request.get_method())
-        {
-            Some(_) => {}
-            None => {
-                // Method requires a secure channel.
-                return_error(
-                    api::PlainClientResponse_Code::ERROR_METHOD_SECURE,
-                    "Method call must be made over a secure channel",
-                    &raw_response,
-                );
-                return Err(());
-            }
-        };
+            requests.push(plain_request);
+        } else {
+            // Plain request.
+            let plain_request = client_request.take_plain_request();
+            let plain_request = match PLAIN_METHODS
+                .iter()
+                .find(|&method| method == &plain_request.get_method())
+            {
+                Some(_) => Request::new(plain_request, None, None),
+                None => {
+                    // Method requires a secure channel.
+                    Request::error(DispatchError::new(
+                        api::PlainClientResponse_Code::ERROR_METHOD_SECURE,
+                        "Method call must be made over a secure channel",
+                    ))
+                }
+            };
 
-        Ok((encrypted_state, Request::new(plain_request, None, None)))
+            requests.push(plain_request);
+        }
     }
+
+    Ok((encrypted_state, requests))
 }
 
 /// Serialize and return an RPC response.
-pub fn return_response(
+pub fn return_response<State>(
     encrypted_state: Option<api::CryptoSecretbox>,
-    plain_response: api::PlainClientResponse,
-    raw_response: &RawResponse,
+    responses: Vec<Response<State>>,
+    response_data: *mut u8,
+    response_capacity: usize,
+    response_length: *mut usize,
 ) {
     let mut enclave_response = api::EnclaveResponse::new();
 
+    // Add encrypted state.
     if let Some(encrypted_state) = encrypted_state {
         enclave_response.set_encrypted_state(encrypted_state);
     }
 
-    let mut client_response = api::ClientResponse::new();
-    if raw_response.public_key.is_empty() {
-        // Plain response.
-        client_response.set_plain_response(plain_response);
-    } else {
-        // Encrypted response.
-        match create_response_box(&raw_response.public_key, &plain_response) {
-            Ok(response_box) => client_response.set_encrypted_response(response_box),
-            _ => {
-                // Failed to create a cryptographic box for the response. This could
-                // be due to the session being incorrect or due to other issues. In
-                // this case, we should generate a plain error message.
-                client_response.set_plain_response(generate_error(
-                    api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL,
-                    "Failed to generate secure channel response",
-                ));
-            }
-        };
+    // Add all responses.
+    {
+        let client_responses = enclave_response.mut_client_response();
+        for mut response in responses {
+            client_responses.push(response.take_message());
+        }
     }
-    enclave_response.set_client_response(client_response);
 
     // TODO: Return null response instead?
     let enclave_response_bytes = enclave_response
@@ -217,75 +312,17 @@ pub fn return_response(
         .expect("Failed to serialize response");
 
     // Copy back response.
-    if enclave_response_bytes.len() > raw_response.capacity {
+    if enclave_response_bytes.len() > response_capacity {
         // TODO: Return null response instead?
         panic!("Not enough space for response.");
     } else {
         unsafe {
             for i in 0..enclave_response_bytes.len() as isize {
-                std::ptr::write(
-                    raw_response.data.offset(i),
-                    enclave_response_bytes[i as usize],
-                );
+                std::ptr::write(response_data.offset(i), enclave_response_bytes[i as usize]);
             }
-            *raw_response.length = enclave_response_bytes.len();
+            *response_length = enclave_response_bytes.len();
         };
     }
-}
-
-/// Generate error response.
-pub fn generate_error(
-    error: api::PlainClientResponse_Code,
-    message: &str,
-) -> api::PlainClientResponse {
-    // Prepare response.
-    let mut response = api::PlainClientResponse::new();
-    response.set_code(error);
-
-    let mut error = api::Error::new();
-    error.set_message(message.to_string());
-
-    let payload = error.write_to_bytes().expect("Failed to serialize error");
-    response.set_payload(payload);
-
-    response
-}
-
-/// Serialize and return an RPC success response.
-pub fn return_success<S: Message, P: Message>(
-    state: Option<S>,
-    payload: P,
-    raw_response: &RawResponse,
-) {
-    // Prepare response.
-    let mut response = api::PlainClientResponse::new();
-    response.set_code(api::PlainClientResponse_Code::SUCCESS);
-
-    let payload = payload
-        .write_to_bytes()
-        .expect("Failed to serialize payload");
-    response.set_payload(payload);
-
-    let encrypted_state = match state {
-        Some(state) => {
-            let state_bytes = state.write_to_bytes().expect("Failed to serialize state");
-            Some(
-                super::state_crypto::encrypt_state(state_bytes).expect("Failed to serialize state"),
-            )
-        }
-        None => None,
-    };
-
-    return_response(encrypted_state, response, raw_response);
-}
-
-/// Serialize and return an RPC error response.
-pub fn return_error(
-    error: api::PlainClientResponse_Code,
-    message: &str,
-    raw_response: &RawResponse,
-) {
-    return_response(None, generate_error(error, &message), raw_response);
 }
 
 /// Perform an untrusted RPC call against a given (untrusted) endpoint.

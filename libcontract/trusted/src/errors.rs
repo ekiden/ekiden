@@ -1,31 +1,19 @@
-use std::error::Error as StdError;
-use std::fmt;
-
-use protobuf;
+use libcontract_common::api;
 
 #[derive(Debug)]
-pub enum InternalError {
-    ParseError,
+pub struct DispatchError {
+    /// Error code.
+    pub code: api::PlainClientResponse_Code,
+    /// Human-readable message.
+    pub message: String,
 }
 
-impl fmt::Display for InternalError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            InternalError::ParseError => f.write_str("ParseError"),
+impl DispatchError {
+    /// Creates a new dispatch error.
+    pub fn new(code: api::PlainClientResponse_Code, message: &str) -> Self {
+        DispatchError {
+            code,
+            message: message.to_string(),
         }
-    }
-}
-
-impl StdError for InternalError {
-    fn description(&self) -> &str {
-        match *self {
-            InternalError::ParseError => "RPC message parse error",
-        }
-    }
-}
-
-impl From<protobuf::ProtobufError> for InternalError {
-    fn from(_e: protobuf::ProtobufError) -> Self {
-        InternalError::ParseError
     }
 }
