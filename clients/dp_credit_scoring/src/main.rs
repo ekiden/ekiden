@@ -22,7 +22,7 @@ fn main() {
         .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/src/prep_data.py"))
         .args(&[
             "--api-proto",
-            "/code/contracts/dp-credit-scoring/api/src/generated/api_pb2.py",
+            "/code/contracts/dp_credit_scoring/api/src/generated/api_pb2.py",
         ])
         .output()
         .expect("Could not fetch data.");

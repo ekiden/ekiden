@@ -1,32 +1,34 @@
+### Note: This file is a template. The create target of the Makefile uses this
+### template to generate a custom yaml for each experiment.
 ---
 apiVersion: v1
 kind: Service
 metadata:
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  name: ekiden-token
+  name: ekiden-$BENCHMARK
   labels:
-    app: ekiden-token
+    app: ekiden-$BENCHMARK
 spec:
   ports:
     - port: 46656
       name: tendermint-p2p
   clusterIP: None
   selector:
-    app: ekiden-token
+    app: ekiden-$BENCHMARK
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tendermint-config
 data:
-  seeds: "ekiden-token-0,ekiden-token-1,ekiden-token-2,ekiden-token-3"
-  validators: "ekiden-token-0,ekiden-token-1,ekiden-token-2,ekiden-token-3"
+  seeds: "ekiden-$BENCHMARK-0,ekiden-$BENCHMARK-1,ekiden-$BENCHMARK-2,ekiden-$BENCHMARK-3"
+  validators: "ekiden-$BENCHMARK-0,ekiden-$BENCHMARK-1,ekiden-$BENCHMARK-2,ekiden-$BENCHMARK-3"
   validator.power: "10"
   genesis.json: |-
     {
       "genesis_time": "2018-01-25T00:00:00.000Z",
-      "chain_id": "ekiden-token-test-net",
+      "chain_id": "ekiden-$BENCHMARK-test-net",
       "validators": [],
       "app_hash": ""
     }
@@ -40,27 +42,27 @@ data:
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
-  name: ekiden-token-budget
+  name: ekiden-$BENCHMARK-budget
 spec:
   selector:
     matchLabels:
-      app: ekiden-token
+      app: ekiden-$BENCHMARK
   minAvailable: 2
 ---
 apiVersion: apps/v1beta2
 kind: StatefulSet
 metadata:
-  name: ekiden-token
+  name: ekiden-$BENCHMARK
 spec:
   selector:
     matchLabels:
-      app: ekiden-token
-  serviceName: ekiden-token
+      app: ekiden-$BENCHMARK
+  serviceName: ekiden-$BENCHMARK
   replicas: 4
   template:
     metadata:
       labels:
-        app: ekiden-token
+        app: ekiden-$BENCHMARK
     spec:
       initContainers:
         # An initialization container, which generates the validator key pair if it doesn't yet
@@ -234,9 +236,9 @@ spec:
               compute \
                 --grpc-threads 128 \
                 --port 9001 \
-                --key-manager-host ekiden-token-0.${fqdn_suffix} \
+                --key-manager-host ekiden-$BENCHMARK-0.${fqdn_suffix} \
                 --key-manager-port 9003 \
-                /ekiden/lib/token.signed.so
+                /ekiden/lib/$BENCHMARK.signed.so
           volumeMounts:
             - name: ias
               mountPath: /ias

@@ -109,24 +109,23 @@ where
     }
     #[cfg(feature = "benchmark_get_balance")]
     {
-        // Transfer tokens from the creator to a given address.
-        println!(
-            "Transferring {} tokens from {} to {}",
-            TRANSFER_AMOUNT, TOKEN_CREATOR, TRANSFER_TO_ADDR
-        );
-
-        client
-            .transfer({
-                let mut req = ethtoken::TransferTokenRequest::new();
+        // Check the balance of the creator's address.
+        let creator_balance = client
+            .get_balance({
+                let mut req = ethtoken::GetBalanceRequest::new();
                 unsafe {
                     req.set_contract_address(CONTRACT_ADDR.as_ref().unwrap().clone());
                 }
-                req.set_from_address(TOKEN_CREATOR.to_string());
-                req.set_to_address(TRANSFER_TO_ADDR.to_string());
-                req.set_amount(TRANSFER_AMOUNT);
+                req.set_address(TOKEN_CREATOR.to_string());
                 req
             })
-            .unwrap();
+            .unwrap()
+            .get_balance();
+
+        println!(
+            "\nBalance of address {} = {}",
+            TOKEN_CREATOR, creator_balance
+        );
     }
 }
 
@@ -135,7 +134,7 @@ fn finalize<Backend>(client: &mut ethtoken::Client<Backend>, runs: usize, _threa
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
-    // Check the new balance of the creator's address.
+    // Check the final balance of the creator's address.
     let creator_balance = client
         .get_balance({
             let mut req = ethtoken::GetBalanceRequest::new();

@@ -10,78 +10,77 @@ extern crate client_utils;
 extern crate compute_client;
 extern crate libcontract_common;
 
-extern crate dp_credit_scoring_api as api;
+extern crate learner as learner_contract; // avoid name clash with `create_client_api!` invocation
+#[macro_use]
+extern crate learner_api;
 
-use api::*;
 use clap::{App, Arg};
-use std::process::Command;
+use learner_contract::api;
 
+// this macro comes from learner_api
+// confusingly, it creates a module called `learner` which contains the Client
 create_client_api!();
 
 const USER: &str = "Rusty Lerner";
 lazy_static! {
-    static ref DATASET: Dataset = {
-        let data_output = Command::new("python2")
-            .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../dp_credit_scoring/src/prep_data.py"))
-            .args(&[
-                "--api-proto",
-                "/code/contracts/dp_credit_scoring/api/src/generated/api_pb2.py",
-            ])
-            .args(&["--max-samples", "32"])
-            .output()
-            .expect("Could not fetch data.");
-        assert!(
-            data_output.status.success(),
-            "{}",
-            String::from_utf8(data_output.stderr).unwrap_or("Could not generate data".to_string())
-        );
-
-        protobuf::parse_from_bytes(&data_output.stdout).expect("Unable to parse Dataset.")
+    static ref EXAMPLES: Vec<api::Example> = {
+        let mut ds_proto = std::fs::File::open(
+                concat!(env!("CARGO_MANIFEST_DIR"), "/../iot_learner/iot_data.pb")
+            )
+            .expect("Unable to open dataset.");
+        let examples_proto: api::Examples = protobuf::parse_from_reader(&mut ds_proto)
+            .expect("Unable to parse dataset.");
+        let mut examples = examples_proto.get_examples().to_vec();
+        examples.resize(32, api::Example::new());
+        examples
     };
 }
 
-fn init<Backend>(client: &mut dp_credit_scoring::Client<Backend>, _runs: usize, _threads: usize)
+fn init<Backend>(client: &mut learner::Client<Backend>, _runs: usize, _threads: usize)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
     let _create_res = client
         .create({
-            let mut req = CreateRequest::new();
+            let mut req = learner::CreateRequest::new();
             req.set_requester(USER.to_string());
+            let inputs = vec!["tin", "tin_a1", "tin_a2"]
+                .into_iter()
+                .map(String::from)
+                .collect();
+            let targets = vec!["next_temp".to_string()];
+            req.set_inputs(protobuf::RepeatedField::from_vec(inputs));
+            req.set_targets(protobuf::RepeatedField::from_vec(targets));
             req
         })
         .expect("error: create");
 
     let _train_res = client
         .train({
-            let mut req = TrainingRequest::new();
+            let mut req = learner::TrainingRequest::new();
             req.set_requester(USER.to_string());
-            req.set_inputs(DATASET.get_train_inputs().clone());
-            req.set_targets(DATASET.get_train_targets().to_vec());
+            req.set_examples(protobuf::RepeatedField::from_vec(EXAMPLES.to_vec()));
             req
         })
         .expect("error: train");
 }
 
-fn scenario<Backend>(client: &mut dp_credit_scoring::Client<Backend>)
+fn scenario<Backend>(client: &mut learner::Client<Backend>)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
-    let mut _infer_res = client
+    let _infer_res = client
         .infer({
-            let mut req = dp_credit_scoring::InferenceRequest::new();
-            req.set_requester(USER.to_owned());
-            req.set_inputs(DATASET.get_test_inputs().clone());
+            let mut req = learner::InferenceRequest::new();
+            req.set_requester(USER.to_string());
+            req.set_examples(protobuf::RepeatedField::from_vec(EXAMPLES.to_vec()));
             req
         })
         .expect("error: infer");
 }
 
-fn finalize<Backend>(
-    _client: &mut dp_credit_scoring::Client<Backend>,
-    _runs: usize,
-    _threads: usize,
-) where
+fn finalize<Backend>(_client: &mut learner::Client<Backend>, _runs: usize, _threads: usize)
+where
     Backend: compute_client::backend::ContractClientBackend,
 {
     // No actions.
@@ -112,7 +111,7 @@ fn main() {
         value_t!(args, "benchmark-threads", usize).unwrap_or_else(|e| e.exit()),
         move || {
             let args = args.clone();
-            contract_client!(dp_credit_scoring, args)
+            contract_client!(learner, args)
         },
     );
 

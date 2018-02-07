@@ -100,7 +100,7 @@ pub extern "C" fn dp_logistic_regression(
 ) -> Array2<f64> {
     let n = features.shape()[0] as f64;
     let l: f64 = 1.0;
-    let num_iters = 100 as usize;
+    let num_iters = 5 as usize;
     let mut theta = Array2::<f64>::zeros((features.shape()[1], 1));
     let std_dev: f64 = 4.0 * l * ((num_iters as f64) * (1.0 / delta).ln()).sqrt() / (n * eps);
     for i in 1..num_iters {

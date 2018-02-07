@@ -1,9 +1,7 @@
 [package]
-name = "benchmarkdp-credit-scoring-infer"
+name = "benchmark-dp-credit-scoring-infer"
 version = "0.1.0"
-authors = [
-    "w <none>"
-]
+authors = ["Nick", "Warren"]
 
 [dependencies]
 clap = "2.29.1"
@@ -12,3 +10,4 @@ compute-client = { path = "../../compute-client" }
 dp-credit-scoring-api = { path = "../../contracts/dp_credit_scoring/api" }
 libcontract-common = { path = "../../libcontract/common" }
 protobuf = "1.4.2"
+lazy_static = "1.0"

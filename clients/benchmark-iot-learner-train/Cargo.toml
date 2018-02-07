@@ -1,5 +1,5 @@
 [package]
-name = "benchmark-dp-credit-scoring-train"
+name = "benchmark-iot-learner-train"
 version = "0.1.0"
 authors = ["Nick", "Warren"]
 
@@ -7,7 +7,8 @@ authors = ["Nick", "Warren"]
 clap = "2.29.1"
 client-utils = { path = "../utils", features = ["benchmark"] }
 compute-client = { path = "../../compute-client" }
-dp-credit-scoring-api = { path = "../../contracts/dp_credit_scoring/api" }
+learner-api = { path = "../../contracts/learner/api", default-features = false, features = ["no-sgx"] }
+learner = { path = "../../contracts/learner", default-features = false, features = ["no-sgx"] }
 libcontract-common = { path = "../../libcontract/common" }
 protobuf = "1.4.2"
 lazy_static = "1.0"
