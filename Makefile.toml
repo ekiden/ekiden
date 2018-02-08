@@ -10,12 +10,31 @@ alias = "build-flow"
 [tasks.build]
 args = ["build"]
 
+[tasks.build-release]
+args = ["build", "--release"]
+
+[tasks.env-debug]
+env = { "BUILD_MODE" = "debug" }
+
+[tasks.env-release]
+env = { "BUILD_MODE" = "release" }
+
 [tasks.build-flow]
 dependencies = [
+    "env-debug",
     "pre-build",
     "build",
     "post-build",
 ]
+
+[tasks.build-release-flow]
+dependencies = [
+    "env-release",
+    "pre-build",
+    "build-release",
+    "post-build",
+]
+
 
 [tasks.test-flow]
 alias = "empty"

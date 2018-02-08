@@ -101,7 +101,6 @@ fn main() {
                 .default_value("9002"),
         )
         .arg(Arg::with_name("disable-key-manager").long("disable-key-manager"))
-        .arg(Arg::with_name("disable-state").long("disable-state"))
         .arg(
             Arg::with_name("grpc-threads")
                 .long("grpc-threads")
@@ -114,6 +113,20 @@ fn main() {
                 .long("metrics-addr")
                 .help("A SocketAddr (as a string) from which to serve metrics to Prometheus.")
                 .takes_value(true)
+        )
+        .arg(
+            Arg::with_name("max-batch-size")
+                .long("max-batch-size")
+                .help("Maximum size of a batch of requests")
+                .default_value("1000")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("max-batch-timeout")
+                .long("max-batch-timeout")
+                .help("Maximum timeout when waiting for a batch (in ms)")
+                .default_value("1000")
+                .takes_value(true),
         )
         .get_matches();
 
@@ -161,6 +174,8 @@ fn main() {
         &contract_filename,
         matches.value_of("consensus-host").unwrap(),
         value_t!(matches, "consensus-port", u16).unwrap_or(9002),
+        value_t!(matches, "max-batch-size", usize).unwrap_or(1000),
+        value_t!(matches, "max-batch-timeout", u64).unwrap_or(1000) * 1_000_000,
     )));
     let num_threads = value_t!(matches, "grpc-threads", usize).unwrap();
     server.http.set_cpu_pool_threads(num_threads);

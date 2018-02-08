@@ -60,21 +60,27 @@ struct ComputeServerWorker {
     cached_state: Option<CachedStateInitialized>,
     /// Instrumentation objects.
     ins: instrumentation::WorkerMetrics,
+    /// Maximum batch size.
+    max_batch_size: usize,
+    /// Maximum batch timeout.
+    max_batch_timeout: u64,
 }
 
 impl ComputeServerWorker {
-    // TODO: Make these runtime configurable.
-    /// Maximum batch size (number of requests).
-    const MAX_BATCH_SIZE: usize = 1000;
-    /// Maximum batch timeout (in nsec).
-    const MAX_BATCH_TIMEOUT: u64 = 1000 * 1_000_000;
-
-    fn new(contract_filename: String, consensus_host: String, consensus_port: u16) -> Self {
+    fn new(
+        contract_filename: String,
+        consensus_host: String,
+        consensus_port: u16,
+        max_batch_size: usize,
+        max_batch_timeout: u64,
+    ) -> Self {
         // Connect to consensus node
         ComputeServerWorker {
             contract: Self::create_contract(&contract_filename),
             cached_state: None,
             ins: instrumentation::WorkerMetrics::new(),
+            max_batch_size: max_batch_size,
+            max_batch_timeout: max_batch_timeout,
             // TODO: Use TLS client.
             consensus: match consensus_grpc::ConsensusClient::new_plain(
                 &consensus_host,
@@ -359,10 +365,10 @@ impl ComputeServerWorker {
 
             // Queue up requests up to MAX_BATCH_SIZE, but for at most MAX_BATCH_TIMEOUT.
             let batch_start = time::precise_time_ns();
-            while request_batch.len() < Self::MAX_BATCH_SIZE
-                && time::precise_time_ns() - batch_start < Self::MAX_BATCH_TIMEOUT
+            while request_batch.len() < self.max_batch_size
+                && time::precise_time_ns() - batch_start < self.max_batch_timeout
             {
-                while request_batch.len() < Self::MAX_BATCH_SIZE {
+                while request_batch.len() < self.max_batch_size {
                     if let Ok(queued_request) = request_receiver.try_recv() {
                         request_batch.push(queued_request);
                     } else {
@@ -393,7 +399,13 @@ pub struct ComputeServerImpl {
 
 impl ComputeServerImpl {
     /// Create new compute server instance.
-    pub fn new(contract_filename: &str, consensus_host: &str, consensus_port: u16) -> Self {
+    pub fn new(
+        contract_filename: &str,
+        consensus_host: &str,
+        consensus_port: u16,
+        max_batch_size: usize,
+        max_batch_timeout: u64,
+    ) -> Self {
         let contract_filename_owned = String::from(contract_filename);
         let consensus_host_owned = String::from(consensus_host);
 
@@ -404,6 +416,8 @@ impl ComputeServerImpl {
                 contract_filename_owned,
                 consensus_host_owned,
                 consensus_port,
+                max_batch_size,
+                max_batch_timeout,
             ).work(request_receiver);
         });
 
