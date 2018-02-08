@@ -24,9 +24,7 @@ create_client_api!();
 const USER: &str = "Rusty Lerner";
 lazy_static! {
     static ref EXAMPLES: Vec<api::Example> = {
-        let mut ds_proto = std::fs::File::open(
-                concat!(env!("CARGO_MANIFEST_DIR"), "/../iot_learner/iot_data.pb")
-            )
+        let mut ds_proto = std::fs::File::open("/ekiden/res/iot_data.pb")
             .expect("Unable to open dataset.");
         let examples_proto: api::Examples = protobuf::parse_from_reader(&mut ds_proto)
             .expect("Unable to parse dataset.");

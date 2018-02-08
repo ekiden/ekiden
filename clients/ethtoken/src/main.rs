@@ -130,7 +130,7 @@ where
 }
 
 /// Finalize the ethtoken scenario.
-fn finalize<Backend>(client: &mut ethtoken::Client<Backend>, runs: usize, _threads: usize)
+fn finalize<Backend>(client: &mut ethtoken::Client<Backend>, runs: usize, threads: usize)
 where
     Backend: compute_client::backend::ContractClientBackend,
 {
@@ -154,7 +154,7 @@ where
     #[cfg(feature = "benchmark_transfer")]
     assert_eq!(
         creator_balance,
-        INITIAL_SUPPLY - TRANSFER_AMOUNT * runs as u64,
+        INITIAL_SUPPLY - TRANSFER_AMOUNT * runs as u64 * threads as u64,
         "Tokens not debited from sender"
     );
 
@@ -175,7 +175,7 @@ where
     #[cfg(feature = "benchmark_transfer")]
     assert_eq!(
         dest_balance,
-        TRANSFER_AMOUNT * runs as u64,
+        TRANSFER_AMOUNT * runs as u64 * threads as u64,
         "Tokens not transferred"
     );
 }

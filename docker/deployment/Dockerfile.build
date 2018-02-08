@@ -42,7 +42,7 @@ RUN cd /code && \
     mv /code/target/debug/compute /code/target/debug/compute-no_diffs-no_cache && \
     \
     cd /code && \
-    python2 clients/learner/src/prep_data.py --api-proto contracts/learner/api/src/generated/api_pb2.py > clients/learner/prepped-data
+    python2 clients/dp_credit_scoring/src/prep_data.py --api-proto contracts/dp_credit_scoring/api/src/generated/api_pb2.py > clients/dp_credit_scoring/prepped-data
 
 # Package all binaries and resources.
 RUN mkdir -p /package/bin /package/lib /package/res && \
@@ -58,9 +58,13 @@ RUN mkdir -p /package/bin /package/lib /package/res && \
     cp /code/target/debug/benchmark-token-get-balance /package/bin && \
     cp /code/target/debug/benchmark-ethtoken-transfer /package/bin && \
     cp /code/target/debug/benchmark-ethtoken-get-balance /package/bin && \
-    cp /code/target/debug/benchmark-learner-train /package/bin && \
-    cp /code/target/debug/benchmark-learner-infer /package/bin && \
-    cp /code/clients/learner/prepped-data /package/res/learner-prepped-data && \
+    cp /code/target/debug/benchmark-dp-credit-scoring-train /package/bin && \
+    cp /code/target/debug/benchmark-dp-credit-scoring-infer /package/bin && \
+    cp /code/clients/dp_credit_scoring/src/prep_data.py /package/res && \
+    cp /code/contracts/dp_credit_scoring/api/src/generated/api_pb2.py /package/res && \
+    cp /code/target/debug/benchmark-iot-learner-train /package/bin && \
+    cp /code/target/debug/benchmark-iot-learner-infer /package/bin && \
+    cp /code/clients/iot_learner/iot_data.pb /package/res && \
     cp /code/docker/deployment/Dockerfile.runtime /package/Dockerfile
 
 # This is a builder container which outputs the contents of the package
