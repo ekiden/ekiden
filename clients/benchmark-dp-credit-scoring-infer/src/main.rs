@@ -24,7 +24,7 @@ lazy_static! {
         let data_output = Command::new("python2")
             .arg("/ekiden/res/prep_data.py")
             .args(&["--api-proto", "/ekiden/res/api_pb2.py"])
-            .args(&["--max-samples", "32"])
+            .args(&["--max-samples", "1"])
             .output()
             .expect("Could not fetch data.");
         assert!(
