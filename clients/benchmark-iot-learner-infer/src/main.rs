@@ -71,7 +71,9 @@ where
         .infer({
             let mut req = learner::InferenceRequest::new();
             req.set_requester(USER.to_string());
-            req.set_examples(protobuf::RepeatedField::from_vec(EXAMPLES.to_vec()));
+            req.set_examples(protobuf::RepeatedField::from_slice(
+                &EXAMPLES.as_slice()[1..2],
+            ));
             req
         })
         .expect("error: infer");
