@@ -198,7 +198,7 @@ where
     #[cfg(feature = "benchmark_transfer")]
     assert_eq!(
         creator_balance,
-        INITIAL_SUPPLY - TRANSFER_AMOUNT * runs as u64 * threads as u64,
+        INITIAL_SUPPLY - OTHER_ACCOUNT_COUNT as u64 - TRANSFER_AMOUNT * runs as u64 * threads as u64,
         "Tokens not debited from sender"
     );
 
