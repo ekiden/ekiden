@@ -21,7 +21,7 @@ create_client_api!();
 
 const ACCOUNT_BANK: &str = "bank";
 
-const OTHER_ACCOUNT_COUNT: usize = 1000;
+const OTHER_ACCOUNT_COUNT: usize = 200;
 lazy_static! {
     static ref OTHER_ACCOUNTS: Vec<String> = {
         // Generate some random account names.

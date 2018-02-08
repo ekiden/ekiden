@@ -35,7 +35,7 @@ const TRANSFER_TO_ADDR: &str = "0x57415252454e57415252454e57415252454e0000";
 // Address of created contract (set by init method).
 static mut CONTRACT_ADDR: Option<String> = None;
 
-const OTHER_ACCOUNT_COUNT: usize = 1000;
+const OTHER_ACCOUNT_COUNT: usize = 200;
 lazy_static! {
     static ref OTHER_ACCOUNTS: Vec<String> = {
         // Generate some random account names.
