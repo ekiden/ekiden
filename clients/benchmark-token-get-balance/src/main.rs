@@ -1,5 +1,8 @@
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate lazy_static;
+extern crate rand;
 
 #[macro_use]
 extern crate client_utils;
@@ -12,9 +15,25 @@ extern crate token_api;
 
 use clap::{App, Arg};
 
+use rand::{thread_rng, Rng};
+
 create_client_api!();
 
 const ACCOUNT_BANK: &str = "bank";
+
+const OTHER_ACCOUNT_COUNT: usize = 1000;
+lazy_static! {
+    static ref OTHER_ACCOUNTS: Vec<String> = {
+        // Generate some random account names.
+        let mut accounts = vec![];
+
+        for _ in 0..OTHER_ACCOUNT_COUNT {
+            accounts.push(thread_rng().gen_ascii_chars().take(32).collect());
+        }
+
+        accounts
+    };
+}
 
 /// Initializes the token get balance scenario.
 fn init<Backend>(client: &mut token::Client<Backend>, _runs: usize, _threads: usize)
@@ -29,6 +48,17 @@ where
     request.set_initial_supply(1);
 
     client.create(request).unwrap();
+
+    // Populate the other accounts.
+    for other_account in OTHER_ACCOUNTS.iter() {
+        client.transfer({
+            let mut request = token::TransferRequest::new();
+            request.set_sender(ACCOUNT_BANK.to_owned());
+            request.set_destination(other_account.clone());
+            request.set_value(1);
+            request
+        }).unwrap();
+    }
 }
 
 /// Runs the token get balance scenario.
@@ -44,7 +74,7 @@ where
             request
         })
         .unwrap();
-    assert_eq!(response.get_balance(), 1_000_000_000_000_000_000);
+    assert_eq!(response.get_balance(), 1_000_000_000_000_000_000 - OTHER_ACCOUNT_COUNT as u64);
 }
 
 /// Finalize the token get balance scenario.

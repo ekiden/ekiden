@@ -1,5 +1,9 @@
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate lazy_static;
+extern crate rand;
+extern crate hex;
 
 #[macro_use]
 extern crate client_utils;
@@ -11,6 +15,8 @@ extern crate libcontract_common;
 extern crate ethtoken_api;
 
 use clap::{App, Arg};
+
+use rand::{thread_rng, Rng};
 
 create_client_api!();
 
@@ -28,6 +34,22 @@ const TRANSFER_TO_ADDR: &str = "0x57415252454e57415252454e57415252454e0000";
 
 // Address of created contract (set by init method).
 static mut CONTRACT_ADDR: Option<String> = None;
+
+const OTHER_ACCOUNT_COUNT: usize = 1000;
+lazy_static! {
+    static ref OTHER_ACCOUNTS: Vec<String> = {
+        // Generate some random account names.
+        let mut accounts = vec![];
+
+        for _ in 0..OTHER_ACCOUNT_COUNT {
+            let mut buf = [0; 20];
+            thread_rng().fill_bytes(&mut buf);
+            accounts.push(String::from("0x") + &hex::encode(buf));
+        }
+
+        accounts
+    };
+}
 
 /// Initializes the ethtoken scenario.
 fn init<Backend>(client: &mut ethtoken::Client<Backend>, _runs: usize, _threads: usize)
@@ -79,6 +101,28 @@ where
         balance, INITIAL_SUPPLY,
         "Creator did not receive initial tokens"
     );
+
+    // Populate the other accounts.
+    for other_account in OTHER_ACCOUNTS.iter() {
+        // Transfer tokens from the creator to a given address.
+        println!(
+            "Populating other account {}",
+            other_account
+        );
+
+        client
+            .transfer({
+                let mut req = ethtoken::TransferTokenRequest::new();
+                unsafe {
+                    req.set_contract_address(CONTRACT_ADDR.as_ref().unwrap().clone());
+                }
+                req.set_from_address(TOKEN_CREATOR.to_string());
+                req.set_to_address(other_account.clone());
+                req.set_amount(1);
+                req
+            })
+            .unwrap();
+    }
 }
 
 /// Runs the ethtoken scenario.

@@ -17,3 +17,6 @@ libcontract-common = { path = "../../libcontract/common" }
 compute-client = { path = "../../compute-client" }
 ethtoken-api = { path = "../../contracts/ethtoken/api" }
 clap = "2.29.1"
+lazy_static = "1.0"
+rand = "0.4"
+hex = "0.3.1"
