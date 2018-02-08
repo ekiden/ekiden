@@ -18,19 +18,12 @@ else
   docker run -it --rm -v "${DATA_PATH}:/tendermint" $IMAGE_TAG init
 fi
 
-if [ "$1" == "--bg" ]; then
-  docker_exit_behavior="--detach"
-else
-  docker_exit_behavior="--rm"
-fi
-
 # Start
-docker run -it \
-  "$docker_exit_behavior" \
+docker run -it --rm \
   --name "tendermint" \
   --network container:ekiden \
   -v "${DATA_PATH}:/tendermint" \
   $IMAGE_TAG node \
   --consensus.create_empty_blocks=false \
   --rpc.laddr tcp://0.0.0.0:46666 \
-  --rpc.grpc_laddr tcp://0.0.0.0:46657 \
+  --rpc.grpc_laddr tcp://0.0.0.0:46657
