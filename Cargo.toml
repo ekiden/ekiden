@@ -23,6 +23,7 @@ members = [
 
   "clients/benchmark-token-failover",
   "clients/benchmark-token-transfer",
+  "clients/benchmark-token-transfer-multi",
   "clients/benchmark-token-get-balance",
   "clients/benchmark-dp-credit-scoring-train",
   "clients/benchmark-dp-credit-scoring-infer",
