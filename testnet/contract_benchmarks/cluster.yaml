@@ -6,29 +6,29 @@ kind: Service
 metadata:
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  name: ekiden-$BENCHMARK
+  name: ekiden-benchmark
   labels:
-    app: ekiden-$BENCHMARK
+    app: ekiden-benchmark
 spec:
   ports:
     - port: 46656
       name: tendermint-p2p
   clusterIP: None
   selector:
-    app: ekiden-$BENCHMARK
+    app: ekiden-benchmark
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tendermint-config
 data:
-  seeds: "ekiden-$BENCHMARK-0,ekiden-$BENCHMARK-1,ekiden-$BENCHMARK-2,ekiden-$BENCHMARK-3"
-  validators: "ekiden-$BENCHMARK-0,ekiden-$BENCHMARK-1,ekiden-$BENCHMARK-2,ekiden-$BENCHMARK-3"
+  seeds: "ekiden-benchmark-0,ekiden-benchmark-1,ekiden-benchmark-2,ekiden-benchmark-3"
+  validators: "ekiden-benchmark-0,ekiden-benchmark-1,ekiden-benchmark-2,ekiden-benchmark-3"
   validator.power: "10"
   genesis.json: |-
     {
       "genesis_time": "2018-01-25T00:00:00.000Z",
-      "chain_id": "ekiden-$BENCHMARK-test-net",
+      "chain_id": "ekiden-benchmark-test-net",
       "validators": [],
       "app_hash": ""
     }
@@ -42,27 +42,27 @@ data:
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
-  name: ekiden-$BENCHMARK-budget
+  name: ekiden-benchmark-budget
 spec:
   selector:
     matchLabels:
-      app: ekiden-$BENCHMARK
+      app: ekiden-benchmark
   minAvailable: 2
 ---
 apiVersion: apps/v1beta2
 kind: StatefulSet
 metadata:
-  name: ekiden-$BENCHMARK
+  name: ekiden-benchmark
 spec:
   selector:
     matchLabels:
-      app: ekiden-$BENCHMARK
-  serviceName: ekiden-$BENCHMARK
+      app: ekiden-benchmark
+  serviceName: ekiden-benchmark
   replicas: 4
   template:
     metadata:
       labels:
-        app: ekiden-$BENCHMARK
+        app: ekiden-benchmark
     spec:
       initContainers:
         # An initialization container, which generates the validator key pair if it doesn't yet
@@ -236,7 +236,7 @@ spec:
               compute \
                 --grpc-threads 128 \
                 --port 9001 \
-                --key-manager-host ekiden-$BENCHMARK-0.${fqdn_suffix} \
+                --key-manager-host ekiden-benchmark-0.${fqdn_suffix} \
                 --key-manager-port 9003 \
                 /ekiden/lib/$BENCHMARK.signed.so
           volumeMounts:

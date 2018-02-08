@@ -16,10 +16,10 @@ case $EXPERIMENT in
     "ethtoken")
         BENCHMARK_BINARIES="benchmark-ethtoken-get-balance benchmark-ethtoken-transfer"
         ;;
-    "dp_credit_scoring")
+    "dp-credit-scoring")
         BENCHMARK_BINARIES="benchmark-dp-credit-scoring-infer benchmark-dp-credit-scoring-train"
         ;;
-    "iot_learner")
+    "iot-learner")
         BENCHMARK_BINARIES="benchmark-iot-learner-infer benchmark-iot-learner-train"
         ;;
     *)
@@ -33,7 +33,7 @@ THREADS="8 16 32"
 # Number of runs to execute per thread.
 RUNS="1000"
 # Target node.
-TARGET="ekiden-${EXPERIMENT}-1"
+TARGET="ekiden-benchmark-1"
 # Node placement condition based on labels.
 NODE_LABEL_KEY="experiments"
 NODE_LABEL_VALUE="client"
@@ -96,7 +96,7 @@ for benchmark in ${BENCHMARK_BINARIES}; do
             ${benchmark} \
                 --benchmark-threads ${threads} \
                 --benchmark-runs ${RUNS} \
-                --host ${TARGET}.ekiden-${EXPERIMENT}.default.svc.cluster.local \
+                --host ${TARGET}.ekiden-benchmark.default.svc.cluster.local \
                 --mr-enclave ${MRENCLAVE_CMD}
 
         log ""
