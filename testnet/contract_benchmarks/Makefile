@@ -1,12 +1,10 @@
 SHELL := /bin/bash
 
 # List of experiments. If adding a new experiment, the name below must match the enclave binary name.
-EXPERIMENTS := token ethtoken dp_credit_scoring iot_learner
+EXPERIMENTS := token ethtoken dp-credit-scoring iot-learner
 
 create: check-valid-experiment
 	@echo "Preparing '$(experiment)' experiment"
-
-	# Store the current experiment name so user doesn't have to provide it again during benchmark and destroy commands.
 	@mkdir -p generated
 	@echo $(experiment) > generated/.experiment_name
 
@@ -30,7 +28,7 @@ destroy:
 
 	@echo "==> Destroying nodes"
 	@kubectl delete --ignore-not-found=true --now=true --force=true -f generated/$(experiment).yaml
-	@kubectl delete --ignore-not-found=true --now=true --force=true pvc -l app=ekiden-$(experiment)
+	@kubectl delete --ignore-not-found=true --now=true --force=true pvc -l app=ekiden-benchmark
 	@kubectl delete --ignore-not-found=true --now=true --force=true pod ekiden-$(experiment)-benchmark
 
 	@echo "==> Destroying secrets"
