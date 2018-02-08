@@ -69,63 +69,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "benchmark-iot-learner-infer"
-version = "0.1.0"
-dependencies = [
- "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "client-utils 0.1.0",
- "compute-client 0.1.0",
- "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "learner 0.1.0",
- "learner-api 0.1.0",
- "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "benchmark-iot-learner-train"
-version = "0.1.0"
-dependencies = [
- "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "client-utils 0.1.0",
- "compute-client 0.1.0",
- "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "learner 0.1.0",
- "learner-api 0.1.0",
- "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "benchmark-token-failover"
-version = "0.1.0"
-dependencies = [
- "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "client-utils 0.1.0",
- "compute-client 0.1.0",
- "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "learner 0.1.0",
- "learner-api 0.1.0",
- "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "benchmark-iot-learner-train"
-version = "0.1.0"
-dependencies = [
- "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "client-utils 0.1.0",
- "compute-client 0.1.0",
- "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "learner 0.1.0",
- "learner-api 0.1.0",
- "libcontract-common 0.1.0",
- "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "benchmark-token-failover"
+name = "benchmark-dp-credit-scoring-train"
 version = "0.1.0"
 dependencies = [
  "clap 2.29.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -133,6 +77,34 @@ dependencies = [
  "compute-client 0.1.0",
  "dp-credit-scoring-api 0.1.0",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libcontract-common 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "benchmark-iot-learner-infer"
+version = "0.1.0"
+dependencies = [
+ "clap 2.29.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "client-utils 0.1.0",
+ "compute-client 0.1.0",
+ "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "learner 0.1.0",
+ "learner-api 0.1.0",
+ "libcontract-common 0.1.0",
+ "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "benchmark-iot-learner-train"
+version = "0.1.0"
+dependencies = [
+ "clap 2.29.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "client-utils 0.1.0",
+ "compute-client 0.1.0",
+ "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "learner 0.1.0",
+ "learner-api 0.1.0",
  "libcontract-common 0.1.0",
  "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -303,7 +275,7 @@ dependencies = [
  "futures-cpupool 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "httpbis 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.11.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcontract-common 0.1.0",
  "libcontract-untrusted 0.1.0",
  "libcontract-utils 0.1.0",
@@ -347,7 +319,7 @@ dependencies = [
  "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "grpc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.11.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcontract-utils 0.1.0",
  "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "protoc-rust 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -683,7 +655,7 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "0.11.17"
+version = "0.11.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "base64 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -711,7 +683,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.11.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "native-tls 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-core 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-io 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1447,7 +1419,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bytes 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.11.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper-tls 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libflate 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2269,7 +2241,7 @@ dependencies = [
 "checksum histogram 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1bdcec4094c1ca961b685384ea7af76af5718230b3f34657d1a71fd2dcf4cc9d"
 "checksum httparse 1.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "c2f407128745b78abc95c0ffbe4e5d37427fdc0d45470710cfef8c44522a2e37"
 "checksum httpbis 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "73dde194d197eaa5b49bb58d212ed4a99a713cf47fc77a9d0471b76c0f73fcf0"
-"checksum hyper 0.11.17 (registry+https://github.com/rust-lang/crates.io-index)" = "7f4de6edd503089841ebfa88341e1c00fb19b6bf93d820d908db15960fd31226"
+"checksum hyper 0.11.18 (registry+https://github.com/rust-lang/crates.io-index)" = "c4f9b276c87e3fc1902a8bdfcce264c3f7c8a1c35e5e0c946062739f55026664"
 "checksum hyper-tls 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9c81fa95203e2a6087242c38691a0210f23e9f3f8f944350bd676522132e2985"
 "checksum idna 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "014b298351066f1512874135335d62a789ffe78a9974f94b43ed5621951eaf7d"
 "checksum index-fixed 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c63adf4f50cae82ddb03b088a55172f5044e73c8f02d029e69780717f764bbfa"
