@@ -59,7 +59,7 @@ RUN mkdir -p /package/bin /package/lib /package/res && \
     cp /code/target/debug/benchmark-ethtoken-transfer /package/bin && \
     cp /code/target/debug/benchmark-ethtoken-get-balance /package/bin && \
     cp /code/target/debug/benchmark-dp-credit-scoring-train /package/bin && \
-    cp /code/target/debug/benchmarkdp-credit-scoring-infer /package/bin && \
+    cp /code/target/debug/benchmark-dp-credit-scoring-infer /package/bin && \
     cp /code/clients/dp_credit_scoring/prepped-data /package/res/dp_credit_scoring-prepped-data && \
     cp /code/docker/deployment/Dockerfile.runtime /package/Dockerfile
 
