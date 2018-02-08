@@ -54,6 +54,7 @@ RUN mkdir -p /package/bin /package/lib /package/res && \
     cp /code/target/release/token-client /package/bin && \
     cp /code/target/release/ethtoken-client-orig /package/bin/ethtoken-client && \
     cp /code/target/release/benchmark-token-transfer /package/bin && \
+    cp /code/target/release/benchmark-token-transfer-multi /package/bin && \
     cp /code/target/release/benchmark-token-get-balance /package/bin && \
     cp /code/target/release/benchmark-ethtoken-transfer /package/bin && \
     cp /code/target/release/benchmark-ethtoken-get-balance /package/bin && \
