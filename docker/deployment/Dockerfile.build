@@ -20,26 +20,25 @@ RUN git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
 ADD . /code
 
 # Build all Ekiden binaries and resources.
-# TODO: Build in release mode.
 RUN cd /code && \
-    cargo make build-flow && \
+    cargo make build-release-flow && \
     \
     cd /code/clients/token && \
-    cargo build --features benchmark && \
+    cargo build --release --features benchmark && \
     \
     cd /code/clients/ethtoken && \
-    mv /code/target/debug/ethtoken-client /code/target/debug/ethtoken-client-orig && \
-    cargo build --features "benchmark benchmark_transfer" && \
-    mv /code/target/debug/ethtoken-client /code/target/debug/benchmark-ethtoken-transfer && \
-    cargo build --features "benchmark benchmark_get_balance" && \
-    mv /code/target/debug/ethtoken-client /code/target/debug/benchmark-ethtoken-get-balance && \
+    mv /code/target/release/ethtoken-client /code/target/release/ethtoken-client-orig && \
+    cargo build --release --features "benchmark benchmark_transfer" && \
+    mv /code/target/release/ethtoken-client /code/target/release/benchmark-ethtoken-transfer && \
+    cargo build --release --features "benchmark benchmark_get_balance" && \
+    mv /code/target/release/ethtoken-client /code/target/release/benchmark-ethtoken-get-balance && \
     \
     cd /code/compute && \
-    mv /code/target/debug/compute /code/target/debug/compute-orig && \
-    cargo build --features "no_diffs" && \
-    mv /code/target/debug/compute /code/target/debug/compute-no_diffs && \
-    cargo build --features "no_diffs no_cache" && \
-    mv /code/target/debug/compute /code/target/debug/compute-no_diffs-no_cache && \
+    mv /code/target/release/compute /code/target/release/compute-orig && \
+    cargo build --release --features "no_diffs" && \
+    mv /code/target/release/compute /code/target/release/compute-no_diffs && \
+    cargo build --release --features "no_diffs no_cache" && \
+    mv /code/target/release/compute /code/target/release/compute-no_diffs-no_cache && \
     \
     cd /code && \
     python2 clients/dp_credit_scoring/src/prep_data.py --api-proto contracts/dp_credit_scoring/api/src/generated/api_pb2.py > clients/dp_credit_scoring/prepped-data
@@ -48,22 +47,22 @@ RUN cd /code && \
 RUN mkdir -p /package/bin /package/lib /package/res && \
     cp /code/target/enclave/*.signed.so /package/lib && \
     cp /code/target/enclave/*.mrenclave /package/lib && \
-    cp /code/target/debug/compute-orig /package/bin/compute && \
-    cp /code/target/debug/compute-no_diffs /package/bin && \
-    cp /code/target/debug/compute-no_diffs-no_cache /package/bin && \
-    cp /code/target/debug/consensus /package/bin && \
-    cp /code/target/debug/token-client /package/bin && \
-    cp /code/target/debug/ethtoken-client-orig /package/bin/ethtoken-client && \
-    cp /code/target/debug/benchmark-token-transfer /package/bin && \
-    cp /code/target/debug/benchmark-token-get-balance /package/bin && \
-    cp /code/target/debug/benchmark-ethtoken-transfer /package/bin && \
-    cp /code/target/debug/benchmark-ethtoken-get-balance /package/bin && \
-    cp /code/target/debug/benchmark-dp-credit-scoring-train /package/bin && \
-    cp /code/target/debug/benchmark-dp-credit-scoring-infer /package/bin && \
+    cp /code/target/release/compute-orig /package/bin/compute && \
+    cp /code/target/release/compute-no_diffs /package/bin && \
+    cp /code/target/release/compute-no_diffs-no_cache /package/bin && \
+    cp /code/target/release/consensus /package/bin && \
+    cp /code/target/release/token-client /package/bin && \
+    cp /code/target/release/ethtoken-client-orig /package/bin/ethtoken-client && \
+    cp /code/target/release/benchmark-token-transfer /package/bin && \
+    cp /code/target/release/benchmark-token-get-balance /package/bin && \
+    cp /code/target/release/benchmark-ethtoken-transfer /package/bin && \
+    cp /code/target/release/benchmark-ethtoken-get-balance /package/bin && \
+    cp /code/target/release/benchmark-dp-credit-scoring-train /package/bin && \
+    cp /code/target/release/benchmark-dp-credit-scoring-infer /package/bin && \
     cp /code/clients/dp_credit_scoring/src/prep_data.py /package/res && \
     cp /code/contracts/dp_credit_scoring/api/src/generated/api_pb2.py /package/res && \
-    cp /code/target/debug/benchmark-iot-learner-train /package/bin && \
-    cp /code/target/debug/benchmark-iot-learner-infer /package/bin && \
+    cp /code/target/release/benchmark-iot-learner-train /package/bin && \
+    cp /code/target/release/benchmark-iot-learner-infer /package/bin && \
     cp /code/clients/iot_learner/iot_data.pb /package/res && \
     cp /code/docker/deployment/Dockerfile.runtime /package/Dockerfile
 

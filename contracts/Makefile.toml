@@ -1,7 +1,7 @@
 extend = "../Makefile.toml"
 
 [env]
-BUILT_DIR = "../../target/debug"
+BUILD_TARGET_DIR = "../../target"
 TARGET_DIR = "../../target/enclave"
 ENCLAVE_LDS = "../../libcontract/utils/config/enclave.lds"
 ENCLAVE_KEY = "../../keys/private.pem"
@@ -53,7 +53,7 @@ script = ['''
     g++ ${SGX_COMMON_CFLAGS} \
       -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles \
       -L${SGX_LIBRARY_PATH} \
-      -L${BUILT_DIR} \
+      -L${BUILD_TARGET_DIR}/${BUILD_MODE} \
       -L${RUST_SGX_SDK}/compiler-rt \
       -Wl,--whole-archive -l${Trts_Library_Name} -Wl,--no-whole-archive \
       -Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -l${Crypto_Library_Name} -l${KeyExchange_Library_Name} -l${Service_Library_Name} -lcompiler-rt-patch -l${CARGO_MAKE_CRATE_NAME//-/_} -Wl,--end-group \
