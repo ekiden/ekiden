@@ -22,7 +22,7 @@ const USER: &str = "Rusty Lerner";
 lazy_static! {
     static ref DATASET: Dataset = {
         let data_output = Command::new("python2")
-            .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../dp_credit_scoring/src/prep_data.py"))
+            .arg("/ekiden/res/prep_data.py")
             .args(&["--api-proto", "/ekiden/res/api_pb2.py"])
             .args(&["--max-samples", "32"])
             .output()
