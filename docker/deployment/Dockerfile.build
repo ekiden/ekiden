@@ -64,7 +64,7 @@ RUN mkdir -p /package/bin /package/lib /package/res && \
     cp /code/contracts/dp_credit_scoring/api/src/generated/api_pb2.py /package/res && \
     cp /code/target/debug/benchmark-iot-learner-train /package/bin && \
     cp /code/target/debug/benchmark-iot-learner-infer /package/bin && \
-    cp /code/clients/iot_learner/src/iot_data.pb /package/res && \
+    cp /code/clients/iot_learner/iot_data.pb /package/res && \
     cp /code/docker/deployment/Dockerfile.runtime /package/Dockerfile
 
 # This is a builder container which outputs the contents of the package
