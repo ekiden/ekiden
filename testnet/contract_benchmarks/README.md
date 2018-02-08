@@ -9,7 +9,7 @@ To deploy:
 $ make create experiment=[experiment name]
 ```
 
-Where the experiment name is one of `token`, `ethtoken`, `dp_credit_scoring`, `iot_learner`.
+Where the experiment name is one of `token`, `ethtoken`, `dp-credit-scoring`, `iot-learner`.
  
 Before running benchmarks on the cluster, one of the nodes should be tagged to run the benchmark client. If no node
 is tagged, running the following command will fail with an instruction on how to tag a node. The reason for this is
