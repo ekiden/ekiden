@@ -1,10 +1,10 @@
-extern crate libcontract_utils;
+extern crate ekiden_tools;
 extern crate protoc_rust_grpc;
 
 fn main() {
     // Generate module file.
     // Must be done first to create src/generated directory
-    libcontract_utils::generate_mod(
+    ekiden_tools::generate_mod(
         "src/generated",
         &[
             "compute_web3",
@@ -30,5 +30,5 @@ fn main() {
         "../consensus/src/consensus.proto"
     );
 
-    libcontract_utils::build_untrusted();
+    ekiden_tools::build_untrusted();
 }

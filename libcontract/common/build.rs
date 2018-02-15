@@ -1,8 +1,8 @@
-extern crate libcontract_utils;
+extern crate ekiden_tools;
 extern crate protoc_rust;
 
 fn main() {
-    libcontract_utils::generate_mod("src/generated", &["enclave_rpc", "enclave_services"]);
+    ekiden_tools::generate_mod("src/generated", &["enclave_rpc", "enclave_services"]);
 
     protoc_rust::run(protoc_rust::Args {
         out_dir: "src/generated/",

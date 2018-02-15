@@ -23,4 +23,4 @@ bsdiff = { git = "https://github.com/ekiden/bsdiff-rs" }
 futures-sgx = { git = "https://github.com/ekiden/futures-rs" }
 
 [build-dependencies]
-libcontract-utils = { path = "../utils" }
+ekiden-tools = { path = "../../tools" }

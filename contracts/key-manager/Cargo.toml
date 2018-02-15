@@ -20,4 +20,4 @@ protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
 lazy_static = { version = "1.0", features = ["spin_no_std"] }
 
 [build-dependencies]
-libcontract-utils = { path = "../../libcontract/utils" }
+ekiden-tools = { path = "../../tools" }

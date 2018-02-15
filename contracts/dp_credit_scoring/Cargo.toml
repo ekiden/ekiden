@@ -22,4 +22,4 @@ sgx_rand = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 
 [build-dependencies]
-libcontract-utils = { path = "../../libcontract/utils" }
+ekiden-tools = { path = "../../tools" }

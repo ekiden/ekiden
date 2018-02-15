@@ -1,11 +1,11 @@
-extern crate libcontract_utils;
+extern crate ekiden_tools;
 
 use std::fs;
 use std::io::Write;
 use std::process::Command;
 
 fn main() {
-    libcontract_utils::generate_mod("src/generated", &[]);
+    ekiden_tools::generate_mod("src/generated", &[]);
 
     // Extract MRENCLAVE for key manager contract. If the key manager is not yet
     // available (e.g. because we are building it), use an all-zero value instead.

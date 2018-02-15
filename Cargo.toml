@@ -10,28 +10,10 @@ members = [
   "contracts/key-manager",
   "libcontract/trusted",
 
-  "contracts/dummy",
-  "contracts/ethtoken",
   "contracts/token",
-  "contracts/dp_credit_scoring",
-  "contracts/learner",
-  "contracts/iot_learner",
 
   "libcontract/common",
   "libcontract/untrusted",
-  "libcontract/utils",
 
-  "clients/benchmark-token-failover",
-  "clients/benchmark-token-transfer",
-  "clients/benchmark-token-transfer-multi",
-  "clients/benchmark-token-get-balance",
-  "clients/benchmark-dp-credit-scoring-train",
-  "clients/benchmark-dp-credit-scoring-infer",
-  "clients/benchmark-iot-learner-train",
-  "clients/benchmark-iot-learner-infer",
-  "clients/token",
-  "clients/dp_credit_scoring",
-  "clients/ethtoken",
-  "clients/iot_learner",
+  "tools",
 ]
-exclude = ["third_party"]

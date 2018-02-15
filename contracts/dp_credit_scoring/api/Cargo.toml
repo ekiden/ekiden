@@ -16,5 +16,5 @@ protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = tru
 sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
 
 [build-dependencies]
-libcontract-utils = { path = "../../../libcontract/utils" }
+ekiden-tools = { path = "../../../tools" }
 protoc = "1.4.3"

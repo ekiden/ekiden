@@ -1,9 +1,9 @@
-extern crate libcontract_utils;
+extern crate ekiden_tools;
 extern crate protoc;
 
 fn main() {
-    libcontract_utils::generate_mod("src/generated", &["api"]);
-    libcontract_utils::build_api();
+    ekiden_tools::generate_mod("src/generated", &["api"]);
+    ekiden_tools::build_api();
 
     protoc::run(protoc::Args {
         lang: "python",

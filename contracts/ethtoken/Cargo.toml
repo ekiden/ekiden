@@ -23,4 +23,4 @@ protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
 sputnikvm = { version = "0.9", default-features = false }
 
 [build-dependencies]
-libcontract-utils = { path = "../../libcontract/utils" }
+ekiden-tools = { path = "../../tools" }

@@ -18,4 +18,4 @@ protobuf = { version = "1.4.2", optional = true }
 protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true }
 
 [build-dependencies]
-libcontract-utils = { path = "../../../libcontract/utils" }
+ekiden-tools = { path = "../../../tools" }

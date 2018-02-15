@@ -17,4 +17,4 @@ lazy_static = "1.0"
 libcontract-common = { path = "../common", features = ["no-sgx"], default-features = false }
 
 [build-dependencies]
-libcontract-utils = { path = "../utils" }
+ekiden-tools = { path = "../../tools" }

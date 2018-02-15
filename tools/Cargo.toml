@@ -1,5 +1,5 @@
 [package]
-name = "libcontract-utils"
+name = "ekiden-tools"
 version = "0.1.0"
 authors = ["Jernej Kos <jernej@kos.mx>"]
 include = [
