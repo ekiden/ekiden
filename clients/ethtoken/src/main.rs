@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate clap;
+extern crate hex;
 #[macro_use]
 extern crate lazy_static;
 extern crate rand;
-extern crate hex;
 
 #[macro_use]
 extern crate client_utils;
@@ -105,10 +105,7 @@ where
     // Populate the other accounts.
     for other_account in OTHER_ACCOUNTS.iter() {
         // Transfer tokens from the creator to a given address.
-        println!(
-            "Populating other account {}",
-            other_account
-        );
+        println!("Populating other account {}", other_account);
 
         client
             .transfer({
@@ -198,7 +195,8 @@ where
     #[cfg(feature = "benchmark_transfer")]
     assert_eq!(
         creator_balance,
-        INITIAL_SUPPLY - OTHER_ACCOUNT_COUNT as u64 - TRANSFER_AMOUNT * runs as u64 * threads as u64,
+        INITIAL_SUPPLY - OTHER_ACCOUNT_COUNT as u64
+            - TRANSFER_AMOUNT * runs as u64 * threads as u64,
         "Tokens not debited from sender"
     );
 

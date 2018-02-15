@@ -51,13 +51,15 @@ where
 
     // Populate the other accounts.
     for other_account in OTHER_ACCOUNTS.iter() {
-        client.transfer({
-            let mut request = token::TransferRequest::new();
-            request.set_sender(ACCOUNT_BANK.to_owned());
-            request.set_destination(other_account.clone());
-            request.set_value(1);
-            request
-        }).unwrap();
+        client
+            .transfer({
+                let mut request = token::TransferRequest::new();
+                request.set_sender(ACCOUNT_BANK.to_owned());
+                request.set_destination(other_account.clone());
+                request.set_value(1);
+                request
+            })
+            .unwrap();
     }
 }
 
@@ -74,7 +76,10 @@ where
             request
         })
         .unwrap();
-    assert_eq!(response.get_balance(), 1_000_000_000_000_000_000 - OTHER_ACCOUNT_COUNT as u64);
+    assert_eq!(
+        response.get_balance(),
+        1_000_000_000_000_000_000 - OTHER_ACCOUNT_COUNT as u64
+    );
 }
 
 /// Finalize the token get balance scenario.
