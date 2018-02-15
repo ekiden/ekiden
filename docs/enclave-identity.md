@@ -12,7 +12,9 @@ In this module, an enclave persistence maintains an identity for itself.
 * ECALL `createReport(targetInfo) -> report`: Create a report with a body as specified below.
 
 ## Public identity string
-The public identity of an enclave persistence established this way is a string that encodes the public parts of the identity.
+The public identity of an enclave persistence established this way is a string that canonically encodes the public parts of the identity.
+
+Protocol buffers would not be a suitable serialization format because [the specification does not define a canonical form](https://gist.github.com/kchristidis/39c8b310fd9da43d515c4394c3cd9510).
 
 ## Report body
 * Vanity/disambiguation prefix
