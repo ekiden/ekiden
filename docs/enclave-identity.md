@@ -37,4 +37,4 @@ To validate:
 
 This tells you *only* that all this identity came from **some** enclave persistence running **some** enclave program on **some** platform that IAS trusts (recently trusted). It's only the *authentication*. Next, for *authorization*, you would have to apply some policy to the information (e.g., the MRENCLAVE and flags in the report).
 
-These proofs are intended to be valid for a period of time, so that the system can use keys in the enclave identity to sign and verify messages without contacting IAS. Currently we have it so that AVRs expire after a while. This would be much better if IAS would include a timesta
+These proofs are intended to be valid for a period of time, so that the system can use keys in the enclave identity to sign and verify messages without contacting IAS. Currently we have it so that AVRs expire after a while. This would be much better if IAS would include a timestamp on its signed revocation list. Then we could allow them to be valid until the revocation list changes.
