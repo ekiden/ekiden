@@ -129,6 +129,7 @@ macro_rules! create_enclave {
                 );
             }
 
+            #[allow(unused)]
             fn handle_request(
                 state: &Option<$metadata_state_type>,
                 request: &Request<api::PlainClientRequest>

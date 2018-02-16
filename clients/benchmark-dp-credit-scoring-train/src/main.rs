@@ -1,8 +1,10 @@
 #[macro_use]
 extern crate clap;
+extern crate futures;
 #[macro_use]
 extern crate lazy_static;
 extern crate protobuf;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
@@ -14,6 +16,7 @@ extern crate dp_credit_scoring_api as api;
 
 use api::*;
 use clap::{App, Arg};
+use futures::Future;
 use std::process::Command;
 
 create_client_api!();
@@ -47,6 +50,7 @@ where
             req.set_requester(USER.to_string());
             req
         })
+        .wait()
         .expect("error: create");
 }
 
@@ -62,6 +66,7 @@ where
             req.set_targets(DATASET.get_train_targets().to_vec());
             req
         })
+        .wait()
         .expect("error: train");
 }
 

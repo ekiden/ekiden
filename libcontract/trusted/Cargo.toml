@@ -20,6 +20,7 @@ compute-client = { path = "../../compute-client", features = ["sgx"], default-fe
 key-manager-api = { path = "../../contracts/key-manager/api", features = ["sgx"], default-features = false }
 bzip2 = { git = "https://github.com/ekiden/bzip2-rs" }
 bsdiff = { git = "https://github.com/ekiden/bsdiff-rs" }
+futures-sgx = { git = "https://github.com/ekiden/futures-rs" }
 
 [build-dependencies]
 libcontract-utils = { path = "../utils" }

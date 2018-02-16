@@ -11,6 +11,7 @@ extern crate sgx_types;
 
 extern crate bsdiff;
 extern crate bzip2;
+extern crate futures;
 #[macro_use]
 extern crate lazy_static;
 extern crate protobuf;

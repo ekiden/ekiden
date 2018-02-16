@@ -1,8 +1,10 @@
 #[macro_use]
 extern crate clap;
+extern crate futures;
 #[macro_use]
 extern crate lazy_static;
 extern crate rand;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
@@ -14,7 +16,7 @@ extern crate libcontract_common;
 extern crate token_api;
 
 use clap::{App, Arg};
-
+use futures::Future;
 use rand::{thread_rng, Rng};
 
 create_client_api!();
@@ -50,7 +52,7 @@ where
     request.set_token_symbol("EKI".to_owned());
     request.set_initial_supply(1);
 
-    client.create(request).unwrap();
+    client.create(request).wait().unwrap();
 }
 
 /// Runs the token transfer scenario.
@@ -70,6 +72,7 @@ where
             request.set_value(1);
             request
         })
+        .wait()
         .unwrap();
 }
 

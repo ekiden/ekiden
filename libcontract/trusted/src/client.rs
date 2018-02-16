@@ -1,10 +1,12 @@
 use sodalite;
 
+use futures::future::{self, Future};
+
 use libcontract_common::api;
 use libcontract_common::client::ClientEndpoint;
 use libcontract_common::quote::{AttestationReport, QUOTE_CONTEXT_SC};
 
-use compute_client::Error;
+use compute_client::{ClientFuture, Error};
 use compute_client::backend::ContractClientBackend;
 
 use super::dispatcher;
@@ -23,20 +25,33 @@ impl OcallContractClientBackend {
 }
 
 impl ContractClientBackend for OcallContractClientBackend {
+    /// Spawn future using an executor.
+    fn spawn<F: Future<Item = (), Error = ()> + Send + 'static>(&self, _future: F) {
+        panic!("Attempted to spawn future using OCALL backend");
+    }
+
     /// Call contract.
-    fn call(&self, client_request: api::ClientRequest) -> Result<api::ClientResponse, Error> {
-        Ok(dispatcher::untrusted_call_endpoint(
-            &self.endpoint,
-            client_request,
-        )?)
+    fn call(&self, client_request: api::ClientRequest) -> ClientFuture<api::ClientResponse> {
+        let endpoint = self.endpoint.clone();
+
+        Box::new(future::lazy(move || {
+            Ok(dispatcher::untrusted_call_endpoint(
+                &endpoint,
+                client_request,
+            )?)
+        }))
     }
 
     /// Call contract with raw data.
-    fn call_raw(&self, client_request: Vec<u8>) -> Result<Vec<u8>, Error> {
-        Ok(dispatcher::untrusted_call_endpoint_raw(
-            &self.endpoint,
-            client_request,
-        )?)
+    fn call_raw(&self, client_request: Vec<u8>) -> ClientFuture<Vec<u8>> {
+        let endpoint = self.endpoint.clone();
+
+        Box::new(future::lazy(move || {
+            Ok(dispatcher::untrusted_call_endpoint_raw(
+                &endpoint,
+                client_request,
+            )?)
+        }))
     }
 
     /// Get attestation report of the local enclave for mutual attestation.

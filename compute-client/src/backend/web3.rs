@@ -1,7 +1,10 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use grpc;
 use sodalite;
+use tokio_core;
+
+use futures::future::{self, Future};
 
 use protobuf;
 use protobuf::Message;
@@ -14,6 +17,7 @@ use super::super::generated::compute_web3_grpc::{Compute, ComputeClient};
 
 use super::ContractClientBackend;
 use super::super::errors::Error;
+use super::super::future::ClientFuture;
 
 /// Address of a compute node.
 pub struct ComputeNodeAddress {
@@ -33,13 +37,13 @@ struct ComputeNode {
 #[derive(Default)]
 struct ComputeNodes {
     /// Active nodes.
-    nodes: Vec<ComputeNode>,
+    nodes: Arc<Mutex<Vec<ComputeNode>>>,
 }
 
 impl ComputeNodes {
     /// Construct new pool of compute nodes.
     fn new(nodes: &[ComputeNodeAddress]) -> Result<Self, Error> {
-        let mut instance = ComputeNodes::default();
+        let instance = ComputeNodes::default();
 
         for node in nodes {
             instance.add_node(node)?;
@@ -49,14 +53,16 @@ impl ComputeNodes {
     }
 
     /// Add a new compute node.
-    fn add_node(&mut self, address: &ComputeNodeAddress) -> Result<(), Error> {
+    fn add_node(&self, address: &ComputeNodeAddress) -> Result<(), Error> {
+        // TODO: Pass specific reactor to the compute client as otherwise it will spawn a new thread.
         let client = match ComputeClient::new_plain(&address.host, address.port, Default::default())
         {
             Ok(client) => client,
             _ => return Err(Error::new("Failed to initialize gRPC client")),
         };
 
-        self.nodes.push(ComputeNode {
+        let mut nodes = self.nodes.lock().unwrap();
+        nodes.push(ComputeNode {
             client,
             failed: false,
         });
@@ -66,94 +72,161 @@ impl ComputeNodes {
 
     /// Call the first available compute node.
     fn call_available_node(
-        &mut self,
+        &self,
         client_request: Vec<u8>,
         max_retries: usize,
-    ) -> Result<Vec<u8>, Error> {
+    ) -> ClientFuture<Vec<u8>> {
         let mut rpc_request = CallContractRequest::new();
         rpc_request.set_payload(client_request);
 
-        for _ in 0..max_retries {
-            // TODO: Support different load-balancing policies.
-            for node in &mut self.nodes {
-                if node.failed {
-                    continue;
+        let shared_nodes = self.nodes.clone();
+
+        let try_times = future::loop_fn(
+            max_retries,
+            move |retries| -> ClientFuture<future::Loop<Vec<u8>, usize>> {
+                // Abort when we have reached the given number of retries.
+                if retries == 0 {
+                    return Box::new(future::err(Error::new(
+                        "No active compute nodes are available",
+                    )));
                 }
 
-                // Make the call using given client.
-                match node.client
-                    .call_contract(grpc::RequestOptions::new(), rpc_request.clone())
-                    .wait()
-                {
-                    Ok((_, mut rpc_response, _)) => return Ok(rpc_response.take_payload()),
+                let cloned_nodes = shared_nodes.clone();
+                let rpc_request = rpc_request.clone();
+
+                // Try to find an active node on each iteration.
+                let try_node = future::loop_fn(
+                    (),
+                    move |_| -> ClientFuture<future::Loop<Vec<u8>, ()>> {
+                        let nodes = cloned_nodes.lock().unwrap();
+
+                        // Find the first non-failed node and use it to send a request.
+                        match nodes.iter().enumerate().find(|&(_, node)| !node.failed) {
+                            Some((index, ref node)) => {
+                                // Found a non-failed node.
+                                let cloned_nodes = cloned_nodes.clone();
+
+                                return Box::new(
+                                    node.client
+                                        .call_contract(
+                                            grpc::RequestOptions::new(),
+                                            rpc_request.clone(),
+                                        )
+                                        .drop_metadata()
+                                        .then(move |result| {
+                                            match result {
+                                                Ok(mut response) => {
+                                                    Ok(future::Loop::Break(response.take_payload()))
+                                                }
+                                                Err(_) => {
+                                                    let mut nodes = cloned_nodes.lock().unwrap();
+                                                    // Since we never remove or reorder nodes, we can be sure that this
+                                                    // index always belongs to the specified node and we can avoid sharing
+                                                    // and locking individual node instances.
+                                                    nodes[index].failed = true;
+
+                                                    Ok(future::Loop::Continue(()))
+                                                }
+                                            }
+                                        }),
+                                );
+                            }
+                            None => {}
+                        }
+
+                        Box::new(future::err(Error::new(
+                            "No active compute nodes are available on this retry",
+                        )))
+                    },
+                );
+
+                let cloned_nodes = shared_nodes.clone();
+
+                Box::new(try_node.then(move |result| match result {
+                    Ok(response) => Ok(future::Loop::Break(response)),
                     Err(_) => {
-                        // TODO: Support different failure detection policies.
+                        let mut nodes = cloned_nodes.lock().unwrap();
+
+                        // All nodes seem to be failed. Reset failed status for next retry.
+                        for node in nodes.iter_mut() {
+                            node.failed = false;
+                        }
+
+                        Ok(future::Loop::Continue(retries - 1))
                     }
-                }
+                }))
+            },
+        );
 
-                // Node has failed.
-                node.failed = true;
-            }
-
-            // All nodes seem to be failed. Reset failed status for next retry.
-            for node in &mut self.nodes {
-                node.failed = false;
-            }
-        }
-
-        Err(Error::new("No active compute nodes are available"))
+        Box::new(try_times)
     }
 }
 
 pub struct Web3ContractClientBackend {
+    /// Handle of the reactor used for running all futures.
+    reactor: tokio_core::reactor::Remote,
     /// Pool of compute nodes that the client can use.
-    nodes: Mutex<ComputeNodes>,
+    nodes: ComputeNodes,
 }
 
 impl Web3ContractClientBackend {
     /// Construct new Web3 contract client backend.
-    pub fn new(host: &str, port: u16) -> Result<Self, Error> {
-        Self::new_pool(&[
-            ComputeNodeAddress {
-                host: host.to_string(),
-                port: port,
-            },
-        ])
+    pub fn new(reactor: tokio_core::reactor::Remote, host: &str, port: u16) -> Result<Self, Error> {
+        Self::new_pool(
+            reactor,
+            &[
+                ComputeNodeAddress {
+                    host: host.to_string(),
+                    port: port,
+                },
+            ],
+        )
     }
 
     /// Construct new Web3 contract client backend with a pool of nodes.
-    pub fn new_pool(nodes: &[ComputeNodeAddress]) -> Result<Self, Error> {
+    pub fn new_pool(
+        reactor: tokio_core::reactor::Remote,
+        nodes: &[ComputeNodeAddress],
+    ) -> Result<Self, Error> {
         Ok(Web3ContractClientBackend {
-            nodes: Mutex::new(ComputeNodes::new(&nodes)?),
+            reactor: reactor.clone(),
+            nodes: ComputeNodes::new(&nodes)?,
         })
     }
 
     /// Add a new compute node for this client.
     pub fn add_node(&self, address: &ComputeNodeAddress) -> Result<(), Error> {
-        let mut nodes = self.nodes.lock().unwrap();
-        nodes.add_node(&address)?;
-
-        Ok(())
+        self.nodes.add_node(&address)
     }
 
     /// Perform a raw contract call via gRPC.
-    fn call_available_node(&self, client_request: Vec<u8>) -> Result<Vec<u8>, Error> {
-        let mut nodes = self.nodes.lock().unwrap();
-        nodes.call_available_node(client_request, 3)
+    fn call_available_node(&self, client_request: Vec<u8>) -> ClientFuture<Vec<u8>> {
+        self.nodes.call_available_node(client_request, 3)
     }
 }
 
 impl ContractClientBackend for Web3ContractClientBackend {
-    /// Call contract.
-    fn call(&self, client_request: api::ClientRequest) -> Result<api::ClientResponse, Error> {
-        let client_response = self.call_raw(client_request.write_to_bytes()?)?;
-        let client_response: api::ClientResponse = protobuf::parse_from_bytes(&client_response)?;
+    /// Spawn future using an executor.
+    fn spawn<F: Future<Item = (), Error = ()> + Send + 'static>(&self, future: F) {
+        self.reactor.spawn(move |_| future);
+    }
 
-        Ok(client_response)
+    /// Call contract.
+    fn call(&self, client_request: api::ClientRequest) -> ClientFuture<api::ClientResponse> {
+        let result = self.call_raw(match client_request.write_to_bytes() {
+            Ok(request) => request,
+            _ => return Box::new(future::err(Error::new("Failed to serialize request"))),
+        }).and_then(|response| {
+            let client_response: api::ClientResponse = protobuf::parse_from_bytes(&response)?;
+
+            Ok(client_response)
+        });
+
+        Box::new(result)
     }
 
     /// Call contract with raw data.
-    fn call_raw(&self, client_request: Vec<u8>) -> Result<Vec<u8>, Error> {
+    fn call_raw(&self, client_request: Vec<u8>) -> ClientFuture<Vec<u8>> {
         self.call_available_node(client_request)
     }
 

@@ -12,3 +12,5 @@ libcontract-common = { path = "../../libcontract/common" }
 protobuf = "1.4.2"
 rulinalg = { git = "https://github.com/ekiden/rulinalg.git" }
 serde_cbor = "0.8.2"
+futures = "0.1"
+tokio-core = "0.1"

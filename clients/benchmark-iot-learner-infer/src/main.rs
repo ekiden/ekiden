@@ -1,8 +1,10 @@
 #[macro_use]
 extern crate clap;
+extern crate futures;
 #[macro_use]
 extern crate lazy_static;
 extern crate protobuf;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
@@ -15,6 +17,7 @@ extern crate learner as learner_contract; // avoid name clash with `create_clien
 extern crate learner_api;
 
 use clap::{App, Arg};
+use futures::Future;
 use learner_contract::api;
 
 // this macro comes from learner_api
@@ -51,6 +54,7 @@ where
             req.set_targets(protobuf::RepeatedField::from_vec(targets));
             req
         })
+        .wait()
         .expect("error: create");
 
     let _train_res = client
@@ -60,6 +64,7 @@ where
             req.set_examples(protobuf::RepeatedField::from_vec(EXAMPLES.to_vec()));
             req
         })
+        .wait()
         .expect("error: train");
 }
 
@@ -76,6 +81,7 @@ where
             ));
             req
         })
+        .wait()
         .expect("error: infer");
 }
 

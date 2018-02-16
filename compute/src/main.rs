@@ -9,6 +9,7 @@ extern crate reqwest;
 extern crate thread_local;
 extern crate time;
 extern crate tls_api;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate clap;
@@ -132,6 +133,9 @@ fn main() {
 
     let port = value_t!(matches, "port", u16).unwrap_or(9001);
 
+    // Create reactor (event loop).
+    let reactor = tokio_core::reactor::Core::new().unwrap();
+
     // Setup IAS.
     let ias = Arc::new(
         ias::IAS::new(if matches.is_present("ias-spid") {
@@ -157,6 +161,7 @@ fn main() {
         if !matches.is_present("disable-key-manager") {
             router.add_handler(handlers::ContractForwarder::new(
                 ClientEndpoint::KeyManager,
+                reactor.remote(),
                 matches.value_of("key-manager-host").unwrap().to_string(),
                 value_t!(matches, "key-manager-port", u16).unwrap_or(9003),
             ));
@@ -179,6 +184,7 @@ fn main() {
     )));
     let num_threads = value_t!(matches, "grpc-threads", usize).unwrap();
     server.http.set_cpu_pool_threads(num_threads);
+    // TODO: Reuse the same event loop in gRPC once this is exposed.
     let _server = server.build().expect("server");
 
     println!("Compute node listening at {}", port);

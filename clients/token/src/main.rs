@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate clap;
+extern crate futures;
 extern crate rand;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
@@ -14,6 +16,8 @@ extern crate token_api;
 use clap::{App, Arg};
 
 use rand::{thread_rng, Rng};
+
+use futures::future::Future;
 
 create_client_api!();
 
@@ -29,7 +33,7 @@ where
     request.set_token_symbol("EKI".to_string());
     request.set_initial_supply(8);
 
-    client.create(request).unwrap();
+    client.create(request).wait().unwrap();
 
     // Check balances.
     let response = client
@@ -38,6 +42,7 @@ where
             request.set_account("bank".to_string());
             request
         })
+        .wait()
         .unwrap();
     assert_eq!(response.get_balance(), 8_000_000_000_000_000_000);
 }
@@ -65,6 +70,7 @@ where
             request.set_value(3);
             request
         })
+        .wait()
         .unwrap();
 
     // Check balances.
@@ -74,6 +80,7 @@ where
             request.set_account(destination.clone());
             request
         })
+        .wait()
         .unwrap();
     assert_eq!(response.get_balance(), 3);
 
@@ -83,6 +90,7 @@ where
             request.set_account(poor.clone());
             request
         })
+        .wait()
         .unwrap();
     assert_eq!(response.get_balance(), 0);
 }
@@ -99,6 +107,7 @@ where
             request.set_account("bank".to_string());
             request
         })
+        .wait()
         .unwrap();
     assert_eq!(
         response.get_balance(),

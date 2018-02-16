@@ -1,45 +1,44 @@
-use sodalite;
+use std::sync::Arc;
+#[cfg(not(feature = "sgx"))]
+use std::sync::Mutex;
+#[cfg(feature = "sgx")]
+use std::sync::SgxMutex as Mutex;
+
+#[cfg(not(feature = "sgx"))]
+use futures::Stream;
+use futures::future::{self, Future};
+#[cfg(not(feature = "sgx"))]
+use futures::sync::{mpsc, oneshot};
 
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
-use libcontract_common::{api, random};
+use libcontract_common::api;
 use libcontract_common::quote::{AttestationReport, MrEnclave};
-use libcontract_common::secure_channel::{create_box, open_box, MonotonicNonceGenerator,
-                                         NonceGenerator, RandomNonceGenerator, SessionState,
-                                         NONCE_CONTEXT_INIT, NONCE_CONTEXT_REQUEST,
-                                         NONCE_CONTEXT_RESPONSE};
 
 use super::backend::ContractClientBackend;
 use super::errors::Error;
+use super::future::ClientFuture;
+#[cfg(feature = "sgx")]
+use super::future::FutureExtra;
+use super::secure_channel::SecureChannelContext;
 
-// Secret seed used for generating private and public keys.
-const SECRET_SEED_LEN: usize = 32;
-type SecretSeed = [u8; SECRET_SEED_LEN];
-
-/// Secure channel context.
-#[derive(Default)]
-pub struct SecureChannelContext {
-    /// Client short-term private key.
-    client_private_key: sodalite::BoxSecretKey,
-    /// Client short-term public key.
-    client_public_key: sodalite::BoxPublicKey,
-    /// Contract contract long-term public key.
-    contract_long_term_public_key: sodalite::BoxPublicKey,
-    /// Contract contract short-term public key.
-    contract_short_term_public_key: sodalite::BoxPublicKey,
-    /// Cached shared key.
-    shared_key: Option<sodalite::SecretboxKey>,
-    /// Session state.
-    state: SessionState,
-    /// Long-term nonce generator.
-    long_term_nonce_generator: RandomNonceGenerator,
-    /// Short-term nonce generator.
-    short_term_nonce_generator: MonotonicNonceGenerator,
+/// Commands sent to the processing task.
+#[cfg(not(feature = "sgx"))]
+enum Command {
+    /// Make a remote method call.
+    Call(
+        api::PlainClientRequest,
+        oneshot::Sender<Result<Vec<u8>, Error>>,
+    ),
+    /// Initialize secure channel.
+    InitSecureChannel(oneshot::Sender<Result<(), Error>>),
+    /// Close secure channel.
+    CloseSecureChannel(oneshot::Sender<Result<(), Error>>),
 }
 
-/// Contract client.
-pub struct ContractClient<Backend: ContractClientBackend> {
+/// Contract client context used for async calls.
+struct ContractClientContext<Backend: ContractClientBackend + 'static> {
     /// Backend handling network communication.
     backend: Backend,
     /// Contract MRENCLAVE.
@@ -50,295 +49,486 @@ pub struct ContractClient<Backend: ContractClientBackend> {
     client_attestation: bool,
 }
 
-impl<Backend: ContractClientBackend> ContractClient<Backend> {
-    /// Constructs a new contract client.
-    pub fn new(
-        backend: Backend,
-        mr_enclave: MrEnclave,
-        client_attestation: bool,
-    ) -> Result<Self, Error> {
-        let mut client = ContractClient {
-            backend: backend,
-            mr_enclave: mr_enclave,
-            secure_channel: SecureChannelContext::default(),
-            client_attestation: client_attestation,
-        };
+/// Helper for running client commands.
+#[cfg(not(feature = "sgx"))]
+fn run_command<F, R>(cmd: F, response_tx: oneshot::Sender<Result<R, Error>>) -> ClientFuture<()>
+where
+    F: Future<Item = R, Error = Error> + Send + 'static,
+    R: Send + 'static,
+{
+    Box::new(cmd.then(move |result| {
+        // Send command result back to response channel, ignoring any errors, which
+        // may be due to closing of the other end of the response channel.
+        response_tx.send(result).or(Ok(()))
+    }))
+}
 
-        // Initialize a secure session.
-        client.init_secure_channel(client_attestation)?;
+impl<Backend: ContractClientBackend + 'static> ContractClientContext<Backend> {
+    /// Process commands sent via the command channel.
+    ///
+    /// This method returns a future, which keeps processing all commands received
+    /// via the `request_rx` channel. It should be spawned as a separate task.
+    ///
+    /// Processing commands in this way ensures that all client requests are processed
+    /// in order, with no interleaving of requests, regardless of how the futures
+    /// executor is implemented.
+    #[cfg(not(feature = "sgx"))]
+    fn process_commands(
+        context: Arc<Mutex<Self>>,
+        request_rx: mpsc::UnboundedReceiver<Command>,
+    ) -> ClientFuture<()> {
+        // Process all requests in order. The stream processing ends when the sender
+        // handle (request_tx) in ContractClient is dropped.
+        let result = request_rx
+            .map_err(|_| Error::new("Command channel closed"))
+            .for_each(move |command| -> ClientFuture<()> {
+                match command {
+                    Command::Call(request, response_tx) => {
+                        run_command(Self::call_raw(context.clone(), request), response_tx)
+                    }
+                    Command::InitSecureChannel(response_tx) => {
+                        run_command(Self::init_secure_channel(context.clone()), response_tx)
+                    }
+                    Command::CloseSecureChannel(response_tx) => {
+                        run_command(Self::close_secure_channel(context.clone()), response_tx)
+                    }
+                }
+            });
 
-        Ok(client)
+        Box::new(result)
     }
 
-    /// Calls a contract method.
-    pub fn call<Rq, Rs>(&mut self, method: &str, request: Rq) -> Result<Rs, Error>
+    /// Call a contract method.
+    fn call_raw(
+        context: Arc<Mutex<Self>>,
+        plain_request: api::PlainClientRequest,
+    ) -> ClientFuture<Vec<u8>> {
+        // Ensure secure channel is initialized before making the request.
+        let init_sc = Self::init_secure_channel(context.clone());
+
+        // Context moved into the closure (renamed for clarity).
+        let shared_context = context;
+
+        let result = init_sc.and_then(move |_| -> ClientFuture<Vec<u8>> {
+            // Clone method for use in later future.
+            let cloned_method = plain_request.get_method().to_owned();
+
+            // Prepare the backend call future. This is done in a new scope so that the held
+            // lock is released early and we can move shared_context into the next future.
+            let backend_call = {
+                let mut context = shared_context.lock().unwrap();
+
+                let mut client_request = api::ClientRequest::new();
+                if context.secure_channel.must_encrypt() {
+                    // Encrypt request.
+                    client_request.set_encrypted_request(match context
+                        .secure_channel
+                        .create_request_box(&plain_request)
+                    {
+                        Ok(request) => request,
+                        Err(error) => return Box::new(future::err(error)),
+                    });
+                } else {
+                    // Plain-text request.
+                    client_request.set_plain_request(plain_request);
+                }
+
+                // Invoke the backend to make the actual request.
+                context.backend.call(client_request)
+            };
+
+            // After the backend call is done, handle the response.
+            let result = backend_call.and_then(
+                move |mut client_response| -> ClientFuture<Vec<u8>> {
+                    let mut plain_response = {
+                        let mut context = shared_context.lock().unwrap();
+
+                        let mut plain_response = {
+                            if client_response.has_encrypted_response() {
+                                // Encrypted response.
+                                match context
+                                    .secure_channel
+                                    .open_response_box(&client_response.get_encrypted_response())
+                                {
+                                    Ok(response) => response,
+                                    Err(error) => return Box::new(future::err(error)),
+                                }
+                            } else {
+                                // Plain-text response.
+                                client_response.take_plain_response()
+                            }
+                        };
+
+                        if context.secure_channel.must_encrypt()
+                            && !client_response.has_encrypted_response()
+                        {
+                            match plain_response.get_code() {
+                                api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL => {
+                                    // Request the secure channel to be reset.
+                                    // NOTE: This opens us up to potential adversarial interference as an
+                                    //       adversarial compute node can force the channel to be reset by
+                                    //       crafting a non-authenticated response. But a compute node can
+                                    //       always deny service or prevent the secure channel from being
+                                    //       established in the first place, so this is not really an issue.
+                                    if cloned_method != api::METHOD_CHANNEL_INIT {
+                                        context.secure_channel.close();
+
+                                        // Channel will reset on the next request.
+                                        return Box::new(future::err(Error::new(
+                                            "Secure channel closed",
+                                        )));
+                                    }
+                                }
+                                _ => {}
+                            }
+
+                            return Box::new(future::err(Error::new(
+                                "Contract returned plain response for encrypted request",
+                            )));
+                        }
+
+                        plain_response
+                    };
+
+                    // Validate response code.
+                    match plain_response.get_code() {
+                        api::PlainClientResponse_Code::SUCCESS => {}
+                        _ => {
+                            // Deserialize error.
+                            let mut error: api::Error = {
+                                match protobuf::parse_from_bytes(&plain_response.take_payload()) {
+                                    Ok(error) => error,
+                                    _ => return Box::new(future::err(Error::new("Unknown error"))),
+                                }
+                            };
+
+                            return Box::new(future::err(Error::new(error.get_message())));
+                        }
+                    };
+
+                    Box::new(future::ok(plain_response.take_payload()))
+                },
+            );
+
+            Box::new(result)
+        });
+
+        Box::new(result)
+    }
+
+    /// Call a contract method.
+    fn call<Rq, Rs>(context: Arc<Mutex<Self>>, method: &str, request: Rq) -> ClientFuture<Rs>
     where
         Rq: Message,
         Rs: Message + MessageStatic,
     {
+        // Create a request.
         let mut plain_request = api::PlainClientRequest::new();
-        plain_request.set_method(method.to_string());
-        plain_request.set_payload(request.write_to_bytes()?);
+        plain_request.set_method(method.to_owned());
+        plain_request.set_payload(match request.write_to_bytes() {
+            Ok(payload) => payload,
+            _ => return Box::new(future::err(Error::new("Failed to serialize request"))),
+        });
 
-        let mut client_request = api::ClientRequest::new();
-        if self.secure_channel.must_encrypt() {
-            // Encrypt request.
-            client_request
-                .set_encrypted_request(self.secure_channel.create_request_box(&plain_request)?);
-        } else {
-            // Plain-text request.
-            client_request.set_plain_request(plain_request);
-        }
+        // Make the raw call and then deserialize the response.
+        let result = Self::call_raw(context, plain_request).and_then(|plain_response| {
+            let response: Rs = match protobuf::parse_from_bytes(&plain_response) {
+                Ok(response) => response,
+                Err(error) => return Err(Error::from(error)),
+            };
 
-        let mut client_response = self.backend.call(client_request)?;
+            Ok(response)
+        });
 
-        let mut plain_response = {
-            if client_response.has_encrypted_response() {
-                // Encrypted response.
-                self.secure_channel
-                    .open_response_box(&client_response.get_encrypted_response())?
-            } else {
-                // Plain-text response.
-                client_response.take_plain_response()
-            }
-        };
-
-        if self.secure_channel.must_encrypt() && !client_response.has_encrypted_response() {
-            match plain_response.get_code() {
-                api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL => {
-                    // Request the secure channel to be reset.
-                    // NOTE: This opens us up to potential adversarial interference as an
-                    //       adversarial compute node can force the channel to be reset by
-                    //       crafting a non-authenticated response. But a compute node can
-                    //       always deny service or prevent the secure channel from being
-                    //       established in the first place, so this is not really an issue.
-                    if method != api::METHOD_CHANNEL_INIT {
-                        let client_attestation = self.client_attestation;
-                        self.init_secure_channel(client_attestation)?;
-
-                        return Err(Error::new("Secure channel reset"));
-                    }
-                }
-                _ => {}
-            }
-
-            return Err(Error::new(
-                "Contract returned plain response for encrypted request",
-            ));
-        }
-
-        // Validate response code.
-        match plain_response.get_code() {
-            api::PlainClientResponse_Code::SUCCESS => {}
-            _ => {
-                // Deserialize error.
-                let mut error: api::Error = {
-                    match protobuf::parse_from_bytes(&plain_response.take_payload()) {
-                        Ok(error) => error,
-                        _ => return Err(Error::new("Unknown error")),
-                    }
-                };
-
-                return Err(Error::new(error.get_message()));
-            }
-        };
-
-        let response: Rs = protobuf::parse_from_bytes(plain_response.get_payload())?;
-
-        Ok(response)
+        Box::new(result)
     }
 
     /// Initialize a secure channel with the contract.
-    pub fn init_secure_channel(&mut self, client_attestation: bool) -> Result<(), Error> {
-        let mut request = api::ChannelInitRequest::new();
+    ///
+    /// If the channel has already been initialized the future returned by this method
+    /// will immediately resolve.
+    fn init_secure_channel(context: Arc<Mutex<Self>>) -> ClientFuture<()> {
+        // Context moved into the closure (renamed for clarity).
+        let shared_context = context;
 
-        // Reset secure channel.
-        self.secure_channel.reset()?;
+        let result = future::lazy(move || -> ClientFuture<()> {
+            let request = {
+                let mut context = shared_context.lock().unwrap();
 
-        // Provide mutual attestation if required.
-        if client_attestation {
-            let report = self.backend
-                .get_attestation_report(&self.secure_channel.get_client_public_key())?;
-            request.set_client_attestation_report(report.serialize());
-        }
+                // If secure channel is already initialized, we don't need to do anything.
+                if !context.secure_channel.is_closed() {
+                    return Box::new(future::ok(()));
+                }
 
-        request.set_short_term_public_key(self.secure_channel.get_client_public_key().to_vec());
+                // Reset secure channel.
+                match context.secure_channel.reset() {
+                    Ok(()) => {}
+                    Err(error) => return Box::new(future::err(error)),
+                };
 
-        let mut response: api::ChannelInitResponse = self.call(api::METHOD_CHANNEL_INIT, request)?;
+                let mut request = api::ChannelInitRequest::new();
 
-        // Verify contract attestation.
-        let mut report = response.take_contract_attestation_report();
-        let report = AttestationReport::new(
-            report.take_body(),
-            report.take_signature(),
-            report.take_certificates(),
-        );
+                // Provide mutual attestation if required.
+                if context.client_attestation {
+                    // TODO: Make this return a future.
+                    let report = match context
+                        .backend
+                        .get_attestation_report(&context.secure_channel.get_client_public_key())
+                    {
+                        Ok(report) => report,
+                        Err(error) => return Box::new(future::err(error)),
+                    };
 
-        let quote = report.get_quote()?;
+                    request.set_client_attestation_report(report.serialize());
+                }
 
-        // Verify MRENCLAVE.
-        if quote.get_mr_enclave() != &self.mr_enclave {
-            return Err(Error::new(
-                "Secure channel initialization failed: MRENCLAVE mismatch",
-            ));
-        }
+                request.set_short_term_public_key(
+                    context.secure_channel.get_client_public_key().to_vec(),
+                );
 
-        // Extract public key and establish a secure channel.
-        self.secure_channel
-            .setup(&quote.get_public_key(), &response.take_response_box())?;
+                request
+            };
 
-        Ok(())
+            // Call remote channel init.
+            let result = Self::call::<api::ChannelInitRequest, api::ChannelInitResponse>(
+                shared_context.clone(),
+                api::METHOD_CHANNEL_INIT,
+                request,
+            ).and_then(move |mut response| {
+                let mut context = shared_context.lock().unwrap();
+
+                // Verify contract attestation.
+                let mut report = response.take_contract_attestation_report();
+                let report = AttestationReport::new(
+                    report.take_body(),
+                    report.take_signature(),
+                    report.take_certificates(),
+                );
+
+                let quote = report.get_quote()?;
+
+                // Verify MRENCLAVE.
+                if quote.get_mr_enclave() != &context.mr_enclave {
+                    return Err(Error::new(
+                        "Secure channel initialization failed: MRENCLAVE mismatch",
+                    ));
+                }
+
+                // Extract public key and establish a secure channel.
+                context
+                    .secure_channel
+                    .setup(&quote.get_public_key(), &response.take_response_box())?;
+
+                Ok(())
+            });
+
+            Box::new(result)
+        });
+
+        Box::new(result)
     }
 
     /// Close secure channel.
-    pub fn close_secure_channel(&mut self) -> Result<(), Error> {
-        // If secure channel is not open, do not close it.
-        if self.secure_channel.get_state() == SessionState::Init {
-            return Ok(());
+    ///
+    /// If this method is not called, secure channel is automatically closed in
+    /// a blocking fashion when the client is dropped.
+    fn close_secure_channel(context: Arc<Mutex<Self>>) -> ClientFuture<()> {
+        // Context moved into the closure (renamed for clarity).
+        let shared_context = context;
+
+        let result = future::lazy(move || -> ClientFuture<()> {
+            {
+                let context = shared_context.lock().unwrap();
+
+                // If secure channel is not open we don't need to do anything.
+                if context.secure_channel.is_closed() {
+                    return Box::new(future::ok(()));
+                }
+            }
+
+            // Send request to close channel.
+            let request = api::ChannelCloseRequest::new();
+
+            let result = Self::call::<api::ChannelCloseRequest, api::ChannelCloseResponse>(
+                shared_context.clone(),
+                api::METHOD_CHANNEL_CLOSE,
+                request,
+            ).and_then(move |_| {
+                let mut context = shared_context.lock().unwrap();
+
+                // Close local part of the secure channel.
+                context.secure_channel.close();
+
+                Ok(())
+            });
+
+            Box::new(result)
+        });
+
+        Box::new(result)
+    }
+}
+
+/// Contract client.
+pub struct ContractClient<Backend: ContractClientBackend + 'static> {
+    /// Actual client context that can be shared between threads.
+    context: Arc<Mutex<ContractClientContext<Backend>>>,
+    /// Channel for processing requests.
+    #[cfg(not(feature = "sgx"))]
+    request_tx: mpsc::UnboundedSender<Command>,
+}
+
+impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
+    /// Constructs a new contract client.
+    pub fn new(backend: Backend, mr_enclave: MrEnclave, client_attestation: bool) -> Self {
+        // Create request processing channel.
+        #[cfg(not(feature = "sgx"))]
+        let (request_tx, request_rx) = mpsc::unbounded();
+
+        let client = ContractClient {
+            context: Arc::new(Mutex::new(ContractClientContext {
+                backend: backend,
+                mr_enclave: mr_enclave,
+                secure_channel: SecureChannelContext::default(),
+                client_attestation: client_attestation,
+            })),
+            #[cfg(not(feature = "sgx"))]
+            request_tx: request_tx,
+        };
+
+        #[cfg(not(feature = "sgx"))]
+        {
+            // Spawn a task for processing requests.
+            let request_processor =
+                ContractClientContext::process_commands(client.context.clone(), request_rx);
+
+            let context = client.context.lock().unwrap();
+            context
+                .backend
+                .spawn(request_processor.then(|_| future::ok(())));
         }
 
-        // Send request to close channel.
-        let request = api::ChannelCloseRequest::new();
+        client
+    }
 
-        let _response: api::ChannelCloseResponse = self.call(api::METHOD_CHANNEL_CLOSE, request)?;
+    /// Call a contract method.
+    #[cfg(feature = "sgx")]
+    pub fn call<Rq, Rs>(&self, method: &str, request: Rq) -> ClientFuture<Rs>
+    where
+        Rq: Message,
+        Rs: Message + MessageStatic,
+    {
+        ContractClientContext::call(self.context.clone(), &method, request)
+    }
 
-        // Reset local part of the secure channel.
-        self.secure_channel.reset()?;
+    /// Call a contract method.
+    #[cfg(not(feature = "sgx"))]
+    pub fn call<Rq, Rs>(&self, method: &str, request: Rq) -> ClientFuture<Rs>
+    where
+        Rq: Message,
+        Rs: Message + MessageStatic,
+    {
+        let (call_tx, call_rx) = oneshot::channel();
 
-        Ok(())
+        // Create a request.
+        let mut plain_request = api::PlainClientRequest::new();
+        plain_request.set_method(method.to_owned());
+        plain_request.set_payload(match request.write_to_bytes() {
+            Ok(payload) => payload,
+            _ => return Box::new(future::err(Error::new("Failed to serialize request"))),
+        });
+
+        if let Err(_) = self.request_tx
+            .unbounded_send(Command::Call(plain_request, call_tx))
+        {
+            return Box::new(future::err(Error::new("Command channel closed")));
+        }
+
+        // Wait for response.
+        let result = call_rx
+            .map_err(|_| Error::new("Command channel closed"))
+            .and_then(|result| match result {
+                Ok(plain_response) => {
+                    let response: Rs = match protobuf::parse_from_bytes(&plain_response) {
+                        Ok(response) => response,
+                        Err(error) => return Err(Error::from(error)),
+                    };
+
+                    Ok(response)
+                }
+                Err(error) => Err(error),
+            });
+
+        Box::new(result)
+    }
+
+    /// Initialize a secure channel with the contract.
+    ///
+    /// If this method is not called, secure channel is automatically initialized
+    /// when making the first request.
+    #[cfg(feature = "sgx")]
+    pub fn init_secure_channel(&self) -> ClientFuture<()> {
+        ContractClientContext::init_secure_channel(self.context.clone())
+    }
+
+    /// Initialize a secure channel with the contract.
+    ///
+    /// If this method is not called, secure channel is automatically initialized
+    /// when making the first request.
+    #[cfg(not(feature = "sgx"))]
+    pub fn init_secure_channel(&self) -> ClientFuture<()> {
+        let (call_tx, call_rx) = oneshot::channel();
+
+        if let Err(_) = self.request_tx
+            .unbounded_send(Command::InitSecureChannel(call_tx))
+        {
+            return Box::new(future::err(Error::new("Command channel closed")));
+        }
+
+        // Wait for response.
+        let result = call_rx
+            .map_err(|_| Error::new("Command channel closed"))
+            .and_then(|result| result);
+
+        Box::new(result)
+    }
+
+    /// Close secure channel.
+    ///
+    /// If this method is not called, secure channel is automatically closed in
+    /// a blocking fashion when the client is dropped.
+    #[cfg(feature = "sgx")]
+    pub fn close_secure_channel(&self) -> ClientFuture<()> {
+        ContractClientContext::close_secure_channel(self.context.clone())
+    }
+
+    /// Close secure channel.
+    ///
+    /// If this method is not called, secure channel is automatically closed in
+    /// a blocking fashion when the client is dropped.
+    #[cfg(not(feature = "sgx"))]
+    pub fn close_secure_channel(&self) -> ClientFuture<()> {
+        let (call_tx, call_rx) = oneshot::channel();
+
+        if let Err(_) = self.request_tx
+            .unbounded_send(Command::CloseSecureChannel(call_tx))
+        {
+            return Box::new(future::err(Error::new("Command channel closed")));
+        }
+
+        // Wait for response.
+        let result = call_rx
+            .map_err(|_| Error::new("Command channel closed"))
+            .and_then(|result| result);
+
+        Box::new(result)
     }
 }
 
-impl SecureChannelContext {
-    /// Reset secure channel context.
-    ///
-    /// Calling this function will generate new short-term keys for the client
-    /// and clear any contract public keys.
-    pub fn reset(&mut self) -> Result<(), Error> {
-        // Generate new short-term key pair for the client.
-        let mut seed: SecretSeed = [0u8; SECRET_SEED_LEN];
-        random::get_random_bytes(&mut seed)?;
-
-        sodalite::box_keypair_seed(
-            &mut self.client_public_key,
-            &mut self.client_private_key,
-            &seed,
-        );
-
-        // Clear contract keys.
-        self.contract_long_term_public_key = [0; sodalite::BOX_PUBLIC_KEY_LEN];
-        self.contract_short_term_public_key = [0; sodalite::BOX_PUBLIC_KEY_LEN];
-
-        // Clear session keys.
-        self.shared_key = None;
-
-        // Reset session nonce.
-        self.short_term_nonce_generator.reset();
-
-        self.state.transition_to(SessionState::Init)?;
-
-        Ok(())
-    }
-
-    /// Setup secure channel.
-    pub fn setup(
-        &mut self,
-        contract_long_term_public_key: &[u8],
-        contract_response_box: &api::CryptoBox,
-    ) -> Result<(), Error> {
-        self.contract_long_term_public_key
-            .copy_from_slice(&contract_long_term_public_key);
-
-        // Open boxed short term server public key.
-        let mut shared_key: Option<sodalite::SecretboxKey> = None;
-        let response_box = open_box(
-            &contract_response_box,
-            &NONCE_CONTEXT_INIT,
-            &mut self.long_term_nonce_generator,
-            &self.contract_long_term_public_key,
-            &self.client_private_key,
-            &mut shared_key,
-        )?;
-
-        let response_box: api::ChannelInitResponseBox = protobuf::parse_from_bytes(&response_box)?;
-
-        self.contract_short_term_public_key
-            .copy_from_slice(&response_box.get_short_term_public_key());
-
-        self.state.transition_to(SessionState::Established)?;
-
-        // Cache shared channel key.
-        let mut key = self.shared_key
-            .get_or_insert([0u8; sodalite::SECRETBOX_KEY_LEN]);
-        sodalite::box_beforenm(
-            &mut key,
-            &self.contract_short_term_public_key,
-            &self.client_private_key,
-        );
-
-        Ok(())
-    }
-
-    /// Get secure channel session state.
-    pub fn get_state(&self) -> SessionState {
-        self.state
-    }
-
-    /// Check if messages must be encrypted based on current channel state.
-    ///
-    /// Messages can only be unencrypted when the channel is in initialization state
-    /// and must be encrypted in all other states.
-    pub fn must_encrypt(&self) -> bool {
-        self.state != SessionState::Init
-    }
-
-    /// Get client short-term public key.
-    pub fn get_client_public_key(&self) -> &sodalite::BoxPublicKey {
-        &self.client_public_key
-    }
-
-    /// Create cryptographic box with RPC request.
-    pub fn create_request_box(
-        &mut self,
-        request: &api::PlainClientRequest,
-    ) -> Result<api::CryptoBox, Error> {
-        let mut crypto_box = create_box(
-            &request.write_to_bytes()?,
-            &NONCE_CONTEXT_REQUEST,
-            &mut self.short_term_nonce_generator,
-            &self.contract_short_term_public_key,
-            &self.client_private_key,
-            &mut self.shared_key,
-        )?;
-
-        // Set public key so the contract knows which client this is.
-        crypto_box.set_public_key(self.client_public_key.to_vec());
-
-        Ok(crypto_box)
-    }
-
-    /// Open cryptographic box with RPC response.
-    pub fn open_response_box(
-        &mut self,
-        response: &api::CryptoBox,
-    ) -> Result<api::PlainClientResponse, Error> {
-        let plain_response = open_box(
-            &response,
-            &NONCE_CONTEXT_RESPONSE,
-            &mut self.short_term_nonce_generator,
-            &self.contract_short_term_public_key,
-            &self.client_private_key,
-            &mut self.shared_key,
-        )?;
-
-        Ok(protobuf::parse_from_bytes(&plain_response)?)
-    }
-}
-
-impl<Backend: ContractClientBackend> Drop for ContractClient<Backend> {
+impl<Backend: ContractClientBackend + 'static> Drop for ContractClient<Backend> {
     /// Close secure channel when going out of scope.
     fn drop(&mut self) {
-        match self.close_secure_channel() {
+        match self.close_secure_channel().wait() {
             Ok(()) => {}
             _ => {
                 // Ignore errors, since we are dropping the client anyway and this

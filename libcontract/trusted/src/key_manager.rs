@@ -6,7 +6,7 @@ use libcontract_common::ContractError;
 use libcontract_common::client::ClientEndpoint;
 use libcontract_common::quote::{MrEnclave, MRENCLAVE_LEN};
 
-use compute_client::create_client;
+use compute_client::{create_client, FutureExtra};
 
 use key_manager_api::create_client_api as create_key_manager_client_api;
 
@@ -65,17 +65,9 @@ impl KeyManager {
             }
         };
 
-        let client = match key_manager::Client::new(backend, KeyManager::MR_ENCLAVE) {
-            Ok(client) => client,
-            Err(error) => {
-                return Err(ContractError::new(&format!(
-                    "Failed to create key manager client: {}",
-                    error.message
-                )))
-            }
-        };
-
+        let client = key_manager::Client::new(backend, KeyManager::MR_ENCLAVE);
         self.client.get_or_insert(client);
+
         Ok(())
     }
 
@@ -123,7 +115,12 @@ impl KeyManager {
                 request.set_name(name.to_string());
                 request.set_size(size as u32);
 
-                let mut response = match self.client.as_mut().unwrap().get_or_create_key(request) {
+                let mut response = match self.client
+                    .as_mut()
+                    .unwrap()
+                    .get_or_create_key(request)
+                    .wait()
+                {
                     Ok(response) => response,
                     Err(error) => {
                         return Err(ContractError::new(&format!(

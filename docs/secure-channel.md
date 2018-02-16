@@ -10,8 +10,10 @@ The following keys are maintained by the protocol:
 
 ## State
 The secure channel can be in one of the following states:
+* `Closed`
+  Channel is closed (this is the initial state) and must be reset. After being reset, the channel with transition into `Init` state.
 * `Init`
-  Channel is being initialized (this is the initial state). After successful contract attestation, the channel will transition into `Established` state.
+  Channel is being initialized. After successful contract attestation, the channel will transition into `Established` state.
 * `Established`
   Secure channel is established and may be used to make arbitrary method calls.
 

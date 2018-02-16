@@ -1,7 +1,9 @@
 #[macro_use]
 extern crate clap;
+extern crate futures;
 extern crate protobuf;
 extern crate serde_pickle;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
@@ -13,6 +15,7 @@ extern crate dp_credit_scoring_api as api;
 
 use api::*;
 use clap::{App, Arg};
+use futures::Future;
 use std::process::{Command, Stdio};
 
 create_client_api!();
@@ -44,6 +47,7 @@ fn main() {
             req.set_requester(user.clone());
             req
         })
+        .wait()
         .expect("error: create");
 
     let _train_res = client
@@ -54,6 +58,7 @@ fn main() {
             req.set_targets(ds_proto.take_train_targets());
             req
         })
+        .wait()
         .expect("error: train");
 
     let mut infer_res = client
@@ -63,6 +68,7 @@ fn main() {
             req.set_inputs(ds_proto.take_test_inputs());
             req
         })
+        .wait()
         .expect("error: infer");
 
     let preds = (infer_res.take_predictions(), ds_proto.take_test_targets());

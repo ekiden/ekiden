@@ -2,6 +2,9 @@
 /// which are registered using RpcRouter.
 use std::sync::Arc;
 
+use futures::Future;
+use tokio_core;
+
 use protobuf::Message;
 
 use libcontract_common::api::services::*;
@@ -70,18 +73,20 @@ impl_handler! {
 pub struct ContractForwarder {
     /// Client endpoint identifier.
     endpoint: ClientEndpoint,
-    /// Target contract hostname.
-    host: String,
-    /// Target contract port.
-    port: u16,
+    /// Client backend.
+    client: Web3ContractClientBackend,
 }
 
 impl ContractForwarder {
-    pub fn new(endpoint: ClientEndpoint, host: String, port: u16) -> Self {
+    pub fn new(
+        endpoint: ClientEndpoint,
+        reactor: tokio_core::reactor::Remote,
+        host: String,
+        port: u16,
+    ) -> Self {
         ContractForwarder {
             endpoint: endpoint,
-            host: host,
-            port: port,
+            client: Web3ContractClientBackend::new(reactor, &host, port).unwrap(),
         }
     }
 }
@@ -94,12 +99,8 @@ impl Handler for ContractForwarder {
 
     /// Handle a request and return a response.
     fn handle(&self, _endpoint: &ClientEndpoint, request: Vec<u8>) -> Result<Vec<u8>, Error> {
-        let client = match Web3ContractClientBackend::new(&self.host, self.port) {
-            Ok(client) => client,
-            _ => return Err(Error::RpcRouterCallFailed),
-        };
-
-        match client.call_raw(request) {
+        // Currently all OCALLs are blocking so this handler is blocking as well.
+        match self.client.call_raw(request).wait() {
             Ok(response) => Ok(response),
             _ => Err(Error::RpcRouterCallFailed),
         }

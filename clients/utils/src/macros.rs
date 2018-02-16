@@ -33,7 +33,17 @@ macro_rules! default_app {
 
 #[macro_export]
 macro_rules! default_backend {
-    ($args:ident) => {
+    ($args:ident) => {{
+        // Create reactor (event loop) in a separate thread.
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut reactor = tokio_core::reactor::Core::new().unwrap();
+            tx.send(reactor.remote()).unwrap();
+            reactor.run(futures::empty::<(), ()>()).unwrap();
+        });
+
+        let remote = rx.recv().unwrap();
+
         if $args.is_present("nodes") {
             // Pool of compute nodes.
             use std::str::FromStr;
@@ -53,14 +63,18 @@ macro_rules! default_backend {
                 })
                 .collect();
 
-            compute_client::backend::Web3ContractClientBackend::new_pool(&nodes).unwrap()
+            compute_client::backend::Web3ContractClientBackend::new_pool(
+                remote,
+                &nodes
+            ).unwrap()
         } else {
             compute_client::backend::Web3ContractClientBackend::new(
+                remote,
                 $args.value_of("host").unwrap(),
                 value_t!($args, "port", u16).unwrap_or(9001)
             ).unwrap()
         }
-    };
+    }};
 }
 
 #[macro_export]
@@ -69,7 +83,7 @@ macro_rules! contract_client {
         $contract::Client::new(
             $backend,
             value_t!($args, "mr-enclave", libcontract_common::quote::MrEnclave).unwrap_or_else(|e| e.exit())
-        ).unwrap()
+        )
     };
     ($contract:ident, $args:ident) => {
         {
