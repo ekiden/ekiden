@@ -1,19 +1,38 @@
 [workspace]
 members = [
-  "abci",
-  "compute",
-  "compute-client",
-  "consensus",
+    "tools",
 
-  # Key manager is special and must be built before libcontract-trusted in
-  # order for libcontract-trusted to include its MRENCLAVE.
-  "contracts/key-manager",
-  "libcontract/trusted",
+    # Key manager is special and must be built before ekiden-rpc-trusted in
+    # order for ekiden-rpc-trusted to include its MRENCLAVE.
+    "contracts/key-manager",
 
-  "contracts/token",
+    "contracts/token",
 
-  "libcontract/common",
-  "libcontract/untrusted",
+    # Enclave loader.
+    "enclave/common",
+    "enclave/untrusted",
 
-  "tools",
+    # RPC (+ attestation).
+    "rpc/common",
+    "rpc/client",
+    "rpc/untrusted",
+    "rpc/trusted",
+
+    # Database.
+    "db/untrusted",
+    "db/trusted",
+
+    # Core.
+    "core/common",
+    "core/untrusted",
+    "core/trusted",
+
+    # Compute node.
+    "compute",
+
+    # Consensus node.
+    "consensus",
+
+    # Clients.
+    "clients/token",
 ]

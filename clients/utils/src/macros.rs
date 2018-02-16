@@ -47,7 +47,7 @@ macro_rules! default_backend {
         if $args.is_present("nodes") {
             // Pool of compute nodes.
             use std::str::FromStr;
-            use compute_client::backend::web3::ComputeNodeAddress;
+            use ekiden_rpc_client::backend::web3::ComputeNodeAddress;
 
             let nodes: Vec<ComputeNodeAddress> = $args
                 .value_of("nodes")
@@ -63,12 +63,12 @@ macro_rules! default_backend {
                 })
                 .collect();
 
-            compute_client::backend::Web3ContractClientBackend::new_pool(
+            ekiden_rpc_client::backend::Web3ContractClientBackend::new_pool(
                 remote,
                 &nodes
             ).unwrap()
         } else {
-            compute_client::backend::Web3ContractClientBackend::new(
+            ekiden_rpc_client::backend::Web3ContractClientBackend::new(
                 remote,
                 $args.value_of("host").unwrap(),
                 value_t!($args, "port", u16).unwrap_or(9001)
@@ -82,7 +82,7 @@ macro_rules! contract_client {
     ($contract:ident, $args:ident, $backend:ident) => {
         $contract::Client::new(
             $backend,
-            value_t!($args, "mr-enclave", libcontract_common::quote::MrEnclave).unwrap_or_else(|e| e.exit())
+            value_t!($args, "mr-enclave", ekiden_core_common::quote::MrEnclave).unwrap_or_else(|e| e.exit())
         )
     };
     ($contract:ident, $args:ident) => {

@@ -17,10 +17,9 @@ extern crate hyper;
 #[macro_use]
 extern crate prometheus;
 
-extern crate compute_client;
-#[macro_use]
-extern crate libcontract_common;
-extern crate libcontract_untrusted;
+extern crate ekiden_core_common;
+extern crate ekiden_core_untrusted;
+extern crate ekiden_rpc_client;
 
 mod generated;
 mod ias;
@@ -32,8 +31,8 @@ use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 
-use libcontract_common::client::ClientEndpoint;
-use libcontract_untrusted::router::RpcRouter;
+use ekiden_core_common::rpc::client::ClientEndpoint;
+use ekiden_core_untrusted::rpc::router::RpcRouter;
 
 use clap::{App, Arg};
 use generated::compute_web3_grpc::ComputeServer;

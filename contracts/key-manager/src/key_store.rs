@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::{SgxMutex, SgxMutexGuard};
 
-use libcontract_common::{random, ContractError};
-use libcontract_common::quote::MrEnclave;
+use ekiden_core_common::{random, Error, Result};
+use ekiden_core_common::quote::MrEnclave;
 
 /// Key store, which actually stores the key manager keys.
 pub struct KeyStore {
@@ -34,9 +34,9 @@ impl KeyStore {
     }
 
     /// Generate a new random key.
-    pub fn generate_key(size: usize) -> Result<Vec<u8>, ContractError> {
+    pub fn generate_key(size: usize) -> Result<Vec<u8>> {
         if size > KeyStore::MAX_KEY_SIZE {
-            return Err(ContractError::new("Key too large"));
+            return Err(Error::new("Key too large"));
         }
 
         let mut key = vec![0; size];
@@ -55,7 +55,7 @@ impl KeyStore {
         mr_enclave: &MrEnclave,
         name: &str,
         size: usize,
-    ) -> Result<Vec<u8>, ContractError> {
+    ) -> Result<Vec<u8>> {
         let key = match self.keys.entry(mr_enclave.clone()) {
             Entry::Occupied(mut entry) => {
                 // This enclave already has some keys stored. Check if it also stores
@@ -83,7 +83,7 @@ impl KeyStore {
 
         // Check key length.
         if key.len() != size {
-            return Err(ContractError::new("Existing key with incompatible length"));
+            return Err(Error::new("Existing key with incompatible length"));
         }
 
         Ok(key)

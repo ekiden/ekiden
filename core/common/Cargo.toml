@@ -1,0 +1,16 @@
+[package]
+name = "ekiden-core-common"
+version = "0.1.0"
+authors = [
+    "Jernej Kos <jernej@kos.mx>"
+]
+
+[features]
+default = ["no-sgx"]
+no-sgx = ["ekiden-enclave-common/no-sgx", "ekiden-rpc-common/no-sgx"]
+sgx = ["sgx_tstd", "ekiden-enclave-common/sgx", "ekiden-rpc-common/sgx"]
+
+[dependencies]
+ekiden-enclave-common = { path = "../../enclave/common", default-features = false }
+ekiden-rpc-common = { path = "../../rpc/common", default-features = false }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }

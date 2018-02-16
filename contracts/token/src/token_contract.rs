@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 
-use libcontract_common::{Address, Contract, ContractError};
+use ekiden_core_common::{Error, Result};
+use ekiden_core_common::contract::{Address, Contract};
 
 use token_api::TokenState;
 
@@ -36,31 +37,26 @@ impl TokenContract {
     }
 
     // PRIVATE METHODS
-    fn get_from_balance(&self, addr: &Address, value: u64) -> Result<u64, ContractError> {
+    fn get_from_balance(&self, addr: &Address, value: u64) -> Result<u64> {
         match self.balance_of.get(addr.as_str()) {
-            None => Err(ContractError::new("Nonexistent `from` account")),
-            Some(b) if *b < value => Err(ContractError::new("Insufficient `from` balance")),
+            None => Err(Error::new("Nonexistent `from` account")),
+            Some(b) if *b < value => Err(Error::new("Insufficient `from` balance")),
             Some(b) => Ok(*b),
         }
     }
 
-    fn get_to_balance(&self, addr: &Address) -> Result<u64, ContractError> {
+    fn get_to_balance(&self, addr: &Address) -> Result<u64> {
         match self.balance_of.get(addr.as_str()) {
             Some(b) => Ok(*b),
             None => Ok(0),
         }
     }
 
-    fn do_transfer(
-        &mut self,
-        from: &Address,
-        to: &Address,
-        value: u64,
-    ) -> Result<(), ContractError> {
+    fn do_transfer(&mut self, from: &Address, to: &Address, value: u64) -> Result<()> {
         let from_balance = self.get_from_balance(from, value)?;
         let to_balance = self.get_to_balance(to)?;
         if to_balance + value <= to_balance {
-            return Err(ContractError::new(
+            return Err(Error::new(
                 "Transfer value too large, overflow `to` account",
             ));
         }
@@ -85,28 +81,23 @@ impl TokenContract {
 
     // PUBLIC METHODS
     // - callable over RPC
-    pub fn get_name(&self) -> Result<String, ContractError> {
+    pub fn get_name(&self) -> Result<String> {
         Ok(self.name.clone())
     }
 
-    pub fn get_symbol(&self) -> Result<String, ContractError> {
+    pub fn get_symbol(&self) -> Result<String> {
         Ok(self.symbol.clone())
     }
 
-    pub fn get_balance(&self, msg_sender: &Address) -> Result<u64, ContractError> {
+    pub fn get_balance(&self, msg_sender: &Address) -> Result<u64> {
         self.get_to_balance(msg_sender)
     }
 
-    pub fn transfer(
-        &mut self,
-        msg_sender: &Address,
-        to: &Address,
-        value: u64,
-    ) -> Result<(), ContractError> {
+    pub fn transfer(&mut self, msg_sender: &Address, to: &Address, value: u64) -> Result<()> {
         self.do_transfer(msg_sender, to, value)
     }
 
-    pub fn burn(&mut self, msg_sender: &Address, value: u64) -> Result<(), ContractError> {
+    pub fn burn(&mut self, msg_sender: &Address, value: u64) -> Result<()> {
         let from_balance = self.get_from_balance(msg_sender, value)?;
         self.balance_of
             .insert(msg_sender.to_string(), from_balance - value);

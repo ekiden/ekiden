@@ -1,3 +1,5 @@
+#![feature(use_extern_macros)]
+
 #[macro_use]
 extern crate clap;
 extern crate futures;
@@ -6,25 +8,26 @@ extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
-#[macro_use]
-extern crate compute_client;
-extern crate libcontract_common;
+extern crate ekiden_core_common;
+extern crate ekiden_rpc_client;
 
-#[macro_use]
 extern crate token_api;
 
 use clap::{App, Arg};
-
+use futures::future::Future;
 use rand::{thread_rng, Rng};
 
-use futures::future::Future;
+use ekiden_rpc_client::create_client_rpc;
+use token_api::with_api;
 
-create_client_api!();
+with_api! {
+    create_client_rpc!(token, token_api, api);
+}
 
 /// Initializes the token scenario.
 fn init<Backend>(client: &mut token::Client<Backend>, _runs: usize, _threads: usize)
 where
-    Backend: compute_client::backend::ContractClientBackend,
+    Backend: ekiden_rpc_client::backend::ContractClientBackend,
 {
     // Create new token contract.
     let mut request = token::CreateRequest::new();
@@ -55,7 +58,7 @@ fn create_address() -> String {
 /// Runs the token scenario.
 fn scenario<Backend>(client: &mut token::Client<Backend>)
 where
-    Backend: compute_client::backend::ContractClientBackend,
+    Backend: ekiden_rpc_client::backend::ContractClientBackend,
 {
     // Generate random addresses.
     let destination = create_address();
@@ -98,7 +101,7 @@ where
 /// Finalize the token scenario.
 fn finalize<Backend>(client: &mut token::Client<Backend>, runs: usize, _threads: usize)
 where
-    Backend: compute_client::backend::ContractClientBackend,
+    Backend: ekiden_rpc_client::backend::ContractClientBackend,
 {
     // Check final balance.
     let response = client

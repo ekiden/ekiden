@@ -1,0 +1,14 @@
+[package]
+name = "ekiden-core-untrusted"
+version = "0.1.0"
+authors = [
+    "Jernej Kos <jernej@kos.mx>"
+]
+
+[dependencies]
+ekiden-enclave-untrusted = { path = "../../enclave/untrusted" }
+ekiden-rpc-untrusted = { path = "../../rpc/untrusted" }
+ekiden-db-untrusted = { path = "../../db/untrusted" }
+
+[build-dependencies]
+ekiden-tools = { path = "../../tools" }

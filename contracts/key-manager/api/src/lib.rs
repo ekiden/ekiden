@@ -7,7 +7,7 @@ extern crate protobuf;
 extern crate sgx_tstd as std;
 
 #[macro_use]
-extern crate libcontract_common;
+extern crate ekiden_core_common;
 
 #[cfg_attr(feature = "sgx", allow(unused))]
 #[cfg_attr(feature = "sgx", prelude_import)]

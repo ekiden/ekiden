@@ -1,0 +1,12 @@
+[package]
+name = "ekiden-core-trusted"
+version = "0.1.0"
+authors = [
+    "Raymond Cheng <me@raymondcheng.net>",
+    "Jernej Kos <jernej@kos.mx>"
+]
+
+[dependencies]
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+ekiden-rpc-trusted = { path = "../../rpc/trusted" }
+ekiden-db-trusted = { path = "../../db/trusted" }

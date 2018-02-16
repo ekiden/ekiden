@@ -1,3 +1,4 @@
+#![feature(use_extern_macros)]
 #![feature(prelude_import)]
 #![no_std]
 
@@ -6,9 +7,8 @@ extern crate sgx_tstd as std;
 
 extern crate protobuf;
 
-extern crate libcontract_common;
-#[macro_use]
-extern crate libcontract_trusted;
+extern crate ekiden_core_common;
+extern crate ekiden_core_trusted;
 
 #[macro_use]
 extern crate token_api;
@@ -19,15 +19,21 @@ use std::prelude::v1::*;
 
 mod token_contract;
 
-use token_api::{CreateRequest, CreateResponse, GetBalanceRequest, GetBalanceResponse, TokenState,
+use token_api::{with_api, CreateRequest, CreateResponse, GetBalanceRequest, GetBalanceResponse,
                 TransferRequest, TransferResponse};
 use token_contract::TokenContract;
 
-use libcontract_common::{with_contract_state, Address, Contract, ContractError};
+use ekiden_core_common::Result;
+use ekiden_core_common::contract::{with_contract_state, Address, Contract};
+use ekiden_core_trusted::db::Db;
+use ekiden_core_trusted::rpc::create_enclave_rpc;
 
-create_enclave_api!();
+// Create enclave RPC handlers.
+with_api! {
+    create_enclave_rpc!(api);
+}
 
-fn create(request: &CreateRequest) -> Result<(TokenState, CreateResponse), ContractError> {
+fn create(request: &CreateRequest) -> Result<CreateResponse> {
     let contract = TokenContract::new(
         &Address::from(request.get_sender().to_string()),
         request.get_initial_supply(),
@@ -35,16 +41,14 @@ fn create(request: &CreateRequest) -> Result<(TokenState, CreateResponse), Contr
         request.get_token_symbol().to_string(),
     );
 
-    let response = CreateResponse::new();
+    Db::instance().set("state", contract.get_state())?;
 
-    Ok((contract.get_state(), response))
+    Ok(CreateResponse::new())
 }
 
-fn transfer(
-    state: &TokenState,
-    request: &TransferRequest,
-) -> Result<(TokenState, TransferResponse), ContractError> {
-    let state = with_contract_state(state, |contract: &mut TokenContract| {
+fn transfer(request: &TransferRequest) -> Result<TransferResponse> {
+    let state = Db::instance().get("state")?;
+    let state = with_contract_state(&state, |contract: &mut TokenContract| {
         contract.transfer(
             &Address::from(request.get_sender().to_string()),
             &Address::from(request.get_destination().to_string()),
@@ -54,16 +58,13 @@ fn transfer(
         Ok(())
     })?;
 
-    let response = TransferResponse::new();
+    Db::instance().set("state", state)?;
 
-    Ok((state, response))
+    Ok(TransferResponse::new())
 }
 
-fn get_balance(
-    state: &TokenState,
-    request: &GetBalanceRequest,
-) -> Result<GetBalanceResponse, ContractError> {
-    let contract = TokenContract::from_state(state);
+fn get_balance(request: &GetBalanceRequest) -> Result<GetBalanceResponse> {
+    let contract = TokenContract::from_state(&Db::instance().get("state")?);
     let balance = contract.get_balance(&Address::from(request.get_account().to_string()))?;
 
     let mut response = GetBalanceResponse::new();

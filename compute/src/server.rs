@@ -11,13 +11,14 @@ use futures::sync::oneshot;
 use time;
 
 use std;
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt::Write;
 use std::sync::Mutex;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-use libcontract_common::api;
-use libcontract_untrusted::enclave;
+use ekiden_core_common::{Error, Result};
+use ekiden_core_common::rpc::api;
+use ekiden_core_untrusted::{Enclave, EnclaveDb, EnclaveRpc};
 
 use super::generated::compute_web3::{CallContractRequest, CallContractResponse};
 use super::generated::compute_web3_grpc::Compute;
@@ -32,8 +33,7 @@ struct QueuedRequest {
     rpc_request: CallContractRequest,
     /// This is a channel where the worker should send the response. The channel is only
     /// available until it has been used for sending a response and is None afterwards.
-    response_sender:
-        Option<oneshot::Sender<Result<CallContractResponse, Box<Error + Sync + Send + 'static>>>>,
+    response_sender: Option<oneshot::Sender<Result<CallContractResponse>>>,
 }
 
 /// This struct associates a response with a request.
@@ -42,11 +42,11 @@ struct QueuedResponse<'a> {
     /// will be sending the response.
     queued_request: &'a mut QueuedRequest,
     /// This is the response.
-    response: Result<CallContractResponse, Box<Error + Sync + Send + 'static>>,
+    response: Result<CallContractResponse>,
 }
 
 struct CachedStateInitialized {
-    encrypted_state: api::CryptoSecretbox,
+    encrypted_state: Vec<u8>,
     height: u64,
 }
 
@@ -54,7 +54,7 @@ struct ComputeServerWorker {
     /// Consensus client.
     consensus: Option<consensus_grpc::ConsensusClient>,
     /// Contract running in an enclave.
-    contract: enclave::EkidenEnclave,
+    contract: Enclave,
     /// Cached state reconstituted from checkpoint and diffs. None if
     /// cache or state is uninitialized.
     cached_state: Option<CachedStateInitialized>,
@@ -100,9 +100,9 @@ impl ComputeServerWorker {
     }
 
     /// Create an instance of the contract.
-    fn create_contract(contract_filename: &str) -> enclave::EkidenEnclave {
+    fn create_contract(contract_filename: &str) -> Enclave {
         // TODO: Handle contract initialization errors.
-        let contract = enclave::EkidenEnclave::new(contract_filename).unwrap();
+        let contract = Enclave::new(contract_filename).unwrap();
 
         // Initialize contract.
         // TODO: Support contract restore.
@@ -129,49 +129,37 @@ impl ComputeServerWorker {
         }
     }
 
-    fn set_cached_state(
-        &mut self,
-        checkpoint: &consensus::Checkpoint,
-    ) -> Result<(), Box<Error + Sync + Send + 'static>> {
+    fn set_cached_state(&mut self, checkpoint: &consensus::Checkpoint) -> Result<()> {
         self.cached_state = Some(CachedStateInitialized {
-            encrypted_state: protobuf::parse_from_bytes(checkpoint.get_payload())?,
+            encrypted_state: checkpoint.get_payload().to_vec(),
             height: checkpoint.get_height(),
         });
         Ok(())
     }
 
-    fn advance_cached_state(
-        &mut self,
-        diffs: &[Vec<u8>],
-    ) -> Result<api::CryptoSecretbox, Box<Error + Sync + Send + 'static>> {
+    fn advance_cached_state(&mut self, diffs: &[Vec<u8>]) -> Result<Vec<u8>> {
         #[cfg(feature = "no_diffs")]
         assert!(
             diffs.is_empty(),
             "attempted to apply diffs in a no_diffs build"
         );
 
-        let csi = self.cached_state
-            .as_mut()
-            .ok_or::<Box<Error + Sync + Send + 'static>>(From::from(
-                "advance_cached_state called with uninitialized cached state",
-            ))?;
+        let csi = self.cached_state.as_mut().ok_or(Error::new(
+            "advance_cached_state called with uninitialized cached state",
+        ))?;
+
         for diff in diffs {
-            let mut res: api::StateApplyResponse = self.contract.call(api::METHOD_STATE_APPLY, &{
-                let mut req = api::StateApplyRequest::new();
-                req.set_old(csi.encrypted_state.clone());
-                req.set_diff(protobuf::parse_from_bytes(diff)?);
-                req
-            })?;
-            csi.encrypted_state = res.take_new();
+            csi.encrypted_state = self.contract.db_state_apply(&csi.encrypted_state, &diff)?;
             csi.height += 1;
         }
+
         Ok(csi.encrypted_state.clone())
     }
 
     fn call_contract_batch_fallible<'a>(
         &mut self,
         request_batch: &'a mut [QueuedRequest],
-    ) -> Result<Vec<QueuedResponse<'a>>, Box<Error + Sync + Send + 'static>> {
+    ) -> Result<Vec<QueuedResponse<'a>>> {
         // Get state updates from consensus
         let encrypted_state_opt = if self.consensus.is_some() {
             let _consensus_get_timer = self.ins.consensus_get_time.start_timer();
@@ -240,7 +228,7 @@ impl ComputeServerWorker {
 
         // Add state if it is available.
         if let Some(encrypted_state) = encrypted_state_opt {
-            enclave_request.set_encrypted_state(encrypted_state);
+            self.contract.db_state_set(&encrypted_state)?;
         }
 
         let enclave_request_bytes = enclave_request.write_to_bytes()?;
@@ -249,15 +237,14 @@ impl ComputeServerWorker {
             self.contract.call_raw(enclave_request_bytes)
         }?;
 
-        let mut enclave_response: api::EnclaveResponse =
+        let enclave_response: api::EnclaveResponse =
             protobuf::parse_from_bytes(&enclave_response_bytes)?;
 
         // Assert equal number of responses, fail otherwise (corrupted response).
         if enclave_response.get_client_response().len() != request_batch.len() {
-            // TODO: Use proper error class.
-            return Err(Box::new(grpc::Error::Panic(
-                "Corrupted response (response count != request count)".to_string(),
-            )));
+            return Err(Error::new(
+                "Corrupted response (response count != request count)",
+            ));
         }
 
         let mut response_batch = vec![];
@@ -275,32 +262,28 @@ impl ComputeServerWorker {
 
         // Check if any state was produced. In case no state was produced, this means that
         // no request caused a state update and thus no state update is required.
-        if enclave_response.has_encrypted_state() {
-            let encrypted_state = enclave_response.take_encrypted_state();
-
+        let encrypted_state = self.contract.db_state_get()?;
+        if !encrypted_state.is_empty() {
             let _consensus_set_timer = self.ins.consensus_set_time.start_timer();
             match orig_encrypted_state_opt {
                 Some(orig_encrypted_state) => {
-                    let diff_res: api::StateDiffResponse =
-                        self.contract.call(api::METHOD_STATE_DIFF, &{
-                            let mut diff_req = api::StateDiffRequest::new();
-                            diff_req.set_old(orig_encrypted_state);
-                            diff_req.set_new(encrypted_state);
-                            diff_req
-                        })?;
+                    let diff_res = self.contract
+                        .db_state_diff(&orig_encrypted_state, &encrypted_state)?;
+
                     self.consensus
                         .as_ref()
                         .unwrap()
                         .add_diff(grpc::RequestOptions::new(), {
                             let mut add_diff_req = consensus::AddDiffRequest::new();
-                            add_diff_req.set_payload(diff_res.get_diff().write_to_bytes()?);
+                            add_diff_req.set_payload(diff_res);
                             add_diff_req
                         })
                         .wait()?;
                 }
                 None => {
                     let mut consensus_replace_request = consensus::ReplaceRequest::new();
-                    consensus_replace_request.set_payload(encrypted_state.write_to_bytes()?);
+                    consensus_replace_request.set_payload(encrypted_state);
+
                     self.consensus
                         .as_ref()
                         .unwrap()
@@ -315,7 +298,7 @@ impl ComputeServerWorker {
 
     fn call_contract_batch(&mut self, mut request_batch: Vec<QueuedRequest>) {
         // Contains a batch-wide error if one has occurred.
-        let batch_error: Option<String>;
+        let batch_error: Option<Error>;
 
         {
             match self.call_contract_batch_fallible(&mut request_batch) {
@@ -337,7 +320,7 @@ impl ComputeServerWorker {
                     // must first drop the mutable request_batch reference.
                     eprintln!("compute: batch-wide error {:?}", error);
 
-                    batch_error = Some(String::from(error.description()));
+                    batch_error = Some(error);
                 }
             }
         }
@@ -346,10 +329,7 @@ impl ComputeServerWorker {
         let batch_error = batch_error.as_ref().unwrap();
         for mut queued_request in request_batch {
             let sender = queued_request.response_sender.take().unwrap();
-            sender
-                // TODO: Use proper error class.
-                .send(Err(Box::new(grpc::Error::Panic(batch_error.clone()))))
-                .unwrap();
+            sender.send(Err(batch_error.clone())).unwrap();
         }
     }
 
@@ -460,8 +440,8 @@ impl Compute for ComputeServerImpl {
         // Prepare response future.
         grpc::SingleResponse::no_metadata(response_receiver.then(|result| match result {
             Ok(Ok(response)) => Ok(response),
-            Ok(Err(error)) => Err(grpc::Error::Panic(error.description().to_string())),
-            Err(error) => Err(grpc::Error::Panic(error.description().to_string())),
+            Ok(Err(error)) => Err(grpc::Error::Panic(error.description().to_owned())),
+            Err(error) => Err(grpc::Error::Panic(error.description().to_owned())),
         }))
     }
 }

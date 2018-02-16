@@ -1,0 +1,11 @@
+[package]
+name = "ekiden-core-edl"
+version = "0.1.0"
+authors = [
+    "Jernej Kos <jernej@kos.mx>"
+]
+
+[dependencies]
+ekiden-tools = { path = "../../tools" }
+ekiden-rpc-edl = { path = "../../rpc/edl" }
+ekiden-db-edl = { path = "../../db/edl" }

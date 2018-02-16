@@ -1,3 +1,4 @@
+extern crate ekiden_core_edl;
 extern crate ekiden_tools;
 extern crate protoc_rust_grpc;
 
@@ -30,5 +31,5 @@ fn main() {
         "../consensus/src/consensus.proto"
     );
 
-    ekiden_tools::build_untrusted();
+    ekiden_tools::build_untrusted(ekiden_core_edl::edl());
 }
