@@ -10,6 +10,7 @@ In this module, an enclave persistence maintains an identity for itself.
 * ECALL `createId() -> sealedId`: Generates an identity for a new enclave persistence and exports it in a sealed form.
 * ECALL `restoreId(sealedId) -> void`: Populates an enclave launch with an identity. The enclave launch caches the identity in ephemeral enclave memory so that we don't have to pass the sealed ID and unseal it for every entry.
 * ECALL `createReport(targetInfo) -> report`: Create a report with data as specified below.
+* ECALL `setAvReport(avReport) -> void`: Populates an enclave launch with an attestation verification report (AVR). The enclave launch caches the AVR for internal use, for example, as part of its own enclave identity proof (specified below).
 
 ## Public identity string
 The public identity of an enclave persistence established this way is a string that canonically encodes the public parts of the identity.
