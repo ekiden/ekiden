@@ -20,12 +20,11 @@ use ekiden_core_common::{Error, Result};
 use ekiden_core_common::rpc::api;
 use ekiden_core_untrusted::{Enclave, EnclaveDb, EnclaveRpc};
 
-use super::generated::compute_web3::{CallContractRequest, CallContractResponse};
-use super::generated::compute_web3_grpc::Compute;
 use super::generated::consensus;
 use super::generated::consensus_grpc;
 use super::generated::consensus_grpc::Consensus;
 use super::instrumentation;
+use compute_api::{CallContractRequest, CallContractResponse, Compute};
 
 /// This struct describes a call sent to the worker thread.
 struct QueuedRequest {

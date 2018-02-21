@@ -2,6 +2,8 @@
 #![cfg_attr(feature = "sgx", feature(prelude_import))]
 
 #[cfg(not(feature = "sgx"))]
+extern crate compute_api;
+#[cfg(not(feature = "sgx"))]
 extern crate grpc;
 #[cfg(not(feature = "sgx"))]
 extern crate rand;
@@ -27,9 +29,6 @@ extern crate sodalite;
 
 extern crate ekiden_enclave_common;
 extern crate ekiden_rpc_common;
-
-#[cfg(not(feature = "sgx"))]
-mod generated;
 
 pub mod backend;
 mod secure_channel;

@@ -2,11 +2,10 @@
 name = "ekiden-rpc-client"
 version = "0.1.0"
 authors = ["Jernej Kos <jernej@kos.mx>"]
-build = "build.rs"
 
 [features]
 default = ["no-sgx"]
-no-sgx = ["protobuf", "rand", "grpc", "tls-api", "httpbis", "futures", "tokio-core", "ekiden-rpc-common/no-sgx", "ekiden-enclave-common/no-sgx"]
+no-sgx = ["protobuf", "rand", "grpc", "tls-api", "httpbis", "futures", "tokio-core", "compute-api", "ekiden-rpc-common/no-sgx", "ekiden-enclave-common/no-sgx"]
 sgx = ["protobuf-sgx", "sgx_types", "sgx_tstd", "sgx_trts", "futures-sgx", "ekiden-rpc-common/sgx", "ekiden-enclave-common/sgx"]
 
 [dependencies]
@@ -27,6 +26,7 @@ ekiden-enclave-common = { path = "../../enclave/common", default-features = fals
 futures = { version = "0.1", optional = true }
 futures-sgx = { git = "https://github.com/ekiden/futures-rs", optional = true }
 tokio-core = { version = "0.1", optional = true }
+compute-api = { path = "../../compute/api", optional = true }
 
 [build-dependencies]
 ekiden-tools = { path = "../../tools" }

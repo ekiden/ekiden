@@ -15,6 +15,7 @@ no_diffs = []
 ekiden-core-common = { path = "../core/common" }
 ekiden-core-untrusted = { path = "../core/untrusted" }
 ekiden-rpc-client = { path = "../rpc/client" }
+compute-api = { path = "./api" }
 protobuf = "1.4.2"
 grpc = "0.2.1"
 futures = "0.1"

@@ -13,8 +13,7 @@ use ekiden_enclave_common::error::{Error, Result};
 use ekiden_enclave_common::quote::AttestationReport;
 use ekiden_rpc_common::api;
 
-use super::super::generated::compute_web3::CallContractRequest;
-use super::super::generated::compute_web3_grpc::{Compute, ComputeClient};
+use compute_api::{CallContractRequest, Compute, ComputeClient};
 
 use super::ContractClientBackend;
 use super::super::future::ClientFuture;

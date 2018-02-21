@@ -21,7 +21,8 @@ extern crate ekiden_core_common;
 extern crate ekiden_core_untrusted;
 extern crate ekiden_rpc_client;
 
-mod generated;
+extern crate compute_api;
+
 mod ias;
 mod instrumentation;
 mod handlers;
@@ -35,7 +36,7 @@ use ekiden_core_common::rpc::client::ClientEndpoint;
 use ekiden_core_untrusted::rpc::router::RpcRouter;
 
 use clap::{App, Arg};
-use generated::compute_web3_grpc::ComputeServer;
+use compute_api::ComputeServer;
 use server::ComputeServerImpl;
 
 fn main() {
