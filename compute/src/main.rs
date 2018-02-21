@@ -22,6 +22,7 @@ extern crate ekiden_core_untrusted;
 extern crate ekiden_rpc_client;
 
 extern crate compute_api;
+extern crate consensus_api;
 
 mod ias;
 mod instrumentation;

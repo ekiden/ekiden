@@ -5,6 +5,7 @@ authors = ["Ekiden Developers <ekiden-dev@googlegroups.com>"]
 build = "build.rs"
 
 [dependencies]
+consensus-api = { path = "./api" }
 abci = { git = "https://github.com/ekiden/abci" }
 clap = "2.29.1"
 futures = "0.1"

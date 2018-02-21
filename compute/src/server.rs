@@ -20,11 +20,10 @@ use ekiden_core_common::{Error, Result};
 use ekiden_core_common::rpc::api;
 use ekiden_core_untrusted::{Enclave, EnclaveDb, EnclaveRpc};
 
-use super::generated::consensus;
-use super::generated::consensus_grpc;
-use super::generated::consensus_grpc::Consensus;
-use super::instrumentation;
 use compute_api::{CallContractRequest, CallContractResponse, Compute};
+use consensus_api::{self, Consensus, ConsensusClient};
+
+use super::instrumentation;
 
 /// This struct describes a call sent to the worker thread.
 struct QueuedRequest {
@@ -51,7 +50,7 @@ struct CachedStateInitialized {
 
 struct ComputeServerWorker {
     /// Consensus client.
-    consensus: Option<consensus_grpc::ConsensusClient>,
+    consensus: Option<ConsensusClient>,
     /// Contract running in an enclave.
     contract: Enclave,
     /// Cached state reconstituted from checkpoint and diffs. None if
@@ -81,7 +80,7 @@ impl ComputeServerWorker {
             max_batch_size: max_batch_size,
             max_batch_timeout: max_batch_timeout,
             // TODO: Use TLS client.
-            consensus: match consensus_grpc::ConsensusClient::new_plain(
+            consensus: match ConsensusClient::new_plain(
                 &consensus_host,
                 consensus_port,
                 Default::default(),
@@ -128,7 +127,7 @@ impl ComputeServerWorker {
         }
     }
 
-    fn set_cached_state(&mut self, checkpoint: &consensus::Checkpoint) -> Result<()> {
+    fn set_cached_state(&mut self, checkpoint: &consensus_api::Checkpoint) -> Result<()> {
         self.cached_state = Some(CachedStateInitialized {
             encrypted_state: checkpoint.get_payload().to_vec(),
             height: checkpoint.get_height(),
@@ -174,7 +173,7 @@ impl ComputeServerWorker {
                         .as_ref()
                         .unwrap()
                         .get_diffs(grpc::RequestOptions::new(), {
-                            let mut consensus_request = consensus::GetDiffsRequest::new();
+                            let mut consensus_request = consensus_api::GetDiffsRequest::new();
                             consensus_request.set_since_height(height);
                             consensus_request
                         })
@@ -188,7 +187,10 @@ impl ComputeServerWorker {
                     if let Ok((_, consensus_response, _)) = self.consensus
                         .as_ref()
                         .unwrap()
-                        .get(grpc::RequestOptions::new(), consensus::GetRequest::new())
+                        .get(
+                            grpc::RequestOptions::new(),
+                            consensus_api::GetRequest::new(),
+                        )
                         .wait()
                     {
                         self.set_cached_state(consensus_response.get_checkpoint())?;
@@ -273,14 +275,14 @@ impl ComputeServerWorker {
                         .as_ref()
                         .unwrap()
                         .add_diff(grpc::RequestOptions::new(), {
-                            let mut add_diff_req = consensus::AddDiffRequest::new();
+                            let mut add_diff_req = consensus_api::AddDiffRequest::new();
                             add_diff_req.set_payload(diff_res);
                             add_diff_req
                         })
                         .wait()?;
                 }
                 None => {
-                    let mut consensus_replace_request = consensus::ReplaceRequest::new();
+                    let mut consensus_replace_request = consensus_api::ReplaceRequest::new();
                     consensus_replace_request.set_payload(encrypted_state);
 
                     self.consensus

@@ -9,7 +9,8 @@ use protobuf;
 use std;
 use std::sync::{Arc, Mutex};
 
-use generated::consensus;
+use consensus_api;
+
 use state;
 
 //#[derive(Copy, Clone)]
@@ -25,7 +26,7 @@ impl Ekidenmint {
 
     pub fn deliver_tx_fallible(&self, tx: &[u8]) -> Result<(), Box<std::error::Error>> {
         state::State::check_tx(tx)?;
-        let mut stored: consensus::StoredTx = protobuf::parse_from_bytes(tx)?;
+        let mut stored: consensus_api::StoredTx = protobuf::parse_from_bytes(tx)?;
         // Set the state
         let mut s = self.state.lock().unwrap();
         if stored.has_replace() {
