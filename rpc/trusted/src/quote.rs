@@ -3,9 +3,9 @@ use sgx_types::*;
 
 use sodalite;
 
-use ekiden_enclave_common::error::{Error, Result};
+use ekiden_common::error::{Error, Result};
+use ekiden_common::random;
 use ekiden_enclave_common::quote::*;
-use ekiden_enclave_common::random;
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::client::ClientEndpoint;
 

@@ -5,7 +5,8 @@ use base64;
 use byteorder::{LittleEndian, ReadBytesExt};
 use serde_json;
 
-use super::error::{Error, Result};
+use ekiden_common::error::{Error, Result};
+use ekiden_common::hex_encoded_struct;
 
 pub const QUOTE_CONTEXT_LEN: usize = 8;
 pub type QuoteContext = [u8; QUOTE_CONTEXT_LEN];

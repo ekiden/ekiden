@@ -2,7 +2,7 @@ use sodalite;
 
 use futures::future::{self, Future};
 
-use ekiden_enclave_common::error::Result;
+use ekiden_common::error::Result;
 use ekiden_enclave_common::quote::{AttestationReport, QUOTE_CONTEXT_SC};
 use ekiden_rpc_client::ClientFuture;
 use ekiden_rpc_client::backend::ContractClientBackend;

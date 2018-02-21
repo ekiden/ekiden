@@ -8,6 +8,7 @@ extern crate sgx_tstd as std;
 #[macro_use]
 extern crate lazy_static;
 
+extern crate ekiden_common;
 extern crate ekiden_enclave_common;
 extern crate ekiden_rpc_client;
 extern crate ekiden_rpc_common;

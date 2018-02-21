@@ -3,8 +3,8 @@ use sodalite;
 use protobuf;
 use protobuf::Message;
 
-use ekiden_enclave_common::error::Result;
-use ekiden_enclave_common::random;
+use ekiden_common::error::Result;
+use ekiden_common::random;
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::secure_channel::{create_box, open_box, MonotonicNonceGenerator,
                                         NonceGenerator, RandomNonceGenerator, SessionState,

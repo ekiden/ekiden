@@ -1,7 +1,7 @@
 extern crate sgx_types;
 extern crate sgx_urts;
 
-extern crate ekiden_enclave_common;
+extern crate ekiden_common;
 
 pub mod enclave;
 

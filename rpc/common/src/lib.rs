@@ -12,7 +12,7 @@ extern crate sgx_tstd as std;
 #[cfg(feature = "sgx")]
 extern crate sgx_trts;
 
-extern crate ekiden_enclave_common;
+extern crate ekiden_common;
 
 #[cfg_attr(feature = "sgx", allow(unused))]
 #[cfg_attr(feature = "sgx", prelude_import)]

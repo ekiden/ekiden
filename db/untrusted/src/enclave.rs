@@ -1,6 +1,6 @@
 use sgx_types::*;
 
-use ekiden_enclave_common::error::{Error, Result};
+use ekiden_common::error::{Error, Result};
 use ekiden_enclave_untrusted::Enclave;
 
 use super::ecall_proxy;

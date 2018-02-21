@@ -2,7 +2,7 @@ use std::sync::{SgxMutex, SgxMutexGuard};
 
 use protobuf::{self, Message};
 
-use ekiden_enclave_common::error::Result;
+use ekiden_common::error::Result;
 
 use super::crypto;
 use super::serializer::Serializable;

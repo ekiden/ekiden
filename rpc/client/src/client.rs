@@ -13,9 +13,9 @@ use futures::sync::{mpsc, oneshot};
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
-use ekiden_enclave_common::error::Error;
+use ekiden_common::error::Error;
 #[cfg(not(feature = "sgx"))]
-use ekiden_enclave_common::error::Result;
+use ekiden_common::error::Result;
 use ekiden_enclave_common::quote::{AttestationReport, MrEnclave};
 use ekiden_rpc_common::api;
 

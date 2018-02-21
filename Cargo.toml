@@ -2,11 +2,12 @@
 members = [
     "tools",
 
-    # Key manager is special and must be built before ekiden-rpc-trusted in
-    # order for ekiden-rpc-trusted to include its MRENCLAVE.
-    "contracts/key-manager",
+    # Common.
+    "common",
 
-    "contracts/token",
+    # Key manager is special and must be built before any other contracts in
+    # order for key-manager-client to include its MRENCLAVE.
+    "contracts/key-manager",
 
     # Enclave loader.
     "enclave/common",
@@ -17,21 +18,29 @@ members = [
     "rpc/client",
     "rpc/untrusted",
     "rpc/trusted",
+    "rpc/edl",
 
     # Database.
     "db/untrusted",
     "db/trusted",
+    "db/edl",
 
     # Core.
     "core/common",
     "core/untrusted",
     "core/trusted",
+    "core/edl",
 
     # Compute node.
+    "compute/api",
     "compute",
 
     # Consensus node.
+    "consensus/api",
     "consensus",
+
+    # Contracts.
+    "contracts/token",
 
     # Clients.
     "clients/token",

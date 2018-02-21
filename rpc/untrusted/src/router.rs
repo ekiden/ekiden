@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use ekiden_enclave_common::error::Result;
+use ekiden_common::error::Result;
 use ekiden_rpc_common::client::ClientEndpoint;
 
 /// Handler for endpoints.

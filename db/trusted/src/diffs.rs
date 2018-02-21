@@ -5,7 +5,7 @@ use bzip2;
 use protobuf;
 use protobuf::Message;
 
-use ekiden_enclave_common::error::Result;
+use ekiden_common::error::Result;
 
 use super::crypto;
 use super::generated::database::BsdiffPatch;

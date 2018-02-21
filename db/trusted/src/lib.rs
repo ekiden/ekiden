@@ -16,7 +16,7 @@ extern crate lazy_static;
 extern crate protobuf;
 extern crate sodalite;
 
-extern crate ekiden_enclave_common;
+extern crate ekiden_common;
 extern crate key_manager_client;
 
 #[allow(unused)]

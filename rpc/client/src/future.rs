@@ -2,7 +2,7 @@
 use futures::Async;
 use futures::future::Future;
 
-use ekiden_enclave_common::error::Error;
+use ekiden_common::error::Error;
 
 /// Future type for use in client calls.
 pub type ClientFuture<T> = Box<FutureExtra<Item = T, Error = Error> + Send>;

@@ -8,10 +8,11 @@ authors = [
 
 [features]
 default = ["no-sgx"]
-no-sgx = ["rand", "byteorder", "serde_json", "base64"]
-sgx = ["byteorder-sgx", "serde_json-sgx", "base64-sgx", "sgx_types", "sgx_tstd", "sgx_trts"]
+no-sgx = ["rand", "byteorder", "serde_json", "base64", "ekiden-common/no-sgx"]
+sgx = ["byteorder-sgx", "serde_json-sgx", "base64-sgx", "sgx_types", "sgx_tstd", "sgx_trts", "ekiden-common/sgx"]
 
 [dependencies]
+ekiden-common = { path = "../../common", default-features = false }
 sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
 sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
 sgx_trts = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }

@@ -4,7 +4,7 @@ use std;
 
 use protobuf::{self, Message, MessageStatic};
 
-use ekiden_enclave_common::error::{Error, Result};
+use ekiden_common::error::{Error, Result};
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::client::ClientEndpoint;
 

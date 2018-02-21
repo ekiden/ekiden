@@ -1,6 +1,6 @@
 use protobuf::{self, Message, MessageStatic};
 
-use ekiden_enclave_common::error::Result;
+use ekiden_common::error::Result;
 
 /// A serializer for a specific data type.
 pub trait Serializer<Message> {

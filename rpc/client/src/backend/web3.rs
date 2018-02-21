@@ -9,7 +9,7 @@ use futures::future::{self, Future};
 use protobuf;
 use protobuf::Message;
 
-use ekiden_enclave_common::error::{Error, Result};
+use ekiden_common::error::{Error, Result};
 use ekiden_enclave_common::quote::AttestationReport;
 use ekiden_rpc_common::api;
 

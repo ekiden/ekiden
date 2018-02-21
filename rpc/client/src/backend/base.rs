@@ -1,7 +1,7 @@
 use futures::Future;
 use sodalite;
 
-use ekiden_enclave_common::error::Result;
+use ekiden_common::error::Result;
 use ekiden_enclave_common::quote::AttestationReport;
 use ekiden_rpc_common::api;
 

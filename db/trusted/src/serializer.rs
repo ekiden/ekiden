@@ -1,6 +1,6 @@
 use protobuf::{self, Message, MessageStatic};
 
-use ekiden_enclave_common::error::Result;
+use ekiden_common::error::Result;
 
 pub trait Serializable {
     fn write(value: &Self) -> Result<Vec<u8>>;

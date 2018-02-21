@@ -2,8 +2,8 @@ use byteorder::{ByteOrder, LittleEndian};
 
 use sodalite;
 
-use ekiden_enclave_common::error::{Error, Result};
-use ekiden_enclave_common::random;
+use ekiden_common::error::{Error, Result};
+use ekiden_common::random;
 
 use super::api;
 

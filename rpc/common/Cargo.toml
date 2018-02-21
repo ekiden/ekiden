@@ -9,11 +9,11 @@ build = "build.rs"
 
 [features]
 default = ["no-sgx"]
-no-sgx = ["protobuf", "rand", "ekiden-enclave-common/no-sgx"]
-sgx = ["protobuf-sgx", "sgx_types", "sgx_tstd", "sgx_trts", "ekiden-enclave-common/sgx"]
+no-sgx = ["protobuf", "rand", "ekiden-common/no-sgx"]
+sgx = ["protobuf-sgx", "sgx_types", "sgx_tstd", "sgx_trts", "ekiden-common/sgx"]
 
 [dependencies]
-ekiden-enclave-common = { path = "../../enclave/common", default-features = false }
+ekiden-common = { path = "../../common", default-features = false }
 protobuf = { version = "1.4.2", optional = true }
 protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true }
 sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }

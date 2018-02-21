@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::{SgxMutex, SgxMutexGuard};
 
-use ekiden_enclave_common::error::{Error, Result};
+use ekiden_common::error::{Error, Result};
 use ekiden_enclave_common::quote::{MrEnclave, MRENCLAVE_LEN};
 use ekiden_rpc_client::{create_client_rpc, FutureExtra};
 use ekiden_rpc_common::client::ClientEndpoint;

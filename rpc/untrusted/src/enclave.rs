@@ -3,7 +3,7 @@ use sgx_types::*;
 use protobuf;
 use protobuf::{Message, MessageStatic, RepeatedField};
 
-use ekiden_enclave_common::error::{Error, Result};
+use ekiden_common::error::{Error, Result};
 use ekiden_enclave_untrusted::Enclave;
 use ekiden_rpc_common::api;
 

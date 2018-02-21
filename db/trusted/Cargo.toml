@@ -15,7 +15,7 @@ sgx_tse = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
 sodalite = "0.3.0"
 lazy_static = { version = "1.0", features = ["spin_no_std"] }
-ekiden-enclave-common = { path = "../../enclave/common", features = ["sgx"], default-features = false }
+ekiden-common = { path = "../../common", features = ["sgx"], default-features = false }
 key-manager-client = { path = "../../contracts/key-manager/client" }
 bzip2 = { git = "https://github.com/ekiden/bzip2-rs" }
 bsdiff = { git = "https://github.com/ekiden/bsdiff-rs" }

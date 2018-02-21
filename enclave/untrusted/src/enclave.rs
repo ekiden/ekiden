@@ -1,7 +1,7 @@
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 
-use ekiden_enclave_common::error;
+use ekiden_common::error::{Error, Result};
 
 /// Ekiden enclave.
 pub struct Enclave {
@@ -11,7 +11,7 @@ pub struct Enclave {
 
 impl Enclave {
     /// Initializes a new enclave.
-    pub fn new(filename: &str) -> error::Result<Self> {
+    pub fn new(filename: &str) -> Result<Self> {
         let mut launch_token: sgx_launch_token_t = [0; 1024];
         let mut launch_token_updated: i32 = 0;
 
@@ -32,7 +32,7 @@ impl Enclave {
         ) {
             Ok(enclave) => enclave,
             Err(_) => {
-                return Err(error::Error::new("Failed to launch enclave"));
+                return Err(Error::new("Failed to launch enclave"));
             }
         };
 

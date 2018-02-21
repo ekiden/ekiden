@@ -12,7 +12,7 @@ sgx-simulation = []
 [dependencies]
 sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 sgx_urts = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-ekiden-enclave-common = { path = "../../enclave/common" }
+ekiden-common = { path = "../../common" }
 ekiden-enclave-untrusted = { path = "../../enclave/untrusted" }
 
 [build-dependencies]
