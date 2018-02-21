@@ -13,12 +13,13 @@ pub extern "C" fn db_state_diff(
     diff_capacity: usize,
     diff_length: *mut usize,
 ) {
-    let old = unsafe { std::slice::from_raw_parts(old, old_length).to_vec() };
-    let new = unsafe { std::slice::from_raw_parts(new, new_length).to_vec() };
+    let old = unsafe { std::slice::from_raw_parts(old, old_length) };
+    let new = unsafe { std::slice::from_raw_parts(new, new_length) };
 
+    // TODO: Error handling.
     let result = match diffs::diff(&old, &new) {
         Ok(result) => result,
-        _ => return,
+        _ => panic!("Error while computing difference"),
     };
 
     // Copy back response.
@@ -42,12 +43,13 @@ pub extern "C" fn db_state_apply(
     new_capacity: usize,
     new_length: *mut usize,
 ) {
-    let old = unsafe { std::slice::from_raw_parts(old, old_length).to_vec() };
-    let diff = unsafe { std::slice::from_raw_parts(diff, diff_length).to_vec() };
+    let old = unsafe { std::slice::from_raw_parts(old, old_length) };
+    let diff = unsafe { std::slice::from_raw_parts(diff, diff_length) };
 
+    // TODO: Error handling.
     let result = match diffs::apply(&old, &diff) {
         Ok(result) => result,
-        _ => return,
+        _ => panic!("Error while applying diff"),
     };
 
     // Copy back response.
@@ -63,20 +65,21 @@ pub extern "C" fn db_state_apply(
 
 #[no_mangle]
 pub extern "C" fn db_state_set(state: *const u8, state_length: usize) {
-    let state = unsafe { std::slice::from_raw_parts(state, state_length).to_vec() };
+    let state = unsafe { std::slice::from_raw_parts(state, state_length) };
 
     // TODO: Error handling.
     match Db::instance().import(state) {
         Ok(_) => {}
-        _ => {}
+        _ => panic!("Error while importing state"),
     }
 }
 
 #[no_mangle]
 pub extern "C" fn db_state_get(state: *mut u8, state_capacity: usize, state_length: *mut usize) {
+    // TODO: Error handling.
     let result = match Db::instance().export() {
         Ok(state) => state,
-        _ => return,
+        _ => panic!("Error while exporting state"),
     };
 
     // Copy back response.

@@ -31,7 +31,7 @@ impl Db {
         }
     }
 
-    /// Get global database interfaceinstance.
+    /// Get global database interface instance.
     ///
     /// Calling this method will take a lock on the global instance, which will
     /// be released once the value goes out of scope.
@@ -69,7 +69,7 @@ impl Db {
     }
 
     /// Import database.
-    pub(crate) fn import(&mut self, state: Vec<u8>) -> Result<()> {
+    pub(crate) fn import(&mut self, state: &[u8]) -> Result<()> {
         self.state = crypto::decrypt_state(&protobuf::parse_from_bytes(&state)?)?;
         self.dirty = false;
 

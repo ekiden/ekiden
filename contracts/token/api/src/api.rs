@@ -5,9 +5,9 @@ rpc_api! {
         client_attestation_required = false;
     }
 
-    rpc create(CreateRequest) -> (CreateResponse);
+    rpc create(CreateRequest) -> CreateResponse;
 
-    rpc transfer(TransferRequest) -> (TransferResponse);
+    rpc transfer(TransferRequest) -> TransferResponse;
 
-    rpc get_balance(GetBalanceRequest) -> (GetBalanceResponse);
+    rpc get_balance(GetBalanceRequest) -> GetBalanceResponse;
 }
