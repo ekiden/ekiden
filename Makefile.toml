@@ -6,17 +6,14 @@ SGX_ARCH = "x64"
 [tasks.default]
 alias = "build-flow"
 
-[tasks.build]
-args = ["build"]
-
-[tasks.build-release]
-args = ["build", "--release"]
-
 [tasks.env-debug]
 env = { "BUILD_MODE" = "debug" }
 
 [tasks.env-release]
 env = { "BUILD_MODE" = "release" }
+
+[tasks.env-sgx-xargo]
+env = { "RUSTFLAGS" = "-Z force-unstable-if-unmarked", "RUST_TARGET_PATH" = "/code" }
 
 [tasks.build-flow]
 dependencies = [
@@ -34,6 +31,34 @@ dependencies = [
     "post-build",
 ]
 
+[tasks.build]
+dependencies = [
+    "build-no-sgx",
+    "build-sgx",
+]
+
+[tasks.build-release]
+dependencies = [
+    "build-no-sgx-release",
+    "build-sgx-release",
+]
+
+[tasks.build-no-sgx]
+command = "cargo"
+args = ["build"]
+
+[tasks.build-sgx]
+dependencies = [ "env-sgx-xargo" ]
+command = "xargo"
+args = ["build", "--target", "x86_64-unknown-linux-sgx.json"]
+
+[tasks.build-no-sgx-release]
+args = ["build", "--release"]
+
+[tasks.build-sgx-release]
+dependencies = [ "env-sgx-xargo" ]
+command = "xargo"
+args = ["build", "--target", "x86_64-unknown-linux-sgx.json", "--release"]
 
 [tasks.test-flow]
 alias = "empty"
