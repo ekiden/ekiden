@@ -1,0 +1,18 @@
+[package]
+name = "consensus-api"
+version = "0.1.0"
+authors = [
+    "Raymond Cheng <me@raymondcheng.net>",
+    "Jernej Kos <jernej@kos.mx>"
+]
+build = "build.rs"
+
+[dependencies]
+protobuf = "1.4.2"
+grpc = "0.2.1"
+tls-api = "0.1.12"
+
+[build-dependencies]
+ekiden-tools = { path = "../../tools" }
+protoc-rust = "1.4"
+protoc-rust-grpc = "0.2.1"

@@ -14,9 +14,10 @@ default = []
 [dependencies]
 token-api = { path = "./api", features = ["sgx"], default-features = false }
 sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-libcontract-common = { path = "../../libcontract/common", features = ["sgx"], default-features = false }
-libcontract-trusted = { path = "../../libcontract/trusted" }
+ekiden-core-common = { path = "../../core/common", features = ["sgx"], default-features = false }
+ekiden-core-trusted = { path = "../../core/trusted" }
 protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
 
 [build-dependencies]
-libcontract-utils = { path = "../../libcontract/utils" }
+ekiden-tools = { path = "../../tools" }
+ekiden-core-edl = { path = "../../core/edl" }

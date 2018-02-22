@@ -1,0 +1,22 @@
+[package]
+name = "ekiden-rpc-untrusted"
+version = "0.1.0"
+authors = [
+    "Raymond Cheng <me@raymondcheng.net>",
+    "Jernej Kos <jernej@kos.mx>"
+]
+
+[features]
+sgx-simulation = []
+
+[dependencies]
+sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+sgx_urts = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+protobuf = "1.4.2"
+lazy_static = "1.0"
+ekiden-common = { path = "../../common" }
+ekiden-enclave-untrusted = { path = "../../enclave/untrusted" }
+ekiden-rpc-common = { path = "../common" }
+
+[build-dependencies]
+ekiden-tools = { path = "../../tools" }

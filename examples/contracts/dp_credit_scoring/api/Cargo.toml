@@ -1,0 +1,20 @@
+[package]
+name = "dp-credit-scoring-api"
+version = "0.1.0"
+authors = ["Nick Hynes <nhynes@berkeley.edu>"]
+build = "build.rs"
+
+[features]
+default = ["no-sgx"]
+no-sgx = ["protobuf", "libcontract-common/no-sgx"]
+sgx = ["sgx_tstd", "protobuf-sgx", "libcontract-common/sgx"]
+
+[dependencies]
+libcontract-common = { path = "../../../libcontract/common", default-features = false }
+protobuf = { version = "1.4.2", optional = true }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
+
+[build-dependencies]
+ekiden-tools = { path = "../../../tools" }
+protoc = "1.4.3"

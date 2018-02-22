@@ -1,37 +1,47 @@
 [workspace]
 members = [
-  "abci",
-  "compute",
-  "compute-client",
-  "consensus",
+    "tools",
 
-  # Key manager is special and must be built before libcontract-trusted in
-  # order for libcontract-trusted to include its MRENCLAVE.
-  "contracts/key-manager",
-  "libcontract/trusted",
+    # Common.
+    "common",
 
-  "contracts/dummy",
-  "contracts/ethtoken",
-  "contracts/token",
-  "contracts/dp_credit_scoring",
-  "contracts/learner",
-  "contracts/iot_learner",
+    # Key manager is special and must be built before any other contracts in
+    # order for key-manager-client to include its MRENCLAVE.
+    "contracts/key-manager",
 
-  "libcontract/common",
-  "libcontract/untrusted",
-  "libcontract/utils",
+    # Enclave loader.
+    "enclave/common",
+    "enclave/untrusted",
 
-  "clients/benchmark-token-failover",
-  "clients/benchmark-token-transfer",
-  "clients/benchmark-token-transfer-multi",
-  "clients/benchmark-token-get-balance",
-  "clients/benchmark-dp-credit-scoring-train",
-  "clients/benchmark-dp-credit-scoring-infer",
-  "clients/benchmark-iot-learner-train",
-  "clients/benchmark-iot-learner-infer",
-  "clients/token",
-  "clients/dp_credit_scoring",
-  "clients/ethtoken",
-  "clients/iot_learner",
+    # RPC (+ attestation).
+    "rpc/common",
+    "rpc/client",
+    "rpc/untrusted",
+    "rpc/trusted",
+    "rpc/edl",
+
+    # Database.
+    "db/untrusted",
+    "db/trusted",
+    "db/edl",
+
+    # Core.
+    "core/common",
+    "core/untrusted",
+    "core/trusted",
+    "core/edl",
+
+    # Compute node.
+    "compute/api",
+    "compute",
+
+    # Consensus node.
+    "consensus/api",
+    "consensus",
+
+    # Contracts.
+    "contracts/token",
+
+    # Clients.
+    "clients/token",
 ]
-exclude = ["third_party"]

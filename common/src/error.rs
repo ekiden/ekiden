@@ -1,0 +1,38 @@
+use std::{error, fmt, result};
+
+/// A custom result type which uses `Error` to avoid the need to repeat the
+/// error type over and over again.
+pub type Result<T> = result::Result<T, Error>;
+
+/// Error type for use in Ekiden crates.
+#[derive(Debug, Clone)]
+pub struct Error {
+    /// Error message.
+    pub message: String,
+}
+
+impl Error {
+    /// Construct a new error instance.
+    pub fn new(message: &str) -> Self {
+        Error {
+            message: message.to_string(),
+        }
+    }
+
+    /// A short description of the error.
+    pub fn description(&self) -> &str {
+        &self.message
+    }
+}
+
+impl<T: error::Error> From<T> for Error {
+    fn from(error: T) -> Self {
+        Self::new(error.description())
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}

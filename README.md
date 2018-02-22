@@ -138,16 +138,13 @@ $ cargo make format
 ```
 
 ## Packages
-- `abci`: Tendermint Application Blockchain Interface
-- `compute-client`: Ekiden client library
+- `core`: Core external-facing libraries (aggregates `common`, `enclave`, `rpc`, `db`, etc.)
+- `common`: Common functionality like error handling
+- `enclave`: Enclave loader and identity attestation
+- `rpc`: RPC functionality for use in enclaves
+- `db`: Database functionality for use in enclaves
 - `compute`: Ekiden compute node
-- `contracts`: Ekiden contracts (e.g. token)
-- `clients`: Ekiden contract clients (e.g. token)
-- `libcontract/common`: common library for all Ekiden contracts
-  - source code directory for `libcontract_*`.
-- `libcontract/trusted`: `libcontract` packaging for SGX environment
-- `libcontract/untrusted`: `libcontract` packaging for non-SGX environment
-- `libcontract/utils`: Utilities for easier builds with SGX enclaves
 - `consensus`: Ekiden consensus node
+- `contracts`: Core contracts (`key-manager`, `token`)
+- `tools`: Build tools
 - `scripts`: Bash scripts for development
-- `third_party`: Forks of third-party packages, with modifications that enable their use with the SGX standard library (`sgx_tstd`).

@@ -5,7 +5,8 @@ authors = ["Ekiden Developers <ekiden-dev@googlegroups.com>"]
 build = "build.rs"
 
 [dependencies]
-abci = { path = "../abci" }
+consensus-api = { path = "./api" }
+abci = { git = "https://github.com/ekiden/abci" }
 clap = "2.29.1"
 futures = "0.1"
 grpc = "0.2.1"
@@ -17,7 +18,7 @@ tokio-core = "0.1"
 tokio-proto = "0.1"
 
 [build-dependencies]
-libcontract-utils = { path = "../libcontract/utils" }
+ekiden-tools = { path = "../tools" }
 protoc-rust = "1.4"
 protoc-rust-grpc = "0.2.1"
 rand = "0.4.2"

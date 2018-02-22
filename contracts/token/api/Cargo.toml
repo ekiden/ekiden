@@ -9,14 +9,14 @@ build = "build.rs"
 
 [features]
 default = ["no-sgx"]
-no-sgx = ["protobuf", "libcontract-common/no-sgx"]
-sgx = ["sgx_tstd", "protobuf-sgx", "libcontract-common/sgx"]
+no-sgx = ["protobuf", "ekiden-core-common/no-sgx"]
+sgx = ["sgx_tstd", "protobuf-sgx", "ekiden-core-common/sgx"]
 
 [dependencies]
-libcontract-common = { path = "../../../libcontract/common", default-features = false }
+ekiden-core-common = { path = "../../../core/common", default-features = false }
 sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
 protobuf = { version = "1.4.2", optional = true }
 protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true }
 
 [build-dependencies]
-libcontract-utils = { path = "../../../libcontract/utils" }
+ekiden-tools = { path = "../../../tools" }

@@ -1,14 +1,13 @@
-contract_api! {
+rpc_api! {
     metadata {
         name = token;
         version = "0.1.0";
-        state_type = TokenState;
         client_attestation_required = false;
     }
 
-    rpc create(CreateRequest) -> (state, CreateResponse);
+    rpc create(CreateRequest) -> CreateResponse;
 
-    rpc transfer(state, TransferRequest) -> (state, TransferResponse);
+    rpc transfer(TransferRequest) -> TransferResponse;
 
-    rpc get_balance(state, GetBalanceRequest) -> (GetBalanceResponse);
+    rpc get_balance(GetBalanceRequest) -> GetBalanceResponse;
 }

@@ -12,9 +12,11 @@ no_cache = []
 no_diffs = []
 
 [dependencies]
-libcontract-common = { path = "../libcontract/common" }
-libcontract-untrusted = { path = "../libcontract/untrusted" }
-compute-client = { path = "../compute-client" }
+ekiden-core-common = { path = "../core/common" }
+ekiden-core-untrusted = { path = "../core/untrusted" }
+ekiden-rpc-client = { path = "../rpc/client" }
+compute-api = { path = "./api" }
+consensus-api = { path = "../consensus/api" }
 protobuf = "1.4.2"
 grpc = "0.2.1"
 futures = "0.1"
@@ -31,6 +33,7 @@ time = "0.1"
 tokio-core = "0.1"
 
 [build-dependencies]
-libcontract-utils = { path = "../libcontract/utils" }
+ekiden-tools = { path = "../tools" }
+ekiden-core-edl = { path = "../core/edl" }
 protoc-rust = "1.4"
 protoc-rust-grpc = "0.2.1"

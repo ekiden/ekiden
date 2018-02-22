@@ -1,0 +1,28 @@
+[package]
+name = "ekiden-rpc-common"
+version = "0.1.0"
+authors = [
+    "Raymond Cheng <me@raymondcheng.net>",
+    "Jernej Kos <jernej@kos.mx>"
+]
+build = "build.rs"
+
+[features]
+default = ["no-sgx"]
+no-sgx = ["protobuf", "rand", "ekiden-common/no-sgx"]
+sgx = ["protobuf-sgx", "sgx_types", "sgx_tstd", "sgx_trts", "ekiden-common/sgx"]
+
+[dependencies]
+ekiden-common = { path = "../../common", default-features = false }
+protobuf = { version = "1.4.2", optional = true }
+protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true }
+sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
+sgx_trts = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
+sodalite = "0.3.0"
+rand = { version = "0.4", optional = true }
+byteorder = { version = "1.2.1", default-features = false }
+
+[build-dependencies]
+ekiden-tools = { path = "../../tools" }
+protoc-rust = "1.4"

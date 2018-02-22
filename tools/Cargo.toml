@@ -1,0 +1,13 @@
+[package]
+name = "ekiden-tools"
+version = "0.1.0"
+authors = ["Jernej Kos <jernej@kos.mx>"]
+include = [
+  "src/*.rs",
+  "config/*",
+]
+
+[dependencies]
+mktemp = "0.3.1"
+cc = "1.0"
+protoc-rust = "1.4"

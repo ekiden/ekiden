@@ -1,3 +1,4 @@
+#![feature(use_extern_macros)]
 #![feature(prelude_import)]
 #![no_std]
 
@@ -8,11 +9,9 @@ extern crate sgx_tstd as std;
 extern crate lazy_static;
 extern crate protobuf;
 
-extern crate libcontract_common;
-#[macro_use]
-extern crate libcontract_trusted;
+extern crate ekiden_core_common;
+extern crate ekiden_core_trusted;
 
-#[macro_use]
 extern crate key_manager_api;
 
 #[allow(unused)]
@@ -21,18 +20,20 @@ use std::prelude::v1::*;
 
 mod key_store;
 
-use key_manager_api::{GetOrCreateKeyRequest, GetOrCreateKeyResponse};
+use ekiden_core_common::Result;
+use ekiden_core_trusted::rpc::create_enclave_rpc;
+use ekiden_core_trusted::rpc::request::Request;
 
-use libcontract_common::ContractError;
-use libcontract_trusted::dispatcher::Request;
+use key_manager_api::{with_api, GetOrCreateKeyRequest, GetOrCreateKeyResponse};
 
 use key_store::KeyStore;
 
-create_enclave_api!();
+// Create enclave RPC handlers.
+with_api! {
+    create_enclave_rpc!(api);
+}
 
-fn get_or_create_key(
-    request: &Request<GetOrCreateKeyRequest>,
-) -> Result<GetOrCreateKeyResponse, ContractError> {
+fn get_or_create_key(request: &Request<GetOrCreateKeyRequest>) -> Result<GetOrCreateKeyResponse> {
     let mut response = GetOrCreateKeyResponse::new();
 
     // Query the key store.

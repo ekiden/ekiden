@@ -1,0 +1,17 @@
+[package]
+name = "key-manager-client"
+version = "0.1.0"
+authors = ["Jernej Kos <jernej@kos.mx>"]
+
+[dependencies]
+sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+ekiden-common = { path = "../../../common", default-features = false, features = ["sgx"] }
+ekiden-enclave-common = { path = "../../../enclave/common", default-features = false, features = ["sgx"] }
+ekiden-rpc-common = { path = "../../../rpc/common", default-features = false, features = ["sgx"] }
+ekiden-rpc-trusted = { path = "../../../rpc/trusted" }
+ekiden-rpc-client = { path = "../../../rpc/client", default-features = false, features = ["sgx"] }
+key-manager-api = { path = "../api", default-features = false, features = ["sgx"] }
+lazy_static = { version = "1.0", features = ["spin_no_std"] }
+
+[build-dependencies]
+ekiden-tools = { path = "../../../tools" }
