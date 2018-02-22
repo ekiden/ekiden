@@ -6,15 +6,6 @@ authors = [
     "Jernej Kos <jernej@kos.mx>"
 ]
 
-[features]
-default = ["no-sgx"]
-no-sgx = ["rand", "protobuf"]
-sgx = ["protobuf-sgx", "sgx_types", "sgx_tstd", "sgx_trts"]
-
 [dependencies]
-sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
-sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
-sgx_trts = { git = "https://github.com/ekiden/rust-sgx-sdk", optional = true }
-rand = { version = "0.4", optional = true }
-protobuf = { version = "1.4.2", optional = true }
-protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf", optional = true }
+rand = "0.4.2"
+protobuf = "1.4.3"

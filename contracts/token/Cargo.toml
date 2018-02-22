@@ -12,11 +12,10 @@ crate-type = ["staticlib"]
 default = []
 
 [dependencies]
-token-api = { path = "./api", features = ["sgx"], default-features = false }
-sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-ekiden-core-common = { path = "../../core/common", features = ["sgx"], default-features = false }
+ekiden-core-common = { path = "../../core/common" }
 ekiden-core-trusted = { path = "../../core/trusted" }
-protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
+protobuf = "1.4.3"
+token-api = { path = "./api" }
 
 [build-dependencies]
 ekiden-tools = { path = "../../tools" }

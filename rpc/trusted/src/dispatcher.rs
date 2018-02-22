@@ -1,5 +1,10 @@
 use std::collections::HashMap;
-use std::sync::{SgxMutex, SgxMutexGuard};
+#[cfg(not(target_env = "sgx"))]
+use std::sync::{Mutex, MutexGuard};
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutex as Mutex;
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutexGuard as MutexGuard;
 
 use ekiden_common::error::Result;
 use ekiden_common::serializer::Serializable;
@@ -128,7 +133,7 @@ impl EnclaveMethod {
 
 lazy_static! {
     // Global RPC dispatcher object.
-    static ref DISPATCHER: SgxMutex<Dispatcher> = SgxMutex::new(Dispatcher::new());
+    static ref DISPATCHER: Mutex<Dispatcher> = Mutex::new(Dispatcher::new());
 }
 
 pub struct Dispatcher {
@@ -181,7 +186,7 @@ impl Dispatcher {
     ///
     /// Calling this method will take a lock on the global instance which
     /// will be released once the value goes out of scope.
-    pub fn get<'a>() -> SgxMutexGuard<'a, Self> {
+    pub fn get<'a>() -> MutexGuard<'a, Self> {
         DISPATCHER.lock().unwrap()
     }
 

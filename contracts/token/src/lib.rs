@@ -1,9 +1,4 @@
 #![feature(use_extern_macros)]
-#![feature(prelude_import)]
-#![no_std]
-
-#[macro_use]
-extern crate sgx_tstd as std;
 
 extern crate protobuf;
 
@@ -12,10 +7,6 @@ extern crate ekiden_core_trusted;
 
 #[macro_use]
 extern crate token_api;
-
-#[allow(unused)]
-#[prelude_import]
-use std::prelude::v1::*;
 
 mod token_contract;
 

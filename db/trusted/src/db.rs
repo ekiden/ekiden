@@ -1,4 +1,9 @@
-use std::sync::{SgxMutex, SgxMutexGuard};
+#[cfg(not(target_env = "sgx"))]
+use std::sync::{Mutex, MutexGuard};
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutex as Mutex;
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutexGuard as MutexGuard;
 
 use protobuf::{self, Message};
 
@@ -19,7 +24,7 @@ pub struct Db {
 
 lazy_static! {
     // Global database object.
-    static ref DB: SgxMutex<Db> = SgxMutex::new(Db::new());
+    static ref DB: Mutex<Db> = Mutex::new(Db::new());
 }
 
 impl Db {
@@ -35,7 +40,7 @@ impl Db {
     ///
     /// Calling this method will take a lock on the global instance, which will
     /// be released once the value goes out of scope.
-    pub fn instance<'a>() -> SgxMutexGuard<'a, Db> {
+    pub fn instance<'a>() -> MutexGuard<'a, Db> {
         DB.lock().unwrap()
     }
 

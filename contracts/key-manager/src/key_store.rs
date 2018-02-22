@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::sync::{SgxMutex, SgxMutexGuard};
+#[cfg(not(target_env = "sgx"))]
+use std::sync::{Mutex, MutexGuard};
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutex as Mutex;
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutexGuard as MutexGuard;
 
 use ekiden_core_common::{random, Error, Result};
 use ekiden_core_common::quote::MrEnclave;
@@ -13,7 +18,7 @@ pub struct KeyStore {
 
 lazy_static! {
     // Global key store object.
-    static ref KEY_STORE: SgxMutex<KeyStore> = SgxMutex::new(KeyStore::new());
+    static ref KEY_STORE: Mutex<KeyStore> = Mutex::new(KeyStore::new());
 }
 
 impl KeyStore {
@@ -29,7 +34,7 @@ impl KeyStore {
     ///
     /// Calling this method will take a lock on the global instance, which will
     /// be released once the value goes out of scope.
-    pub fn get<'a>() -> SgxMutexGuard<'a, KeyStore> {
+    pub fn get<'a>() -> MutexGuard<'a, KeyStore> {
         KEY_STORE.lock().unwrap()
     }
 

@@ -7,6 +7,5 @@ authors = [
 ]
 
 [dependencies]
-sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
 ekiden-rpc-trusted = { path = "../../rpc/trusted" }
 ekiden-db-trusted = { path = "../../db/trusted" }

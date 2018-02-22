@@ -1,32 +1,32 @@
 use std::sync::Arc;
-#[cfg(not(feature = "sgx"))]
+#[cfg(not(target_env = "sgx"))]
 use std::sync::Mutex;
-#[cfg(feature = "sgx")]
+#[cfg(target_env = "sgx")]
 use std::sync::SgxMutex as Mutex;
 
-#[cfg(not(feature = "sgx"))]
+#[cfg(not(target_env = "sgx"))]
 use futures::Stream;
 use futures::future::{self, Future};
-#[cfg(not(feature = "sgx"))]
+#[cfg(not(target_env = "sgx"))]
 use futures::sync::{mpsc, oneshot};
 
 use protobuf;
 use protobuf::{Message, MessageStatic};
 
 use ekiden_common::error::Error;
-#[cfg(not(feature = "sgx"))]
+#[cfg(not(target_env = "sgx"))]
 use ekiden_common::error::Result;
 use ekiden_enclave_common::quote::{AttestationReport, MrEnclave};
 use ekiden_rpc_common::api;
 
 use super::backend::ContractClientBackend;
 use super::future::ClientFuture;
-#[cfg(feature = "sgx")]
+#[cfg(target_env = "sgx")]
 use super::future::FutureExtra;
 use super::secure_channel::SecureChannelContext;
 
 /// Commands sent to the processing task.
-#[cfg(not(feature = "sgx"))]
+#[cfg(not(target_env = "sgx"))]
 enum Command {
     /// Make a remote method call.
     Call(api::PlainClientRequest, oneshot::Sender<Result<Vec<u8>>>),
@@ -49,7 +49,7 @@ struct ContractClientContext<Backend: ContractClientBackend + 'static> {
 }
 
 /// Helper for running client commands.
-#[cfg(not(feature = "sgx"))]
+#[cfg(not(target_env = "sgx"))]
 fn run_command<F, R>(cmd: F, response_tx: oneshot::Sender<Result<R>>) -> ClientFuture<()>
 where
     F: Future<Item = R, Error = Error> + Send + 'static,
@@ -71,7 +71,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClientContext<Backend> {
     /// Processing commands in this way ensures that all client requests are processed
     /// in order, with no interleaving of requests, regardless of how the futures
     /// executor is implemented.
-    #[cfg(not(feature = "sgx"))]
+    #[cfg(not(target_env = "sgx"))]
     fn process_commands(
         context: Arc<Mutex<Self>>,
         request_rx: mpsc::UnboundedReceiver<Command>,
@@ -378,7 +378,7 @@ pub struct ContractClient<Backend: ContractClientBackend + 'static> {
     /// Actual client context that can be shared between threads.
     context: Arc<Mutex<ContractClientContext<Backend>>>,
     /// Channel for processing requests.
-    #[cfg(not(feature = "sgx"))]
+    #[cfg(not(target_env = "sgx"))]
     request_tx: mpsc::UnboundedSender<Command>,
 }
 
@@ -386,7 +386,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
     /// Constructs a new contract client.
     pub fn new(backend: Backend, mr_enclave: MrEnclave, client_attestation: bool) -> Self {
         // Create request processing channel.
-        #[cfg(not(feature = "sgx"))]
+        #[cfg(not(target_env = "sgx"))]
         let (request_tx, request_rx) = mpsc::unbounded();
 
         let client = ContractClient {
@@ -396,11 +396,11 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
                 secure_channel: SecureChannelContext::default(),
                 client_attestation: client_attestation,
             })),
-            #[cfg(not(feature = "sgx"))]
+            #[cfg(not(target_env = "sgx"))]
             request_tx: request_tx,
         };
 
-        #[cfg(not(feature = "sgx"))]
+        #[cfg(not(target_env = "sgx"))]
         {
             // Spawn a task for processing requests.
             let request_processor =
@@ -416,7 +416,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
     }
 
     /// Call a contract method.
-    #[cfg(feature = "sgx")]
+    #[cfg(target_env = "sgx")]
     pub fn call<Rq, Rs>(&self, method: &str, request: Rq) -> ClientFuture<Rs>
     where
         Rq: Message,
@@ -426,7 +426,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
     }
 
     /// Call a contract method.
-    #[cfg(not(feature = "sgx"))]
+    #[cfg(not(target_env = "sgx"))]
     pub fn call<Rq, Rs>(&self, method: &str, request: Rq) -> ClientFuture<Rs>
     where
         Rq: Message,
@@ -470,7 +470,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
     ///
     /// If this method is not called, secure channel is automatically initialized
     /// when making the first request.
-    #[cfg(feature = "sgx")]
+    #[cfg(target_env = "sgx")]
     pub fn init_secure_channel(&self) -> ClientFuture<()> {
         ContractClientContext::init_secure_channel(self.context.clone())
     }
@@ -479,7 +479,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
     ///
     /// If this method is not called, secure channel is automatically initialized
     /// when making the first request.
-    #[cfg(not(feature = "sgx"))]
+    #[cfg(not(target_env = "sgx"))]
     pub fn init_secure_channel(&self) -> ClientFuture<()> {
         let (call_tx, call_rx) = oneshot::channel();
 
@@ -501,7 +501,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
     ///
     /// If this method is not called, secure channel is automatically closed in
     /// a blocking fashion when the client is dropped.
-    #[cfg(feature = "sgx")]
+    #[cfg(target_env = "sgx")]
     pub fn close_secure_channel(&self) -> ClientFuture<()> {
         ContractClientContext::close_secure_channel(self.context.clone())
     }
@@ -510,7 +510,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
     ///
     /// If this method is not called, secure channel is automatically closed in
     /// a blocking fashion when the client is dropped.
-    #[cfg(not(feature = "sgx"))]
+    #[cfg(not(target_env = "sgx"))]
     pub fn close_secure_channel(&self) -> ClientFuture<()> {
         let (call_tx, call_rx) = oneshot::channel();
 

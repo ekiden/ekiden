@@ -7,7 +7,10 @@ use protobuf::Message;
 use sodalite;
 
 use std::collections::HashMap;
-use std::sync::SgxMutex;
+#[cfg(not(target_env = "sgx"))]
+use std::sync::Mutex;
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutex as Mutex;
 
 use ekiden_common::error::{Error, Result};
 use ekiden_enclave_common::quote::{AttestationReport, MrEnclave, QUOTE_CONTEXT_SC};
@@ -385,8 +388,8 @@ impl ClientSession {
 
 lazy_static! {
     // Global secure channel context.
-    static ref SECURE_CHANNEL_CTX: SgxMutex<SecureChannelContext> =
-        SgxMutex::new(SecureChannelContext::new());
+    static ref SECURE_CHANNEL_CTX: Mutex<SecureChannelContext> =
+        Mutex::new(SecureChannelContext::new());
 }
 
 /// Initialize contract.
