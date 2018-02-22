@@ -29,6 +29,5 @@ mod crypto;
 mod diffs;
 pub mod ecalls;
 
-pub mod serializer;
 pub mod db;
 pub use db::Db;

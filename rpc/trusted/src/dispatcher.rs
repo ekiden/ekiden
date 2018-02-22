@@ -2,13 +2,15 @@ use std::collections::HashMap;
 use std::sync::{SgxMutex, SgxMutexGuard};
 
 use ekiden_common::error::Result;
+use ekiden_common::serializer::Serializable;
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::reflection::ApiMethodDescriptor;
-use ekiden_rpc_common::serializer::ProtocolBuffersSerializer;
 
 use super::{bridge, request, response};
 
+/// Handler for an API method.
 pub trait ApiMethodHandler<Request, Response> {
+    /// Invoke the method implementation and return a response.
     fn handle(&self, request: &request::Request<Request>) -> Result<Response>;
 }
 
@@ -23,23 +25,36 @@ where
     }
 }
 
+/// Dispatcher for an API method.
 pub trait ApiMethodHandlerDispatch {
+    /// Dispatches the given raw request.
     fn dispatch(&self, request: &request::Request<Vec<u8>>) -> response::Response;
 }
 
 struct ApiMethodHandlerDispatchImpl<Request, Response> {
-    descriptor: ApiMethodDescriptor<Request, Response>,
+    descriptor: ApiMethodDescriptor,
     handler: Box<ApiMethodHandler<Request, Response> + Sync + Send>,
 }
 
 impl<Request, Response> ApiMethodHandlerDispatch for ApiMethodHandlerDispatchImpl<Request, Response>
 where
-    Request: Send + 'static,
-    Response: Send + 'static,
+    Request: Serializable + Send + 'static,
+    Response: Serializable + Send + 'static,
 {
+    /// Dispatches the given raw request.
     fn dispatch(&self, request: &request::Request<Vec<u8>>) -> response::Response {
+        // If the method requires client attestation ensure that it has been provided.
+        if self.descriptor.client_attestation_required && request.get_client_mr_enclave().is_none()
+        {
+            return response::Response::error(
+                &request,
+                api::PlainClientResponse_Code::ERROR_BAD_REQUEST,
+                "Method requires client attestation",
+            );
+        }
+
         // Deserialize request.
-        let request_message = match self.descriptor.request_serializer.read(&request) {
+        let request_message = match Request::read(&request) {
             Ok(message) => request.copy_metadata_to(message),
             _ => {
                 return response::Response::error(
@@ -63,7 +78,7 @@ where
         };
 
         // Serialize response.
-        let response = match self.descriptor.response_serializer.write(&response) {
+        let response = match Response::write(&response) {
             Ok(response) => response,
             _ => {
                 return response::Response::error(
@@ -78,19 +93,19 @@ where
     }
 }
 
+/// Enclave method descriptor.
 pub struct EnclaveMethod {
+    /// Method name.
     name: String,
     dispatcher: Box<ApiMethodHandlerDispatch + Sync + Send>,
 }
 
 impl EnclaveMethod {
-    pub fn new<Request, Response, Handler>(
-        method: ApiMethodDescriptor<Request, Response>,
-        handler: Handler,
-    ) -> Self
+    /// Create a new enclave method descriptor.
+    pub fn new<Request, Response, Handler>(method: ApiMethodDescriptor, handler: Handler) -> Self
     where
-        Request: Send + 'static,
-        Response: Send + 'static,
+        Request: Serializable + Send + 'static,
+        Response: Serializable + Send + 'static,
         Handler: ApiMethodHandler<Request, Response> + Sync + Send + 'static,
     {
         EnclaveMethod {
@@ -117,10 +132,12 @@ lazy_static! {
 }
 
 pub struct Dispatcher {
+    /// Registered RPC methods.
     methods: HashMap<String, EnclaveMethod>,
 }
 
 impl Dispatcher {
+    /// Create a new RPC dispatcher instance.
     pub fn new() -> Self {
         let mut dispatcher = Dispatcher {
             methods: HashMap::new(),
@@ -128,10 +145,9 @@ impl Dispatcher {
 
         // Register internal methods.
         dispatcher.add_method(EnclaveMethod::new(
-            ApiMethodDescriptor::<api::ChannelInitRequest, api::ChannelInitResponse> {
+            ApiMethodDescriptor {
                 name: api::METHOD_CHANNEL_INIT.to_owned(),
-                request_serializer: Box::new(ProtocolBuffersSerializer),
-                response_serializer: Box::new(ProtocolBuffersSerializer),
+                client_attestation_required: false,
             },
             |request: &request::Request<api::ChannelInitRequest>| {
                 super::secure_channel::channel_init(request)
@@ -139,10 +155,9 @@ impl Dispatcher {
         ));
 
         dispatcher.add_method(EnclaveMethod::new(
-            ApiMethodDescriptor::<api::ContractInitRequest, api::ContractInitResponse> {
+            ApiMethodDescriptor {
                 name: api::METHOD_CONTRACT_INIT.to_owned(),
-                request_serializer: Box::new(ProtocolBuffersSerializer),
-                response_serializer: Box::new(ProtocolBuffersSerializer),
+                client_attestation_required: false,
             },
             |request: &request::Request<api::ContractInitRequest>| {
                 super::secure_channel::contract_init(request)
@@ -150,10 +165,9 @@ impl Dispatcher {
         ));
 
         dispatcher.add_method(EnclaveMethod::new(
-            ApiMethodDescriptor::<api::ContractRestoreRequest, api::ContractRestoreResponse> {
+            ApiMethodDescriptor {
                 name: api::METHOD_CONTRACT_RESTORE.to_owned(),
-                request_serializer: Box::new(ProtocolBuffersSerializer),
-                response_serializer: Box::new(ProtocolBuffersSerializer),
+                client_attestation_required: false,
             },
             |request: &request::Request<api::ContractRestoreRequest>| {
                 super::secure_channel::contract_restore(request)
@@ -163,14 +177,20 @@ impl Dispatcher {
         dispatcher
     }
 
+    /// Global dispatcher instance.
+    ///
+    /// Calling this method will take a lock on the global instance which
+    /// will be released once the value goes out of scope.
     pub fn get<'a>() -> SgxMutexGuard<'a, Self> {
         DISPATCHER.lock().unwrap()
     }
 
+    /// Register a new method in the dispatcher.
     pub fn add_method(&mut self, method: EnclaveMethod) {
         self.methods.insert(method.get_name().clone(), method);
     }
 
+    /// Dispatches a raw RPC request.
     pub fn dispatch(&self, request: request::Request<Vec<u8>>) -> response::Response {
         // If an error occurred during request processing, forward it.
         if let Some(ref error) = request.get_error() {

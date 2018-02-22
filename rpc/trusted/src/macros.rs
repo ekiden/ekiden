@@ -28,7 +28,6 @@ macro_rules! create_enclave_rpc {
         pub extern "C" fn __ekiden_rpc_create_enclave() {
             use ekiden_core_common::error::Result;
             use ekiden_core_common::rpc::reflection::ApiMethodDescriptor;
-            use ekiden_core_common::rpc::serializer::ProtocolBuffersSerializer;
             use ekiden_core_trusted::rpc::dispatcher::{Dispatcher, EnclaveMethod};
             use ekiden_core_trusted::rpc::request::Request;
 
@@ -37,10 +36,9 @@ macro_rules! create_enclave_rpc {
             $(
                 dispatcher.add_method(
                     EnclaveMethod::new(
-                        ApiMethodDescriptor::<$request_type, $response_type> {
+                        ApiMethodDescriptor {
                             name: stringify!($method_name).to_owned(),
-                            request_serializer: Box::new(ProtocolBuffersSerializer),
-                            response_serializer: Box::new(ProtocolBuffersSerializer),
+                            client_attestation_required: $client_attestation_required,
                         },
                         |request: &Request<$request_type>| -> Result<$response_type> {
                             $method_name(request)

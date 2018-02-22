@@ -20,7 +20,6 @@ extern crate ekiden_common;
 use std::prelude::v1::*;
 
 pub mod reflection;
-pub mod serializer;
 pub mod secure_channel;
 pub mod client;
 

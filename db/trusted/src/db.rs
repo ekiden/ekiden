@@ -3,9 +3,9 @@ use std::sync::{SgxMutex, SgxMutexGuard};
 use protobuf::{self, Message};
 
 use ekiden_common::error::Result;
+use ekiden_common::serializer::Serializable;
 
 use super::crypto;
-use super::serializer::Serializable;
 
 /// Database interface.
 // TODO: Make it easy to retrieve diffs (e.g. `export` should return oplog records).
