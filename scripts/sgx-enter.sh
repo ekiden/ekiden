@@ -30,7 +30,6 @@ if [ ! "$(docker ps -q -f name=$EKIDEN)" ]; then
     docker run -t -i \
       --name "$EKIDEN" \
       -v ${CWD}:/code \
-      -v ${CWD}/../deps:/deps \
       -v ${rust_sgx_sdk_dir}:/sgx \
       -e "SGX_MODE=SIM" \
       -e "RUST_SGX_SDK=/sgx" \

@@ -105,7 +105,7 @@ impl SecureChannelContext {
     /// Generate and configure a new random keypair for the secure channel.
     pub fn generate_keypair(&mut self) -> Result<()> {
         let mut seed: SecretSeed = [0; SECRET_SEED_LEN];
-        match sgx_trts::rsgx_read_rand(&mut seed) {
+        match sgx_trts::trts::rsgx_read_rand(&mut seed) {
             Ok(_) => {}
             Err(_) => return Err(Error::new("Keypair generation failed")),
         }
@@ -281,7 +281,7 @@ impl ClientSession {
 
         // Generate new keypair.
         let mut seed: SecretSeed = [0; SECRET_SEED_LEN];
-        match sgx_trts::rsgx_read_rand(&mut seed) {
+        match sgx_trts::trts::rsgx_read_rand(&mut seed) {
             Ok(_) => {}
             Err(_) => return Err(Error::new("Keypair generation failed")),
         }

@@ -4,17 +4,22 @@ version = "0.1.0"
 authors = ["Jernej Kos <jernej@kos.mx>"]
 
 [dependencies]
-byteorder = "1.2.1"
-compute-api = { path = "../../compute/api" }
 ekiden-common = { path = "../../common" }
 ekiden-enclave-common = { path = "../../enclave/common" }
 ekiden-rpc-common = { path = "../common" }
+protobuf = "1.4.3"
+sodalite = "0.3.0"
+
+[target.'cfg(target_env = "sgx")'.dependencies]
+futures-sgx = { git = "https://github.com/ekiden/futures-rs", branch = "xargo" }
+
+[target.'cfg(not(target_env = "sgx"))'.dependencies]
+byteorder = "1.2.1"
+compute-api = { path = "../../compute/api" }
 futures = "0.1"
 grpc = "0.2.1"
 httpbis  = "0.4.1"
-protobuf = "1.4.3"
 rand = "0.4"
-sodalite = "0.3.0"
 tls-api  = "0.1.12"
 tokio-core = "0.1"
 

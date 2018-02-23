@@ -10,8 +10,8 @@ authors = [
 sgx-simulation = []
 
 [dependencies]
-sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-sgx_urts = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk", branch = "xargo" }
+sgx_urts = { git = "https://github.com/ekiden/rust-sgx-sdk", branch = "xargo" }
 ekiden-common = { path = "../../common" }
 ekiden-enclave-untrusted = { path = "../../enclave/untrusted" }
 
