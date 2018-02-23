@@ -1,7 +1,6 @@
 [env]
 INTEL_SGX_SDK = "/opt/sgxsdk"
 RUST_SGX_SDK = "/sgx"
-SGX_MODE = "SIM"
 SGX_ARCH = "x64"
 
 [tasks.default]

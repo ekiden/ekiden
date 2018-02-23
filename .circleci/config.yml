@@ -6,6 +6,7 @@ jobs:
     steps:
       # Set up
       - run: echo 'PS1='"'"'\$ '"'"'; . /root/.bashrc' >> $BASH_ENV
+      - run: echo 'export SGX_MODE=SIM' >> $BASH_ENV
       - checkout
       - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
       - restore_cache:
