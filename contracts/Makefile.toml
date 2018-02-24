@@ -1,15 +1,15 @@
 extend = "../Makefile.toml"
 
 [env]
-BUILD_TARGET_DIR = "../../target"
-TARGET_DIR = "../../target/enclave"
-ENCLAVE_LDS = "../../core/edl/src/enclave.lds"
-ENCLAVE_KEY = "../../keys/private.pem"
-ENCLAVE_CONFIG = "../../core/edl/src/enclave.xml"
+BUILD_TARGET_DIR = "${EKIDEN_ROOT}/target"
+TARGET_DIR = "${EKIDEN_ROOT}/target/enclave"
+ENCLAVE_LDS = "${EKIDEN_ROOT}/core/edl/src/enclave.lds"
+ENCLAVE_KEY = "${EKIDEN_ROOT}/keys/private.pem"
+ENCLAVE_CONFIG = "${EKIDEN_ROOT}/core/edl/src/enclave.xml"
 SGX_COMMON_CFLAGS = "-m64"
 SGX_LIBRARY_PATH = "${INTEL_SGX_SDK}/lib64"
 SGX_ENCLAVE_SIGNER = "${INTEL_SGX_SDK}/bin/x64/sgx_sign"
-PARSE_ENCLAVE = "../../scripts/parse_enclave.py"
+PARSE_ENCLAVE = "${EKIDEN_ROOT}/scripts/parse_enclave.py"
 BUILD_FOR_HOST_TARGET = "false"
 BUILD_FOR_SGX_TARGET = "true"
 

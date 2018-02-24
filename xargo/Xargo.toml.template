@@ -9,17 +9,17 @@ git = "https://github.com/rust-lang-nursery/compiler-builtins"
 stage = 1
 
 [dependencies.std]
-path = "/code/third_party/rust-sgx-sdk/xargo/sgx_tstd"
+path = "@EKIDEN_ROOT/third_party/rust-sgx-sdk/xargo/sgx_tstd"
 stage = 2
 
 [dependencies.sgx_rand]
-path = "/code/third_party/rust-sgx-sdk/xargo/sgx_rand"
+path = "@EKIDEN_ROOT/third_party/rust-sgx-sdk/xargo/sgx_rand"
 stage = 3
 
 [dependencies.sgx_serialize]
-path = "/code/third_party/rust-sgx-sdk/xargo/sgx_serialize"
+path = "@EKIDEN_ROOT/third_party/rust-sgx-sdk/xargo/sgx_serialize"
 stage = 3
 
 [dependencies.sgx_tunittest]
-path = "/code/third_party/rust-sgx-sdk/xargo/sgx_tunittest"
+path = "@EKIDEN_ROOT/third_party/rust-sgx-sdk/xargo/sgx_tunittest"
 stage = 3
