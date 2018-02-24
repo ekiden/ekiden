@@ -11,7 +11,7 @@ protobuf = "1.4.3"
 sodalite = "0.3.0"
 
 [target.'cfg(target_env = "sgx")'.dependencies]
-futures-sgx = { git = "https://github.com/ekiden/futures-rs", branch = "xargo" }
+futures-sgx = { git = "https://github.com/ekiden/futures-rs" }
 
 [target.'cfg(not(target_env = "sgx"))'.dependencies]
 byteorder = "1.2.1"

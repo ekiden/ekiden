@@ -19,7 +19,7 @@ ekiden-rpc-common = { path = "../common" }
 ekiden-rpc-client = { path = "../client" }
 
 [target.'cfg(target_env = "sgx")'.dependencies]
-futures-sgx = { git = "https://github.com/ekiden/futures-rs", branch = "xargo" }
+futures-sgx = { git = "https://github.com/ekiden/futures-rs" }
 
 [target.'cfg(not(target_env = "sgx"))'.dependencies]
 rand = "0.4.2"
