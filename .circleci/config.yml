@@ -2,13 +2,14 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ekiden/testing
+      - image: ekiden/testing:xargo
     steps:
       # Set up
       - run: echo 'PS1='"'"'\$ '"'"'; . /root/.bashrc' >> $BASH_ENV
       - run: echo 'export SGX_MODE=SIM' >> $BASH_ENV
       - checkout
-      - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
+      - run: git submodule update --init --recursive
+      - run: git clone --branch xargo https://github.com/ekiden/rust-sgx-sdk.git /sgx
       - restore_cache:
           keys:
             - v1-omni-{{ .Branch }}-{{ .Revision }}
@@ -22,7 +23,7 @@ jobs:
       - run: cargo make checkstyle
 
       # Cargo tests
-      #- run: cargo test -p consensus 
+      #- run: cargo test -p consensus
 
       # Test: end-to-end token contract
       - run:
