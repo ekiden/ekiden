@@ -10,6 +10,8 @@ SGX_COMMON_CFLAGS = "-m64"
 SGX_LIBRARY_PATH = "${INTEL_SGX_SDK}/lib64"
 SGX_ENCLAVE_SIGNER = "${INTEL_SGX_SDK}/bin/x64/sgx_sign"
 PARSE_ENCLAVE = "../../scripts/parse_enclave.py"
+BUILD_FOR_HOST_TARGET = "false"
+BUILD_FOR_SGX_TARGET = "true"
 
 [tasks.post-build]
 alias = "contract-post-build"
@@ -53,7 +55,7 @@ script = ['''
     g++ ${SGX_COMMON_CFLAGS} \
       -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles \
       -L${SGX_LIBRARY_PATH} \
-      -L${BUILD_TARGET_DIR}/${BUILD_MODE} \
+      -L${BUILD_TARGET_DIR}/x86_64-unknown-linux-sgx/${BUILD_MODE} \
       -L${RUST_SGX_SDK}/compiler-rt \
       -Wl,--whole-archive -l${Trts_Library_Name} -Wl,--no-whole-archive \
       -Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -l${Crypto_Library_Name} -l${KeyExchange_Library_Name} -l${Service_Library_Name} -lcompiler-rt-patch -l${CARGO_MAKE_CRATE_NAME//-/_} -Wl,--end-group \
