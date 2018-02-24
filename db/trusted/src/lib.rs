@@ -1,10 +1,5 @@
 #![feature(use_extern_macros)]
 
-extern crate sgx_trts;
-extern crate sgx_tse;
-extern crate sgx_tseal;
-extern crate sgx_types;
-
 extern crate bsdiff;
 extern crate bzip2;
 #[macro_use]
