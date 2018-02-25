@@ -10,11 +10,6 @@ jobs:
       - checkout
       - run: git submodule update --init --recursive
       - run: git clone --branch xargo https://github.com/ekiden/rust-sgx-sdk.git /sgx
-      - restore_cache:
-          keys:
-            - v1-omni-{{ .Branch }}-{{ .Revision }}
-            - v1-omni-{{ .Branch }}-
-            - v1-omni-master-
 
       # Build
       - run: cargo make build-flow
@@ -42,12 +37,6 @@ jobs:
           background: true
       - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
 
-      # Save cache
-      - save_cache:
-          key: v1-omni-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - /root/.cargo
-            - target
 workflows:
   version: 2
   build:
