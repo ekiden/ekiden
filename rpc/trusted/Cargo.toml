@@ -7,19 +7,23 @@ authors = [
 ]
 
 [dependencies]
-sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-sgx_tstd = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-sgx_trts = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-sgx_tseal = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-sgx_tse = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-protobuf-sgx = { git = "https://github.com/ekiden/rust-protobuf" }
+sgx_types = { path = "../../third_party/rust-sgx-sdk/sgx_types" }
+sgx_tseal = { path = "../../third_party/rust-sgx-sdk/sgx_tseal" }
+sgx_tse = { path = "../../third_party/rust-sgx-sdk/sgx_tse" }
 sodalite = "0.3.0"
+protobuf = "1.4.3"
 lazy_static = { version = "1.0", features = ["spin_no_std"] }
-ekiden-common = { path = "../../common", features = ["sgx"], default-features = false }
-ekiden-enclave-common = { path = "../../enclave/common", features = ["sgx"], default-features = false }
-ekiden-rpc-common = { path = "../common", features = ["sgx"], default-features = false }
-ekiden-rpc-client = { path = "../client", features = ["sgx"], default-features = false }
+ekiden-common = { path = "../../common" }
+ekiden-enclave-common = { path = "../../enclave/common" }
+ekiden-rpc-common = { path = "../common" }
+ekiden-rpc-client = { path = "../client" }
+
+[target.'cfg(target_env = "sgx")'.dependencies]
 futures-sgx = { git = "https://github.com/ekiden/futures-rs" }
+
+[target.'cfg(not(target_env = "sgx"))'.dependencies]
+rand = "0.4.2"
+futures = "0.1"
 
 [build-dependencies]
 ekiden-tools = { path = "../../tools" }

@@ -1,4 +1,3 @@
-#[cfg(feature = "sgx")]
 use futures::Async;
 use futures::future::Future;
 
@@ -9,14 +8,12 @@ pub type ClientFuture<T> = Box<FutureExtra<Item = T, Error = Error> + Send>;
 
 /// Future trait with extra helper methods.
 pub trait FutureExtra: Future {
-    #[cfg(feature = "sgx")]
     fn wait(self) -> Result<Self::Item, Self::Error>
     where
         Self: Sized;
 }
 
 impl<F: Future> FutureExtra for F {
-    #[cfg(feature = "sgx")]
     fn wait(mut self) -> Result<Self::Item, Self::Error>
     where
         Self: Sized,

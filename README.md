@@ -8,10 +8,17 @@ Here is a brief list of system dependencies currently used for development:
 - [rustc](https://www.rust-lang.org/en-US/)
 - [cargo](http://doc.crates.io/)
 - [cargo-make](https://crates.io/crates/cargo-make)
+- [xargo](https://github.com/japaric/xargo)
 - [docker](https://www.docker.com/)
-- [rust-sgx-sdk](https://github.com/baidu/rust-sgx-sdk)
-  - Clone it to a local directory
+- [rust-sgx-sdk](https://github.com/ekiden/rust-sgx-sdk)
 - [protoc](https://github.com/google/protobuf/releases)
+
+## Checking out
+
+The repository uses submodules so be sure to check them out by doing:
+```bash
+$ git submodule update --init --recursive
+```
 
 ## Building
 
@@ -20,16 +27,13 @@ container with all the included tools. This has been tested on MacOS and Ubuntu 
 
 To start the SGX development container:
 ```bash
-$ ./scripts/sgx-enter.sh RUST_SGX_SDK_PATH
+$ ./scripts/sgx-enter.sh
 ```
 
-Ekiden uses [`cargo-make`](https://crates.io/crates/cargo-make) as the build system. To install it,
-run:
-```bash
-$ cargo install cargo-make
-```
+Ekiden uses [`cargo-make`](https://crates.io/crates/cargo-make) as the build system. The
+development Docker container already comes with `cargo-make` preinstalled.
 
-Then, to build everything required for running Ekiden, simply run the following in the top-level
+To build everything required for running Ekiden, simply run the following in the top-level
 directory:
 ```bash
 $ cargo make

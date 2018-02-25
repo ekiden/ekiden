@@ -8,12 +8,7 @@ jobs:
       - run: echo 'PS1='"'"'\$ '"'"'; . /root/.bashrc' >> $BASH_ENV
       - run: echo 'export SGX_MODE=SIM' >> $BASH_ENV
       - checkout
-      - run: git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
-      - restore_cache:
-          keys:
-            - v1-omni-{{ .Branch }}-{{ .Revision }}
-            - v1-omni-{{ .Branch }}-
-            - v1-omni-master-
+      - run: git submodule update --init --recursive
 
       # Build
       - run: cargo make build-flow
@@ -22,7 +17,7 @@ jobs:
       - run: cargo make checkstyle
 
       # Cargo tests
-      #- run: cargo test -p consensus 
+      #- run: cargo test -p consensus
 
       # Test: end-to-end token contract
       - run:
@@ -41,12 +36,6 @@ jobs:
           background: true
       - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
 
-      # Save cache
-      - save_cache:
-          key: v1-omni-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - /root/.cargo
-            - target
 workflows:
   version: 2
   build:

@@ -3,7 +3,6 @@ FROM ekiden/rust-sgx-sdk
 ENV HOME="/root"
 ENV PATH="${HOME}/.cargo/bin:${PATH}"
 ENV INTEL_SGX_SDK="/opt/sgxsdk"
-ENV RUST_SGX_SDK="/sgx"
 ENV SGX_MODE="SIM"
 ENV SGX_ARCH="x64"
 
@@ -13,8 +12,6 @@ RUN apt-get update # 20180204
 RUN apt-get install -y --no-install-recommends python-pip
 # Benchmarks don't run the evaluation, so no scipy or sklearn
 RUN pip install numpy pandas xlrd protobuf
-
-RUN git clone --branch v0.9.1 https://github.com/baidu/rust-sgx-sdk.git /sgx
 
 # Copy code.
 ADD . /code

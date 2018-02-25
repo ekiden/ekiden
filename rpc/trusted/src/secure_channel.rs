@@ -1,4 +1,3 @@
-use sgx_trts;
 use sgx_tseal::SgxSealedData;
 use sgx_types::*;
 
@@ -7,9 +6,13 @@ use protobuf::Message;
 use sodalite;
 
 use std::collections::HashMap;
-use std::sync::SgxMutex;
+#[cfg(not(target_env = "sgx"))]
+use std::sync::Mutex;
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutex as Mutex;
 
 use ekiden_common::error::{Error, Result};
+use ekiden_common::random;
 use ekiden_enclave_common::quote::{AttestationReport, MrEnclave, QUOTE_CONTEXT_SC};
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::secure_channel::{self, MonotonicNonceGenerator, RandomNonceGenerator,
@@ -102,7 +105,7 @@ impl SecureChannelContext {
     /// Generate and configure a new random keypair for the secure channel.
     pub fn generate_keypair(&mut self) -> Result<()> {
         let mut seed: SecretSeed = [0; SECRET_SEED_LEN];
-        match sgx_trts::rsgx_read_rand(&mut seed) {
+        match random::get_random_bytes(&mut seed) {
             Ok(_) => {}
             Err(_) => return Err(Error::new("Keypair generation failed")),
         }
@@ -278,7 +281,7 @@ impl ClientSession {
 
         // Generate new keypair.
         let mut seed: SecretSeed = [0; SECRET_SEED_LEN];
-        match sgx_trts::rsgx_read_rand(&mut seed) {
+        match random::get_random_bytes(&mut seed) {
             Ok(_) => {}
             Err(_) => return Err(Error::new("Keypair generation failed")),
         }
@@ -385,8 +388,8 @@ impl ClientSession {
 
 lazy_static! {
     // Global secure channel context.
-    static ref SECURE_CHANNEL_CTX: SgxMutex<SecureChannelContext> =
-        SgxMutex::new(SecureChannelContext::new());
+    static ref SECURE_CHANNEL_CTX: Mutex<SecureChannelContext> =
+        Mutex::new(SecureChannelContext::new());
 }
 
 /// Initialize contract.

@@ -10,8 +10,8 @@ authors = [
 sgx-simulation = []
 
 [dependencies]
-sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk" }
-sgx_urts = { git = "https://github.com/ekiden/rust-sgx-sdk" }
+sgx_types = { path = "../../third_party/rust-sgx-sdk/sgx_types" }
+sgx_urts = { path = "../../third_party/rust-sgx-sdk/sgx_urts" }
 ekiden-common = { path = "../../common" }
 
 [build-dependencies]

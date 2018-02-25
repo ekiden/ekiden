@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::sync::{SgxMutex, SgxMutexGuard};
+#[cfg(not(target_env = "sgx"))]
+use std::sync::{Mutex, MutexGuard};
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutex as Mutex;
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutexGuard as MutexGuard;
 
 use ekiden_common::error::{Error, Result};
 use ekiden_enclave_common::quote::{MrEnclave, MRENCLAVE_LEN};
@@ -25,7 +30,7 @@ pub struct KeyManager {
 
 lazy_static! {
     // Global key store object.
-    static ref KEY_MANAGER: SgxMutex<KeyManager> = SgxMutex::new(KeyManager::new());
+    static ref KEY_MANAGER: Mutex<KeyManager> = Mutex::new(KeyManager::new());
 }
 
 impl KeyManager {
@@ -71,7 +76,7 @@ impl KeyManager {
     ///
     /// Calling this method will take a lock on the global instance, which will
     /// be released once the value goes out of scope.
-    pub fn get<'a>() -> Result<SgxMutexGuard<'a, KeyManager>> {
+    pub fn get<'a>() -> Result<MutexGuard<'a, KeyManager>> {
         let mut manager = KEY_MANAGER.lock().unwrap();
 
         // Ensure manager is connected.
