@@ -1,7 +1,7 @@
 [env]
 EKIDEN_ROOT = { script = ["git rev-parse --show-toplevel"] }
 INTEL_SGX_SDK = "/opt/sgxsdk"
-RUST_SGX_SDK = "/sgx"
+RUST_SGX_SDK = "${EKIDEN_ROOT}/third_party/rust-sgx-sdk"
 SGX_ARCH = "x64"
 XARGO_TARGET_PATH = "${EKIDEN_ROOT}/xargo"
 XARGO_DEFAULT_CONFIG_TEMPLATE = "${EKIDEN_ROOT}/xargo/Xargo.toml.template"

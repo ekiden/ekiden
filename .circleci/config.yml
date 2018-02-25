@@ -9,7 +9,6 @@ jobs:
       - run: echo 'export SGX_MODE=SIM' >> $BASH_ENV
       - checkout
       - run: git submodule update --init --recursive
-      - run: git clone --branch xargo https://github.com/ekiden/rust-sgx-sdk.git /sgx
 
       # Build
       - run: cargo make build-flow
