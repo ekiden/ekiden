@@ -1,7 +1,11 @@
-#!/bin/bash
+#!/bin/bash -e
 
-EKIDEN="ekiden"
-CWD=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
+# Working directory is determined by using git, so we can use the same script
+# with external repositories which use their own root.
+WORK_DIR=$( git rev-parse --show-toplevel )
+# Name of the ekiden container.
+EKIDEN_CONTAINER_NAME=${EKIDEN_CONTAINER_NAME:-$(basename ${WORK_DIR})}
+# Tendermint port to be exposed.
 TENDERMINT_PORT=8880
 
 ekiden_image=${EKIDEN_DOCKER_IMAGE:-ekiden/rust-sgx-sdk}
@@ -13,14 +17,14 @@ which docker >/dev/null || {
 }
 
 # Start SGX Rust Docker container.
-if [ ! "$(docker ps -q -f name=$EKIDEN)" ]; then
-  if [ "$(docker ps -aq -f name=$EKIDEN)" ]; then
-    docker start $EKIDEN
-    docker exec -i -t $EKIDEN /usr/bin/env $ekiden_shell
+if [ ! "$(docker ps -q -f name=${EKIDEN_CONTAINER_NAME})" ]; then
+  if [ "$(docker ps -aq -f name=${EKIDEN_CONTAINER_NAME})" ]; then
+    docker start ${EKIDEN_CONTAINER_NAME}
+    docker exec -i -t ${EKIDEN_CONTAINER_NAME} /usr/bin/env $ekiden_shell
   else
     docker run -t -i \
-      --name "$EKIDEN" \
-      -v ${CWD}:/code \
+      --name "${EKIDEN_CONTAINER_NAME}" \
+      -v ${WORK_DIR}:/code \
       -e "SGX_MODE=SIM" \
       -e "INTEL_SGX_SDK=/opt/sgxsdk" \
       -p "${TENDERMINT_PORT}:46657" \
@@ -29,5 +33,5 @@ if [ ! "$(docker ps -q -f name=$EKIDEN)" ]; then
       /usr/bin/env $ekiden_shell
   fi
 else
-  docker exec -i -t $EKIDEN /usr/bin/env $ekiden_shell
+  docker exec -i -t ${EKIDEN_CONTAINER_NAME} /usr/bin/env $ekiden_shell
 fi

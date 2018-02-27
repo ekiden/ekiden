@@ -1,5 +1,6 @@
 [env]
-EKIDEN_ROOT = { script = ["git rev-parse --show-toplevel"] }
+PROJECT_ROOT = { script = ["git rev-parse --show-toplevel"] }
+EKIDEN_ROOT = "${PROJECT_ROOT}"
 INTEL_SGX_SDK = "/opt/sgxsdk"
 RUST_SGX_SDK = "${EKIDEN_ROOT}/third_party/rust-sgx-sdk"
 SGX_ARCH = "x64"

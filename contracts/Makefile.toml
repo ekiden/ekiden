@@ -1,8 +1,8 @@
 extend = "../Makefile.toml"
 
 [env]
-BUILD_TARGET_DIR = "${EKIDEN_ROOT}/target"
-TARGET_DIR = "${EKIDEN_ROOT}/target/enclave"
+BUILD_TARGET_DIR = "${PROJECT_ROOT}/target"
+TARGET_DIR = "${PROJECT_ROOT}/target/enclave"
 ENCLAVE_LDS = "${EKIDEN_ROOT}/core/edl/src/enclave.lds"
 ENCLAVE_KEY = "${EKIDEN_ROOT}/keys/private.pem"
 ENCLAVE_CONFIG = "${EKIDEN_ROOT}/core/edl/src/enclave.xml"

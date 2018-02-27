@@ -6,7 +6,7 @@ build = "build.rs"
 
 [dependencies]
 consensus-api = { path = "./api" }
-abci = { git = "https://github.com/ekiden/abci" }
+abci = { git = "https://github.com/ekiden/tendermint-abci" }
 clap = "2.29.1"
 futures = "0.1"
 grpc = "0.2.1"
