@@ -2,11 +2,11 @@
 - host: install vtune, including collection driver
 - start container (aesmd seems not to work unless run from pid 1)
 - container: `export SGX_MODE=HW`
-- container: `. scripts/start-aesmd.sh` (%%% missing) (source, it creates a background job) (requires privileged container, or it can't access the sgx service) (todo: privileged container is undesirable for production)
+- container: `. scripts/start-aesmd.sh` (source, it creates a background job) (requires privileged container, or it can't access the sgx service) (todo: privileged container is undesirable for production)
 - container: `cargo make` (optimized debug) (todo: how should we save this option?)
 - container: special `RUSTFLAGS="-C opt-level=3" cargo build --features benchmark` for token client
 - make /code available on host for vtune (todo: any better ways to do this?)
-- container: `. scripts/local-benchmark.sh` (source, it starts jobs) (%%% missing)
+- container: `. scripts/local-benchmark.sh` (source, it starts jobs)
 - host: elevate `sudo su` (interactive, because we need to source some vars and then run vtune)
 - host, elevated: `. /opt/intel/vtune_amplifier_2018.1.0.535340/amplxe-vars.sh`
 - host, elevated: `amplxe-cl -collect sgx-hotspots -duration=60 -target-pid=xx` (pid of bash in container)

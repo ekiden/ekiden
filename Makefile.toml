@@ -13,13 +13,13 @@ BUILD_FOR_HOST_TARGET = "true"
 alias = "build-flow"
 
 [tasks.env-debug]
-env = { "BUILD_MODE" = "debug" }
+env = { "BUILD_MODE" = "debug", "RUSTFLAGS" = "-C opt-level=3" }
 
 [tasks.env-release]
 env = { "BUILD_MODE" = "release" }
 
 [tasks.env-sgx-xargo]
-env = { "RUSTFLAGS" = "-Z force-unstable-if-unmarked", "RUST_TARGET_PATH" = "${XARGO_TARGET_PATH}" }
+env = { "RUSTFLAGS" = "-Z force-unstable-if-unmarked -C opt-level=3", "RUST_TARGET_PATH" = "${XARGO_TARGET_PATH}" }
 
 [tasks.build-flow]
 dependencies = [
