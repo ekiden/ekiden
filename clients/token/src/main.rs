@@ -99,7 +99,7 @@ where
 }
 
 /// Finalize the token scenario.
-fn finalize<Backend>(client: &mut token::Client<Backend>, runs: usize, _threads: usize)
+fn finalize<Backend>(client: &mut token::Client<Backend>, runs: usize, threads: usize)
 where
     Backend: ekiden_rpc_client::backend::ContractClientBackend,
 {
@@ -114,7 +114,7 @@ where
         .unwrap();
     assert_eq!(
         response.get_balance(),
-        8_000_000_000_000_000_000 - 3 * runs as u64
+        8_000_000_000_000_000_000 - 3 * runs as u64 * threads as u64
     );
 }
 
