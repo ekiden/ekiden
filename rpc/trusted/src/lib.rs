@@ -1,4 +1,5 @@
 #![feature(use_extern_macros)]
+#![feature(core_intrinsics)]
 
 extern crate sgx_tse;
 extern crate sgx_tseal;

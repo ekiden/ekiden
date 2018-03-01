@@ -7,6 +7,7 @@ use std::sync::SgxMutex as Mutex;
 use std::sync::SgxMutexGuard as MutexGuard;
 
 use ekiden_common::error::Result;
+use ekiden_common::profile_block;
 use ekiden_common::serializer::Serializable;
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::reflection::ApiMethodDescriptor;
@@ -249,16 +250,30 @@ pub extern "C" fn rpc_call(
 ) {
     // Parse requests.
     // TODO: Move this method here, rename to parse_requests.
-    let requests = bridge::parse_request(request_data, request_length);
+    let requests = {
+        profile_block!("parse_request");
+
+        bridge::parse_request(request_data, request_length)
+    };
 
     // Process requests.
-    let dispatcher = Dispatcher::get();
-    let mut responses = vec![];
-    for request in requests {
-        responses.push(dispatcher.dispatch(request));
-    }
+    let responses = {
+        profile_block!("process_requests");
+
+        let dispatcher = Dispatcher::get();
+        let mut responses = vec![];
+        for request in requests {
+            responses.push(dispatcher.dispatch(request));
+        }
+
+        responses
+    };
 
     // Generate response.
     // TODO: Move this method here.
-    bridge::return_response(responses, response_data, response_capacity, response_length);
+    {
+        profile_block!("return_response");
+
+        bridge::return_response(responses, response_data, response_capacity, response_length);
+    }
 }
