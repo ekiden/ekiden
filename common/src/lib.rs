@@ -12,3 +12,6 @@ pub mod serializer;
 
 #[macro_use]
 pub mod hex_encoded;
+
+#[macro_use]
+pub mod profiling;
