@@ -68,12 +68,12 @@ args = ["build"]
 condition = { env = { "BUILD_FOR_SGX_TARGET" = "true" } }
 script = ['''
     cleanup_xargo_toml() {
-        rm Xargo.toml
+        rm -f Xargo.toml
     }
 
     if [ ! -f Xargo.toml ]; then
         cp ${XARGO_DEFAULT_CONFIG_TEMPLATE} Xargo.toml
-        trap cleanup_xargo_toml EXIT
+        trap cleanup_xargo_toml EXIT INT TERM
         sed -i "s#@EKIDEN_ROOT#${EKIDEN_ROOT}#g" Xargo.toml
     fi
 
@@ -89,12 +89,12 @@ args = ["build", "--release"]
 condition = { env = { "BUILD_FOR_SGX_TARGET" = "true" } }
 script = ['''
     cleanup_xargo_toml() {
-        rm Xargo.toml
+        rm -f Xargo.toml
     }
 
     if [ ! -f Xargo.toml ]; then
         cp ${XARGO_DEFAULT_CONFIG_TEMPLATE} Xargo.toml
-        trap cleanup_xargo_toml EXIT
+        trap cleanup_xargo_toml EXIT INT TERM
         sed -i "s#@EKIDEN_ROOT#${EKIDEN_ROOT}#g" Xargo.toml
     fi
 
