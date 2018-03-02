@@ -34,17 +34,17 @@ fn apply_internal(old: &[u8], diff: &[u8]) -> Result<Vec<u8>> {
     Ok(new)
 }
 
-pub fn diff(old: &[u8], new: &[u8]) -> Result<CryptoSecretbox> {
-    let old = crypto::decrypt_state(&protobuf::parse_from_bytes(&old)?)?;
-    let new = crypto::decrypt_state(&protobuf::parse_from_bytes(&new)?)?;
+pub fn diff(old: &CryptoSecretbox, new: &CryptoSecretbox) -> Result<CryptoSecretbox> {
+    let old = crypto::decrypt_state(&old)?;
+    let new = crypto::decrypt_state(&new)?;
     let diff = diff_internal(&old, &new)?;
 
     Ok(crypto::encrypt_state(diff)?)
 }
 
-pub fn apply(old: &[u8], diff: &[u8]) -> Result<CryptoSecretbox> {
-    let old = crypto::decrypt_state(&protobuf::parse_from_bytes(old)?)?;
-    let diff = crypto::decrypt_state(&protobuf::parse_from_bytes(diff)?)?;
+pub fn apply(old: &CryptoSecretbox, diff: &CryptoSecretbox) -> Result<CryptoSecretbox> {
+    let old = crypto::decrypt_state(&old)?;
+    let diff = crypto::decrypt_state(&diff)?;
     let new = apply_internal(&old, &diff)?;
 
     Ok(crypto::encrypt_state(new)?)

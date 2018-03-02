@@ -1,9 +1,9 @@
 enclave {
     trusted {
         public void db_state_diff(
-            [in, size=old_length] const uint8_t *old,
+            [user_check] const uint8_t *old,
             size_t old_length,
-            [in, size=new_length] const uint8_t *new,
+            [user_check] const uint8_t *new,
             size_t new_length,
             [user_check] uint8_t *diff,
             size_t diff_capacity,
@@ -11,9 +11,9 @@ enclave {
         );
 
         public void db_state_apply(
-            [in, size=old_length] const uint8_t *old,
+            [user_check] const uint8_t *old,
             size_t old_length,
-            [in, size=diff_length] const uint8_t *diff,
+            [user_check] const uint8_t *diff,
             size_t diff_length,
             [user_check] uint8_t *new,
             size_t new_capacity,
@@ -21,7 +21,7 @@ enclave {
         );
 
         public void db_state_set(
-            [in, size=state_length] const uint8_t *state,
+            [user_check] const uint8_t *state,
             size_t state_length
         );
 

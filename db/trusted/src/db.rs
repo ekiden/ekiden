@@ -5,8 +5,6 @@ use std::sync::SgxMutex as Mutex;
 #[cfg(target_env = "sgx")]
 use std::sync::SgxMutexGuard as MutexGuard;
 
-use protobuf;
-
 use ekiden_common::error::Result;
 use ekiden_common::serializer::Serializable;
 
@@ -75,8 +73,8 @@ impl Db {
     }
 
     /// Import database.
-    pub(crate) fn import(&mut self, state: &[u8]) -> Result<()> {
-        self.state = crypto::decrypt_state(&protobuf::parse_from_bytes(&state)?)?;
+    pub(crate) fn import(&mut self, state: &CryptoSecretbox) -> Result<()> {
+        self.state = crypto::decrypt_state(&state)?;
         self.dirty = false;
 
         Ok(())

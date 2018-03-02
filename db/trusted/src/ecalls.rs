@@ -1,7 +1,5 @@
-use std;
-
 use ekiden_common::profile_block;
-use ekiden_enclave_trusted::utils::write_enclave_response;
+use ekiden_enclave_trusted::utils::{read_enclave_request, write_enclave_response};
 
 use super::db::Db;
 use super::diffs;
@@ -18,8 +16,8 @@ pub extern "C" fn db_state_diff(
 ) {
     profile_block!();
 
-    let old = unsafe { std::slice::from_raw_parts(old, old_length) };
-    let new = unsafe { std::slice::from_raw_parts(new, new_length) };
+    let old = read_enclave_request(old, old_length);
+    let new = read_enclave_request(new, new_length);
 
     // TODO: Error handling.
     let result = match diffs::diff(&old, &new) {
@@ -43,8 +41,8 @@ pub extern "C" fn db_state_apply(
 ) {
     profile_block!();
 
-    let old = unsafe { std::slice::from_raw_parts(old, old_length) };
-    let diff = unsafe { std::slice::from_raw_parts(diff, diff_length) };
+    let old = read_enclave_request(old, old_length);
+    let diff = read_enclave_request(diff, diff_length);
 
     // TODO: Error handling.
     let result = match diffs::apply(&old, &diff) {
@@ -60,10 +58,10 @@ pub extern "C" fn db_state_apply(
 pub extern "C" fn db_state_set(state: *const u8, state_length: usize) {
     profile_block!();
 
-    let state = unsafe { std::slice::from_raw_parts(state, state_length) };
+    let state = read_enclave_request(state, state_length);
 
     // TODO: Error handling.
-    match Db::instance().import(state) {
+    match Db::instance().import(&state) {
         Ok(_) => {}
         _ => panic!("Error while importing state"),
     }

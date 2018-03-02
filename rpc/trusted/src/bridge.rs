@@ -1,80 +1,11 @@
 use sgx_types::*;
 
-use std;
-
 use protobuf::{self, Message, MessageStatic};
 
 use ekiden_common::error::{Error, Result};
-use ekiden_rpc_common::api;
 use ekiden_rpc_common::client::ClientEndpoint;
 
-use super::error::DispatchError;
-use super::request::Request;
-use super::secure_channel::open_request_box;
 use super::untrusted;
-
-/// List of methods that allow plain requests. All other requests must be done over
-/// a secure channel.
-const PLAIN_METHODS: &'static [&'static str] = &[
-    api::METHOD_CONTRACT_INIT,
-    api::METHOD_CONTRACT_RESTORE,
-    api::METHOD_CHANNEL_INIT,
-];
-
-/// Parse an RPC request message.
-pub fn parse_request(request_data: *const u8, request_length: usize) -> Vec<Request<Vec<u8>>> {
-    let raw_request = unsafe { std::slice::from_raw_parts(request_data, request_length) };
-    let mut enclave_request: api::EnclaveRequest = match protobuf::parse_from_bytes(raw_request) {
-        Ok(enclave_request) => enclave_request,
-        _ => {
-            // Malformed outer request, enclave will panic.
-            panic!("Malformed enclave request");
-        }
-    };
-
-    let client_requests = enclave_request.take_client_request();
-    let mut requests = vec![];
-
-    for mut client_request in client_requests.into_iter() {
-        if client_request.has_encrypted_request() {
-            // Encrypted request.
-            let plain_request = match open_request_box(&client_request.get_encrypted_request()) {
-                Ok(plain_request) => plain_request,
-                _ => Request::error(DispatchError::new(
-                    api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL,
-                    "Unable to open secure channel request",
-                )),
-            };
-
-            requests.push(plain_request);
-        } else {
-            // Plain request.
-            let mut plain_request = client_request.take_plain_request();
-            let plain_request = match PLAIN_METHODS
-                .iter()
-                .find(|&method| method == &plain_request.get_method())
-            {
-                Some(_) => Request::new(
-                    plain_request.take_payload(),
-                    plain_request.take_method(),
-                    None,
-                    None,
-                ),
-                None => {
-                    // Method requires a secure channel.
-                    Request::error(DispatchError::new(
-                        api::PlainClientResponse_Code::ERROR_METHOD_SECURE,
-                        "Method call must be made over a secure channel",
-                    ))
-                }
-            };
-
-            requests.push(plain_request);
-        }
-    }
-
-    requests
-}
 
 /// Perform an untrusted RPC call against a given (untrusted) endpoint.
 ///

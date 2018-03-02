@@ -9,11 +9,21 @@ use std::sync::SgxMutexGuard as MutexGuard;
 use ekiden_common::error::Result;
 use ekiden_common::profile_block;
 use ekiden_common::serializer::Serializable;
-use ekiden_enclave_trusted::utils::write_enclave_response;
+use ekiden_enclave_trusted::utils::{read_enclave_request, write_enclave_response};
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::reflection::ApiMethodDescriptor;
 
-use super::{bridge, request, response};
+use super::{request, response};
+use super::error::DispatchError;
+use super::secure_channel::open_request_box;
+
+/// List of methods that allow plain requests. All other requests must be done over
+/// a secure channel.
+const PLAIN_METHODS: &'static [&'static str] = &[
+    api::METHOD_CONTRACT_INIT,
+    api::METHOD_CONTRACT_RESTORE,
+    api::METHOD_CHANNEL_INIT,
+];
 
 /// Handler for an API method.
 pub trait ApiMethodHandler<Request, Response> {
@@ -250,11 +260,54 @@ pub extern "C" fn rpc_call(
     response_length: *mut usize,
 ) {
     // Parse requests.
-    // TODO: Move this method here, rename to parse_requests.
     let requests = {
         profile_block!("parse_request");
 
-        bridge::parse_request(request_data, request_length)
+        let mut enclave_request: api::EnclaveRequest =
+            read_enclave_request(request_data, request_length);
+        let client_requests = enclave_request.take_client_request();
+        let mut requests = vec![];
+
+        for mut client_request in client_requests.into_iter() {
+            if client_request.has_encrypted_request() {
+                // Encrypted request.
+                let plain_request = match open_request_box(&client_request.get_encrypted_request())
+                {
+                    Ok(plain_request) => plain_request,
+                    _ => request::Request::error(DispatchError::new(
+                        api::PlainClientResponse_Code::ERROR_SECURE_CHANNEL,
+                        "Unable to open secure channel request",
+                    )),
+                };
+
+                requests.push(plain_request);
+            } else {
+                // Plain request.
+                let mut plain_request = client_request.take_plain_request();
+                let plain_request = match PLAIN_METHODS
+                    .iter()
+                    .find(|&method| method == &plain_request.get_method())
+                {
+                    Some(_) => request::Request::new(
+                        plain_request.take_payload(),
+                        plain_request.take_method(),
+                        None,
+                        None,
+                    ),
+                    None => {
+                        // Method requires a secure channel.
+                        request::Request::error(DispatchError::new(
+                            api::PlainClientResponse_Code::ERROR_METHOD_SECURE,
+                            "Method call must be made over a secure channel",
+                        ))
+                    }
+                };
+
+                requests.push(plain_request);
+            }
+        }
+
+        requests
     };
 
     // Process requests.

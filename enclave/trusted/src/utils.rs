@@ -1,9 +1,9 @@
 use std::io::{Cursor, Write};
-use std::slice::from_raw_parts_mut;
+use std::slice::{from_raw_parts, from_raw_parts_mut};
 
 use sgx_trts::trts::rsgx_raw_is_outside_enclave;
 
-use protobuf::Message;
+use protobuf::{self, Message, MessageStatic};
 
 use ekiden_common::error::Result;
 
@@ -21,6 +21,34 @@ impl<M: Message> Writable for M {
 
         Ok(self.compute_size() as usize)
     }
+}
+
+/// Deserialize request buffer from untrusted memory.
+///
+/// # EDL
+///
+/// In order for this function to work, the source buffer must be declared using
+/// the [user_check] attribute in the EDL.
+///
+/// # Panics
+///
+/// This function will panic if the source buffer is not in untrusted memory as
+/// this may compromise enclave security. Failing to deserialize the request
+/// buffer will also cause a panic.
+pub fn read_enclave_request<D>(src: *const u8, src_length: usize) -> D
+where
+    D: Message + MessageStatic,
+{
+    // Ensure that request data is in untrusted memory. This is required because
+    // we are using user_check in the EDL so we must do all checks manually. If
+    // the pointer was inside the enclave, we could expose arbitrary parts of
+    // enclave memory.
+    if !rsgx_raw_is_outside_enclave(src, src_length) {
+        panic!("Security violation: source buffer must be in untrusted memory");
+    }
+
+    let src = unsafe { from_raw_parts(src, src_length) };
+    protobuf::parse_from_bytes(src).expect("Malformed enclave request")
 }
 
 /// Copy enclave buffer in trusted memory to response buffer in untrusted memory.

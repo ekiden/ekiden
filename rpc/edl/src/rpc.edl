@@ -8,7 +8,7 @@ enclave {
 
         // Incoming RPC call interface (client -> enclave).
         public void rpc_call(
-            [in, size=request_length] const uint8_t *request_data,
+            [user_check] const uint8_t *request_data,
             size_t request_length,
             [user_check] uint8_t *response_data,
             size_t response_capacity,
