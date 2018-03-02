@@ -10,7 +10,6 @@ use ekiden_rpc_common::client::ClientEndpoint;
 
 use super::error::DispatchError;
 use super::request::Request;
-use super::response::Response;
 use super::secure_channel::open_request_box;
 use super::untrusted;
 
@@ -75,42 +74,6 @@ pub fn parse_request(request_data: *const u8, request_length: usize) -> Vec<Requ
     }
 
     requests
-}
-
-/// Serialize and return an RPC response.
-pub fn return_response(
-    responses: Vec<Response>,
-    response_data: *mut u8,
-    response_capacity: usize,
-    response_length: *mut usize,
-) {
-    let mut enclave_response = api::EnclaveResponse::new();
-
-    // Add all responses.
-    {
-        let client_responses = enclave_response.mut_client_response();
-        for mut response in responses {
-            client_responses.push(response.take_message());
-        }
-    }
-
-    // TODO: Return null response instead?
-    let enclave_response_bytes = enclave_response
-        .write_to_bytes()
-        .expect("Failed to serialize response");
-
-    // Copy back response.
-    if enclave_response_bytes.len() > response_capacity {
-        // TODO: Return null response instead?
-        panic!("Not enough space for response.");
-    } else {
-        unsafe {
-            for i in 0..enclave_response_bytes.len() as isize {
-                std::ptr::write(response_data.offset(i), enclave_response_bytes[i as usize]);
-            }
-            *response_length = enclave_response_bytes.len();
-        };
-    }
 }
 
 /// Perform an untrusted RPC call against a given (untrusted) endpoint.

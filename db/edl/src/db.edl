@@ -5,7 +5,7 @@ enclave {
             size_t old_length,
             [in, size=new_length] const uint8_t *new,
             size_t new_length,
-            [out, size=diff_capacity] uint8_t *diff,
+            [user_check] uint8_t *diff,
             size_t diff_capacity,
             [out] size_t *diff_length
         );
@@ -15,7 +15,7 @@ enclave {
             size_t old_length,
             [in, size=diff_length] const uint8_t *diff,
             size_t diff_length,
-            [out, size=new_capacity] uint8_t *new,
+            [user_check] uint8_t *new,
             size_t new_capacity,
             [out] size_t *new_length
         );
@@ -26,7 +26,7 @@ enclave {
         );
 
         public void db_state_get(
-            [out, size=state_capacity] uint8_t *state,
+            [user_check] uint8_t *state,
             size_t state_capacity,
             [out] size_t *state_length
         );

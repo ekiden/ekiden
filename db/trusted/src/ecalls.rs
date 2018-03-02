@@ -1,6 +1,7 @@
 use std;
 
 use ekiden_common::profile_block;
+use ekiden_enclave_trusted::utils::write_enclave_response;
 
 use super::db::Db;
 use super::diffs;
@@ -27,14 +28,7 @@ pub extern "C" fn db_state_diff(
     };
 
     // Copy back response.
-    if result.len() <= diff_capacity {
-        unsafe {
-            for i in 0..result.len() as isize {
-                std::ptr::write(diff.offset(i), result[i as usize]);
-            }
-            *diff_length = result.len();
-        };
-    }
+    write_enclave_response(&result, diff, diff_capacity, diff_length);
 }
 
 #[no_mangle]
@@ -59,14 +53,7 @@ pub extern "C" fn db_state_apply(
     };
 
     // Copy back response.
-    if result.len() <= new_capacity {
-        unsafe {
-            for i in 0..result.len() as isize {
-                std::ptr::write(new.offset(i), result[i as usize]);
-            }
-            *new_length = result.len();
-        };
-    }
+    write_enclave_response(&result, new, new_capacity, new_length);
 }
 
 #[no_mangle]
@@ -93,12 +80,5 @@ pub extern "C" fn db_state_get(state: *mut u8, state_capacity: usize, state_leng
     };
 
     // Copy back response.
-    if result.len() <= state_capacity {
-        unsafe {
-            for i in 0..result.len() as isize {
-                std::ptr::write(state.offset(i), result[i as usize]);
-            }
-            *state_length = result.len();
-        };
-    }
+    write_enclave_response(&result, state, state_capacity, state_length);
 }

@@ -8,7 +8,7 @@ use protobuf::Message;
 use ekiden_common::error::Result;
 
 use super::crypto;
-use super::generated::database::BsdiffPatch;
+use super::generated::database::{BsdiffPatch, CryptoSecretbox};
 
 /// Diff: create a summary of changes that can be applied to `old` to recreate `new`.
 /// This is the actual diffing algorithm implementation.
@@ -34,18 +34,18 @@ fn apply_internal(old: &[u8], diff: &[u8]) -> Result<Vec<u8>> {
     Ok(new)
 }
 
-pub fn diff(old: &[u8], new: &[u8]) -> Result<Vec<u8>> {
+pub fn diff(old: &[u8], new: &[u8]) -> Result<CryptoSecretbox> {
     let old = crypto::decrypt_state(&protobuf::parse_from_bytes(&old)?)?;
     let new = crypto::decrypt_state(&protobuf::parse_from_bytes(&new)?)?;
     let diff = diff_internal(&old, &new)?;
 
-    Ok(crypto::encrypt_state(diff)?.write_to_bytes()?)
+    Ok(crypto::encrypt_state(diff)?)
 }
 
-pub fn apply(old: &[u8], diff: &[u8]) -> Result<Vec<u8>> {
+pub fn apply(old: &[u8], diff: &[u8]) -> Result<CryptoSecretbox> {
     let old = crypto::decrypt_state(&protobuf::parse_from_bytes(old)?)?;
     let diff = crypto::decrypt_state(&protobuf::parse_from_bytes(diff)?)?;
     let new = apply_internal(&old, &diff)?;
 
-    Ok(crypto::encrypt_state(new)?.write_to_bytes()?)
+    Ok(crypto::encrypt_state(new)?)
 }

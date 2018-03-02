@@ -9,6 +9,7 @@ use std::sync::SgxMutexGuard as MutexGuard;
 use ekiden_common::error::Result;
 use ekiden_common::profile_block;
 use ekiden_common::serializer::Serializable;
+use ekiden_enclave_trusted::utils::write_enclave_response;
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::reflection::ApiMethodDescriptor;
 
@@ -270,10 +271,24 @@ pub extern "C" fn rpc_call(
     };
 
     // Generate response.
-    // TODO: Move this method here.
     {
         profile_block!("return_response");
 
-        bridge::return_response(responses, response_data, response_capacity, response_length);
+        // Add all responses.
+        let mut enclave_response = api::EnclaveResponse::new();
+        {
+            let client_responses = enclave_response.mut_client_response();
+            for mut response in responses {
+                client_responses.push(response.take_message());
+            }
+        }
+
+        // Copy back response.
+        write_enclave_response(
+            &enclave_response,
+            response_data,
+            response_capacity,
+            response_length,
+        );
     }
 }

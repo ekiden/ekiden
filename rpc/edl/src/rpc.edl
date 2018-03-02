@@ -10,7 +10,7 @@ enclave {
         public void rpc_call(
             [in, size=request_length] const uint8_t *request_data,
             size_t request_length,
-            [out, size=response_capacity] uint8_t *response_data,
+            [user_check] uint8_t *response_data,
             size_t response_capacity,
             [out] size_t *response_length
         );
