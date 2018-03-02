@@ -6,6 +6,10 @@ authors = [
     "Jernej Kos <jernej@kos.mx>"
 ]
 
+[features]
+default = []
+profiling = []
+
 [dependencies]
 protobuf = "1.4.3"
 

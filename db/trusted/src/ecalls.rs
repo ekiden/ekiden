@@ -1,5 +1,7 @@
 use std;
 
+use ekiden_common::profile_block;
+
 use super::db::Db;
 use super::diffs;
 
@@ -13,6 +15,8 @@ pub extern "C" fn db_state_diff(
     diff_capacity: usize,
     diff_length: *mut usize,
 ) {
+    profile_block!();
+
     let old = unsafe { std::slice::from_raw_parts(old, old_length) };
     let new = unsafe { std::slice::from_raw_parts(new, new_length) };
 
@@ -43,6 +47,8 @@ pub extern "C" fn db_state_apply(
     new_capacity: usize,
     new_length: *mut usize,
 ) {
+    profile_block!();
+
     let old = unsafe { std::slice::from_raw_parts(old, old_length) };
     let diff = unsafe { std::slice::from_raw_parts(diff, diff_length) };
 
@@ -65,6 +71,8 @@ pub extern "C" fn db_state_apply(
 
 #[no_mangle]
 pub extern "C" fn db_state_set(state: *const u8, state_length: usize) {
+    profile_block!();
+
     let state = unsafe { std::slice::from_raw_parts(state, state_length) };
 
     // TODO: Error handling.
@@ -76,6 +84,8 @@ pub extern "C" fn db_state_set(state: *const u8, state_length: usize) {
 
 #[no_mangle]
 pub extern "C" fn db_state_get(state: *mut u8, state_capacity: usize, state_length: *mut usize) {
+    profile_block!();
+
     // TODO: Error handling.
     let result = match Db::instance().export() {
         Ok(state) => state,

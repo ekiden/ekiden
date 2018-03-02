@@ -38,6 +38,7 @@ dependencies = [
 ]
 
 [tasks.build]
+# Alias needed to clear cargo-make defaults.
 alias = "build-debug"
 
 [tasks.build-debug]
@@ -48,6 +49,10 @@ dependencies = [
 ]
 
 [tasks.build-release]
+# Alias needed to clear cargo-make defaults.
+alias = "build-release-custom"
+
+[tasks.build-release-custom]
 dependencies = [
     "build-no-sgx-release",
     "env-sgx-xargo",
@@ -77,6 +82,7 @@ script = ['''
 
 [tasks.build-no-sgx-release]
 condition = { env = { "BUILD_FOR_HOST_TARGET" = "true" } }
+command = "cargo"
 args = ["build", "--release"]
 
 [tasks.build-sgx-release]

@@ -9,6 +9,7 @@ git = "https://github.com/rust-lang-nursery/compiler-builtins"
 stage = 1
 
 [dependencies.std]
+features = ["stdio", "untrusted_time"]
 path = "@EKIDEN_ROOT/third_party/rust-sgx-sdk/xargo/sgx_tstd"
 stage = 2
 
