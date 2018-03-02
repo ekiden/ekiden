@@ -1,3 +1,4 @@
+#![feature(core_intrinsics)]
 #![feature(use_extern_macros)]
 
 extern crate bsdiff;
