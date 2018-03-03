@@ -56,7 +56,7 @@ impl Db {
     where
         V: Serializable,
     {
-        Ok(self.set_raw(&key, V::write(&value)?))
+        Ok(self.set_raw(&key, value.write()?))
     }
 
     /// Fetch entry with given key.

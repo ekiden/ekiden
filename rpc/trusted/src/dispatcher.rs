@@ -71,7 +71,7 @@ where
         }
 
         // Deserialize request.
-        let request_message = match Request::read(&request) {
+        let request_message = match Serializable::read(&request) {
             Ok(message) => request.copy_metadata_to(message),
             _ => {
                 return response::Response::error(

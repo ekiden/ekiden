@@ -8,4 +8,3 @@ authors = [
 [dependencies]
 sgx_trts = { path = "../../third_party/rust-sgx-sdk/sgx_trts" }
 ekiden-common = { path = "../../common" }
-protobuf = "1.4.2"
