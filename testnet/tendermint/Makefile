@@ -6,10 +6,10 @@ prep: authorize.stamp connect
 stop: | connect
 	./cmd.sh killall tendermint consensus
 
-clear: | install.stamp connect
+clear: | install-tendermint.stamp connect
 	./cmd.sh ./tendermint unsafe_reset_all
 
-genesis.stamp: genesis.json | install.stamp connect
+genesis.stamp: genesis.json | install-tendermint.stamp connect
 	./upload_validator_keys.sh $(TM_VERSION)
 	touch $@
 
