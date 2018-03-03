@@ -4,16 +4,23 @@ TM_SHA256SUM := 36d773d4c2890addc61cc87a72c1e9c21c89516921b0defb0edfebde719b4b85
 prep: authorize.stamp connect
 
 stop: | connect
-	./cmd.sh killall tendermint
+	./cmd.sh killall tendermint consensus
 
 clear: | install.stamp connect
-	.cmd.sh ./tendermint unsafe_reset_all
+	./cmd.sh ./tendermint unsafe_reset_all
 
-genesis.stamp: | install.stamp connect
-	./configure_keys.sh $(TM_VERSION)
+genesis.stamp: genesis.json | install.stamp connect
+	./upload_validator_keys.sh $(TM_VERSION)
 	touch $@
 
-install.stamp: tendermint | connect
+genesis.json:
+	./create_validator_keys.sh $(TM_VERSION)
+
+install-consensus.stamp: ../../target/release/consensus | connect
+	./send.sh $<
+	touch $@
+
+install-tendermint.stamp: tendermint | connect
 	./send.sh $<
 	./cmd.sh mkdir .tendermint
 	touch $@
@@ -39,6 +46,7 @@ authorize.stamp: authorize_security_groups.sh ips.txt
 	touch $@
 
 ips.txt: get_ips.sh launch.stamp
-	./$< >$@
+	./$< >ips-tmp.txt
+	mv ips-tmp.txt $@
 
 .PHONY: prep connect

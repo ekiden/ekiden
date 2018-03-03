@@ -9,6 +9,7 @@ port=46656
 seeds="$val1:$port,$val2:$port,$val3:$port"
 
 for n in val1 val2 val3; do
+  ssh -F ./ssh_config "$n" ./consensus &
   ssh -F ./ssh_config "$n" ./tendermint node \
       --p2p.seeds="$seeds" \
       --moniker="$n" \

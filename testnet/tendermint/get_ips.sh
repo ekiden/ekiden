@@ -1,4 +1,5 @@
-#!/bin/sh -eu
+#!/bin/bash -eu
+set -o pipefail
 get_ip() {
   region=$1
   inst=$2

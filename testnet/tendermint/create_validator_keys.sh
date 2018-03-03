@@ -19,9 +19,3 @@ for n in val1 val2 val3; do
   jq ".validators |= .+ [$(cat validators/$n/pub_validator.json)]" <genesis.json >tmpgenesis
   mv tmpgenesis genesis.json
 done
-
-for n in val1 val2 val3; do
-  scp -F ./ssh_config genesis.json "$n:~/.tendermint" &
-  scp -F ./ssh_config "validators/$n/priv_validator.json" "$n:~/.tendermint/config" &
-done
-wait
