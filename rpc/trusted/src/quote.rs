@@ -9,7 +9,6 @@ use ekiden_enclave_common::quote::*;
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::client::ClientEndpoint;
 
-use super::bridge;
 use super::untrusted;
 
 pub const REPORT_DATA_LEN: usize = SGX_REPORT_DATA_SIZE - QUOTE_CONTEXT_LEN;
@@ -127,7 +126,7 @@ pub fn get_quote(
 pub fn get_spid() -> Result<Vec<u8>> {
     let request = api::services::IasGetSpidRequest::new();
     let mut response: api::services::IasGetSpidResponse =
-        bridge::untrusted_call_endpoint(&ClientEndpoint::IASProxyGetSpid, request)?;
+        untrusted::untrusted_call_endpoint(&ClientEndpoint::IASProxyGetSpid, request)?;
 
     Ok(response.take_spid())
 }
@@ -145,7 +144,7 @@ pub fn verify_quote(quote: Vec<u8>) -> Result<AttestationReport> {
     request.set_nonce(nonce.clone());
 
     let mut response: api::services::IasVerifyQuoteResponse =
-        bridge::untrusted_call_endpoint(&ClientEndpoint::IASProxyVerifyQuote, request)?;
+        untrusted::untrusted_call_endpoint(&ClientEndpoint::IASProxyVerifyQuote, request)?;
 
     let mut report = response.take_report();
 

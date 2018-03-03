@@ -5,12 +5,11 @@ use std::sync::SgxMutex as Mutex;
 #[cfg(target_env = "sgx")]
 use std::sync::SgxMutexGuard as MutexGuard;
 
-use protobuf::{self, Message};
-
 use ekiden_common::error::Result;
 use ekiden_common::serializer::Serializable;
 
 use super::crypto;
+use super::generated::database::CryptoSecretbox;
 
 /// Database interface.
 // TODO: Make it easy to retrieve diffs (e.g. `export` should return oplog records).
@@ -57,7 +56,7 @@ impl Db {
     where
         V: Serializable,
     {
-        Ok(self.set_raw(&key, V::write(&value)?))
+        Ok(self.set_raw(&key, value.write()?))
     }
 
     /// Fetch entry with given key.
@@ -74,8 +73,8 @@ impl Db {
     }
 
     /// Import database.
-    pub(crate) fn import(&mut self, state: &[u8]) -> Result<()> {
-        self.state = crypto::decrypt_state(&protobuf::parse_from_bytes(&state)?)?;
+    pub(crate) fn import(&mut self, state: &CryptoSecretbox) -> Result<()> {
+        self.state = crypto::decrypt_state(&state)?;
         self.dirty = false;
 
         Ok(())
@@ -85,12 +84,12 @@ impl Db {
     ///
     /// If nothing was modified since the last import, this method will return an empty
     /// vector.
-    pub(crate) fn export(&self) -> Result<Vec<u8>> {
+    pub(crate) fn export(&self) -> Result<CryptoSecretbox> {
         if !self.dirty {
             // Database has not changed, we don't need to export anything.
-            Ok(vec![])
+            Ok(CryptoSecretbox::new())
         } else {
-            Ok(crypto::encrypt_state(self.state.clone())?.write_to_bytes()?)
+            Ok(crypto::encrypt_state(self.state.clone())?)
         }
     }
 }

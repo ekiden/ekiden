@@ -13,10 +13,10 @@ extern crate sodalite;
 
 extern crate ekiden_common;
 extern crate ekiden_enclave_common;
+extern crate ekiden_enclave_trusted;
 extern crate ekiden_rpc_client;
 extern crate ekiden_rpc_common;
 
-pub mod bridge;
 pub mod dispatcher;
 pub mod error;
 pub mod request;

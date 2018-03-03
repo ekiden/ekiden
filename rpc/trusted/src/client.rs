@@ -9,8 +9,8 @@ use ekiden_rpc_client::backend::ContractClientBackend;
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::client::ClientEndpoint;
 
-use super::bridge;
 use super::quote::create_attestation_report_for_public_key;
+use super::untrusted;
 
 pub struct OcallContractClientBackend {
     /// Endpoint that the client is connecting to.
@@ -35,7 +35,10 @@ impl ContractClientBackend for OcallContractClientBackend {
         let endpoint = self.endpoint.clone();
 
         Box::new(future::lazy(move || {
-            Ok(bridge::untrusted_call_endpoint(&endpoint, client_request)?)
+            Ok(untrusted::untrusted_call_endpoint(
+                &endpoint,
+                client_request,
+            )?)
         }))
     }
 
@@ -44,7 +47,7 @@ impl ContractClientBackend for OcallContractClientBackend {
         let endpoint = self.endpoint.clone();
 
         Box::new(future::lazy(move || {
-            Ok(bridge::untrusted_call_endpoint_raw(
+            Ok(untrusted::untrusted_call_endpoint_raw(
                 &endpoint,
                 client_request,
             )?)

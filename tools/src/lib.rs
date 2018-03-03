@@ -148,8 +148,7 @@ pub fn build_untrusted(edl: Vec<EDL>) {
     cc::Build::new()
         .file(temp_dir_path.join("enclave_u.c"))
         .flag_if_supported("-m64")
-        .flag_if_supported("-O0")  // TODO: Should be based on debug/release builds.
-        .flag_if_supported("-g")  // TODO: Should be based on debug/release builds.
+        .flag_if_supported("-O2")  // TODO: Should be based on debug/release builds.
         .flag_if_supported("-fPIC")
         .flag_if_supported("-Wno-attributes")
         .include(Path::new(&config.intel_sdk_dir).join(SGX_SDK_INCLUDE_PATH))
@@ -182,8 +181,7 @@ pub fn build_trusted(edl: Vec<EDL>) {
     cc::Build::new()
         .file(temp_dir_path.join("enclave_t.c"))
         .flag_if_supported("-m64")
-        .flag_if_supported("-O0")  // TODO: Should be based on debug/release builds.
-        .flag_if_supported("-g")  // TODO: Should be based on debug/release builds.
+        .flag_if_supported("-O2")  // TODO: Should be based on debug/release builds.
         .flag_if_supported("-nostdinc")
         .flag_if_supported("-fvisibility=hidden")
         .flag_if_supported("-fpie")
