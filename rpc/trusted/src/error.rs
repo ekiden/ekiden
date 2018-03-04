@@ -1,6 +1,6 @@
 use ekiden_rpc_common::api;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DispatchError {
     /// Error code.
     pub code: api::PlainClientResponse_Code,
