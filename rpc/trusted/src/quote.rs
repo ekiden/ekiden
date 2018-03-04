@@ -1,4 +1,6 @@
+#[cfg(target_env = "sgx")]
 use sgx_tse;
+#[cfg(target_env = "sgx")]
 use sgx_types::*;
 
 use sodalite;
@@ -11,10 +13,13 @@ use ekiden_rpc_common::client::ClientEndpoint;
 
 use super::untrusted;
 
+#[cfg(not(target_env = "sgx"))]
+pub const SGX_REPORT_DATA_SIZE: usize = 64;
 pub const REPORT_DATA_LEN: usize = SGX_REPORT_DATA_SIZE - QUOTE_CONTEXT_LEN;
 pub type ReportData = [u8; REPORT_DATA_LEN];
 
 /// Internal helper macro for SGX OCALLs.
+#[cfg(target_env = "sgx")]
 macro_rules! sgx_call {
     ($error: expr, $result: ident, $block: block) => {
         let status = unsafe { $block };
@@ -59,6 +64,7 @@ pub fn create_report_data_for_public_key(
 ///
 /// The purpose of `quote_context` is to prevent quotes from being used in
 /// different contexts. The value is included as a prefix in report data.
+#[cfg(target_env = "sgx")]
 pub fn get_quote(
     spid: &[u8],
     quote_context: &QuoteContext,
@@ -120,6 +126,15 @@ pub fn get_quote(
     }
 
     Ok(quote)
+}
+
+#[cfg(not(target_env = "sgx"))]
+pub fn get_quote(
+    _spid: &[u8],
+    _quote_context: &QuoteContext,
+    _report_data: ReportData,
+) -> Result<Vec<u8>> {
+    Err(Error::new("Only supported in SGX builds"))
 }
 
 /// Get SPID that can be used to verify the quote later.

@@ -1,4 +1,6 @@
+#[cfg(target_env = "sgx")]
 use sgx_tseal::SgxSealedData;
+#[cfg(target_env = "sgx")]
 use sgx_types::*;
 
 use protobuf;
@@ -116,6 +118,7 @@ impl SecureChannelContext {
     }
 
     /// Unseal and configure a keypair for the secure channel.
+    #[cfg(target_env = "sgx")]
     pub fn unseal_keypair(&mut self, sealed_keys: &[u8]) -> Result<()> {
         let sealed_data = unsafe {
             SgxSealedData::<SecretSeed>::from_raw_sealed_data_t(
@@ -137,6 +140,11 @@ impl SecureChannelContext {
             }
             None => Err(Error::new("Failed to unseal keypair")),
         }
+    }
+
+    #[cfg(not(target_env = "sgx"))]
+    pub fn unseal_keypair(&mut self, _sealed_keys: &[u8]) -> Result<()> {
+        Err(Error::new("Only supported in SGX builds"))
     }
 
     /// Generate a fresh attestation report for IAS.
@@ -161,6 +169,7 @@ impl SecureChannelContext {
     }
 
     /// Return sealed keypair.
+    #[cfg(target_env = "sgx")]
     pub fn get_sealed_keypair(&self) -> Result<Vec<u8>> {
         let void: [u8; 0] = [0_u8; 0];
         let sealed_data = match SgxSealedData::<SecretSeed>::seal_data_ex(
@@ -190,6 +199,11 @@ impl SecureChannelContext {
         };
 
         Ok(raw_data)
+    }
+
+    #[cfg(not(target_env = "sgx"))]
+    pub fn get_sealed_keypair(&self) -> Result<Vec<u8>> {
+        Err(Error::new("Only supported in SGX builds"))
     }
 
     /// Convert client short-term public key into session hash map key.

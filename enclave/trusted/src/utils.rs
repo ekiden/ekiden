@@ -1,6 +1,7 @@
 use std::io::Cursor;
 use std::slice::{from_raw_parts, from_raw_parts_mut};
 
+#[cfg(target_env = "sgx")]
 use sgx_trts::trts::rsgx_raw_is_outside_enclave;
 
 use ekiden_common::serializer::Serializable;
@@ -29,8 +30,11 @@ where
     // we are using user_check in the EDL so we must do all checks manually. If
     // the pointer was inside the enclave, we could expose arbitrary parts of
     // enclave memory.
-    if !rsgx_raw_is_outside_enclave(src, src_length) {
-        panic!("Security violation: source buffer must be in untrusted memory");
+    #[cfg(target_env = "sgx")]
+    {
+        if !rsgx_raw_is_outside_enclave(src, src_length) {
+            panic!("Security violation: source buffer must be in untrusted memory");
+        }
     }
 
     let src = unsafe { from_raw_parts(src, src_length) };
@@ -62,8 +66,11 @@ where
     // we are using user_check in the EDL so we must do all checks manually. If
     // the pointer was inside the enclave, we could overwrite arbitrary parts of
     // enclave memory.
-    if !rsgx_raw_is_outside_enclave(dst, dst_capacity) {
-        panic!("Security violation: destination buffer must be in untrusted memory");
+    #[cfg(target_env = "sgx")]
+    {
+        if !rsgx_raw_is_outside_enclave(dst, dst_capacity) {
+            panic!("Security violation: destination buffer must be in untrusted memory");
+        }
     }
 
     // Serialize message to output buffer.

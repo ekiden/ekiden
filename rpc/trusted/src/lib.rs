@@ -1,8 +1,11 @@
 #![feature(use_extern_macros)]
 #![feature(core_intrinsics)]
 
+#[cfg(target_env = "sgx")]
 extern crate sgx_tse;
+#[cfg(target_env = "sgx")]
 extern crate sgx_tseal;
+#[cfg(target_env = "sgx")]
 extern crate sgx_types;
 
 extern crate futures;
