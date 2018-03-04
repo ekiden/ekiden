@@ -13,9 +13,9 @@ pub struct Error {
 
 impl Error {
     /// Construct a new error instance.
-    pub fn new(message: &str) -> Self {
+    pub fn new<S: Into<String>>(message: S) -> Self {
         Error {
-            message: message.to_string(),
+            message: message.into(),
         }
     }
 

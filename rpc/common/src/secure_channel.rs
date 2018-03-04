@@ -181,7 +181,7 @@ impl SessionState {
             (SessionState::Init, SessionState::Established) => {}
             (_, SessionState::Closed) => {}
             transition => {
-                return Err(Error::new(&format!(
+                return Err(Error::new(format!(
                     "Invalid secure channel state transition: {:?}",
                     transition
                 )))

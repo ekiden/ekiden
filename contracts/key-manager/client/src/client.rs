@@ -124,7 +124,7 @@ impl KeyManager {
                 {
                     Ok(response) => response,
                     Err(error) => {
-                        return Err(Error::new(&format!(
+                        return Err(Error::new(format!(
                             "Failed to call key manager: {}",
                             error.message
                         )))

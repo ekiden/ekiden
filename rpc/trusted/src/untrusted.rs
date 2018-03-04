@@ -81,7 +81,7 @@ pub fn untrusted_call_endpoint_raw(
     match status {
         sgx_status_t::SGX_SUCCESS => {}
         status => {
-            return Err(Error::new(&format!(
+            return Err(Error::new(format!(
                 "Enclave RPC OCALL failed: {:?}",
                 status
             )));
