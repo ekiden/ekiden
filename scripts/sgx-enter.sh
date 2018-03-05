@@ -25,7 +25,6 @@ if [ ! "$(docker ps -q -f name=${EKIDEN_CONTAINER_NAME})" ]; then
       --privileged \
       --name "${EKIDEN_CONTAINER_NAME}" \
       -v ${WORK_DIR}:/code \
-      -v /opt/intel/vtune_amplifier_2018.1.0.535340:/opt/intel/vtune_amplifier_2018.1.0.535340 \
       -e "SGX_MODE=SIM" \
       -e "INTEL_SGX_SDK=/opt/sgxsdk" \
       -e "RUST_SGX_SDK=/code/third_party/rust-sgx-sdk" \
