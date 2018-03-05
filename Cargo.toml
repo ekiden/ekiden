@@ -12,6 +12,7 @@ members = [
     # Enclave loader.
     "enclave/common",
     "enclave/untrusted",
+    "enclave/trusted",
 
     # RPC (+ attestation).
     "rpc/common",

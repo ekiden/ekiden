@@ -9,6 +9,7 @@ extern crate protobuf;
 extern crate sodalite;
 
 extern crate ekiden_common;
+extern crate ekiden_enclave_trusted;
 extern crate key_manager_client;
 
 mod generated;

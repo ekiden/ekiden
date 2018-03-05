@@ -1,6 +1,5 @@
-use std;
-
 use ekiden_common::profile_block;
+use ekiden_enclave_trusted::utils::{read_enclave_request, write_enclave_response};
 
 use super::db::Db;
 use super::diffs;
@@ -17,8 +16,8 @@ pub extern "C" fn db_state_diff(
 ) {
     profile_block!();
 
-    let old = unsafe { std::slice::from_raw_parts(old, old_length) };
-    let new = unsafe { std::slice::from_raw_parts(new, new_length) };
+    let old = read_enclave_request(old, old_length);
+    let new = read_enclave_request(new, new_length);
 
     // TODO: Error handling.
     let result = match diffs::diff(&old, &new) {
@@ -27,14 +26,7 @@ pub extern "C" fn db_state_diff(
     };
 
     // Copy back response.
-    if result.len() <= diff_capacity {
-        unsafe {
-            for i in 0..result.len() as isize {
-                std::ptr::write(diff.offset(i), result[i as usize]);
-            }
-            *diff_length = result.len();
-        };
-    }
+    write_enclave_response(&result, diff, diff_capacity, diff_length);
 }
 
 #[no_mangle]
@@ -49,8 +41,8 @@ pub extern "C" fn db_state_apply(
 ) {
     profile_block!();
 
-    let old = unsafe { std::slice::from_raw_parts(old, old_length) };
-    let diff = unsafe { std::slice::from_raw_parts(diff, diff_length) };
+    let old = read_enclave_request(old, old_length);
+    let diff = read_enclave_request(diff, diff_length);
 
     // TODO: Error handling.
     let result = match diffs::apply(&old, &diff) {
@@ -59,24 +51,17 @@ pub extern "C" fn db_state_apply(
     };
 
     // Copy back response.
-    if result.len() <= new_capacity {
-        unsafe {
-            for i in 0..result.len() as isize {
-                std::ptr::write(new.offset(i), result[i as usize]);
-            }
-            *new_length = result.len();
-        };
-    }
+    write_enclave_response(&result, new, new_capacity, new_length);
 }
 
 #[no_mangle]
 pub extern "C" fn db_state_set(state: *const u8, state_length: usize) {
     profile_block!();
 
-    let state = unsafe { std::slice::from_raw_parts(state, state_length) };
+    let state = read_enclave_request(state, state_length);
 
     // TODO: Error handling.
-    match Db::instance().import(state) {
+    match Db::instance().import(&state) {
         Ok(_) => {}
         _ => panic!("Error while importing state"),
     }
@@ -93,12 +78,5 @@ pub extern "C" fn db_state_get(state: *mut u8, state_capacity: usize, state_leng
     };
 
     // Copy back response.
-    if result.len() <= state_capacity {
-        unsafe {
-            for i in 0..result.len() as isize {
-                std::ptr::write(state.offset(i), result[i as usize]);
-            }
-            *state_length = result.len();
-        };
-    }
+    write_enclave_response(&result, state, state_capacity, state_length);
 }

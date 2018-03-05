@@ -67,7 +67,7 @@ impl EnclaveRpc for Enclave {
                         _ => return Err(Error::new("Unable to parse error payload")),
                     };
 
-                return Err(Error::new(&error.get_message()));
+                return Err(Error::new(error.get_message()));
             }
         };
 

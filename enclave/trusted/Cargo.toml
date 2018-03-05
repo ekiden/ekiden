@@ -1,0 +1,10 @@
+[package]
+name = "ekiden-enclave-trusted"
+version = "0.1.0"
+authors = [
+    "Jernej Kos <jernej@kos.mx>"
+]
+
+[dependencies]
+sgx_trts = { path = "../../third_party/rust-sgx-sdk/sgx_trts" }
+ekiden-common = { path = "../../common" }

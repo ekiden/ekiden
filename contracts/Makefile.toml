@@ -32,11 +32,8 @@ dependencies = [
 dependencies = ["compiler-rt"]
 script_runner = "bash"
 script = ['''
-    if [ "${SGX_DEBUG}" == "1" ]; then
-      SGX_COMMON_CFLAGS="${SGX_COMMON_CFLAGS} -O0 -g"
-    else
-      SGX_COMMON_CFLAGS="${SGX_COMMON_CFLAGS} -O2"
-    fi
+    # TODO: Should be based on debug/release builds.
+    SGX_COMMON_CFLAGS="${SGX_COMMON_CFLAGS} -O2"
 
     if [ "${SGX_MODE}" == "HW" ]; then
       Trts_Library_Name=sgx_trts
