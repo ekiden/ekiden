@@ -20,9 +20,7 @@ if [ ! "$(docker ps -q -f name=${EKIDEN_CONTAINER_NAME})" ]; then
     docker start ${EKIDEN_CONTAINER_NAME}
     docker exec -i -t ${EKIDEN_CONTAINER_NAME} /usr/bin/env $ekiden_shell
   else
-    # privileged for aesmd
     docker run -t -i \
-      --privileged \
       --name "${EKIDEN_CONTAINER_NAME}" \
       -v ${WORK_DIR}:/code \
       -e "SGX_MODE=SIM" \
