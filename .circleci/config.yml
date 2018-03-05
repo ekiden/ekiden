@@ -16,8 +16,21 @@ jobs:
       # Rustfmt
       - run: cargo make checkstyle
 
-      # Cargo tests
-      #- run: cargo test -p consensus
+      # Cargo tests and benchmarks. We first fetch the latest benchmark results from master and then
+      # compare against them.
+      - run: |
+          set +e
+          set +o pipefail
+          wget -q -O - "https://circleci.com/api/v1.1/project/github/sunblaze-ucb/ekiden/latest/artifacts/?branch=master&circle-token=${CIRCLE_TOKEN}" | grep -o 'https://[^"]*' | xargs -P4 -I % wget -q -O /tmp/benchmarks-master.json %?circle-token=${CIRCLE_TOKEN}
+      - run: |
+          ./scripts/benchmark.py \
+              ekiden-rpc-trusted \
+              ekiden-db-trusted \
+              --output /tmp/benchmarks.json \
+              --compare-to /tmp/benchmarks-master.json
+      - store_artifacts:
+          path: /tmp/benchmarks.json
+          destination: benchmarks
 
       # Test: end-to-end token contract
       - run:
