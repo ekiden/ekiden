@@ -3,6 +3,7 @@ use sodalite;
 use ekiden_common::error::{Error, Result};
 use ekiden_common::random;
 
+#[cfg(target_env = "sgx")]
 use key_manager_client::KeyManager;
 
 use super::generated::database::CryptoSecretbox;
@@ -10,6 +11,7 @@ use super::generated::database::CryptoSecretbox;
 const SECRETBOX_ZEROBYTES: usize = 32;
 
 /// Retrieve or generate state secret key.
+#[cfg(target_env = "sgx")]
 fn get_state_key() -> Result<sodalite::SecretboxKey> {
     if KeyManager::is_self() {
         // State for the key manager itself.
@@ -21,6 +23,12 @@ fn get_state_key() -> Result<sodalite::SecretboxKey> {
 
         Ok(state_key)
     }
+}
+
+#[cfg(not(target_env = "sgx"))]
+fn get_state_key() -> Result<sodalite::SecretboxKey> {
+    // This implementation is used in unit tests (on non-SGX).
+    Ok([42; sodalite::SECRETBOX_KEY_LEN])
 }
 
 /// Open encrypted state box.

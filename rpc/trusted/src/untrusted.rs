@@ -1,11 +1,14 @@
+#[cfg(target_env = "sgx")]
 use sgx_types::*;
 
+#[cfg(target_env = "sgx")]
 use protobuf::{self, Message, MessageStatic};
 
 use ekiden_common::error::{Error, Result};
 use ekiden_rpc_common::client::ClientEndpoint;
 
 /// OCALLs defined by the Ekiden enclave specification.
+#[cfg(target_env = "sgx")]
 extern "C" {
     /// Proxy for sgx_init_quote.
     pub fn untrusted_init_quote(
@@ -40,6 +43,7 @@ extern "C" {
 ///
 /// How the actual RPC call is implemented depends on the handler implemented
 /// in the untrusted part.
+#[cfg(target_env = "sgx")]
 pub fn untrusted_call_endpoint<Rq, Rs>(endpoint: &ClientEndpoint, request: Rq) -> Result<Rs>
 where
     Rq: Message,
@@ -51,10 +55,16 @@ where
     )?)?)
 }
 
+#[cfg(not(target_env = "sgx"))]
+pub fn untrusted_call_endpoint<Rq, Rs>(_endpoint: &ClientEndpoint, _request: Rq) -> Result<Rs> {
+    Err(Error::new("Only supported in SGX builds"))
+}
+
 /// Perform a raw RPC call against a given (untrusted) endpoint.
 ///
 /// How the actual RPC call is implemented depends on the handler implemented
 /// in the untrusted part.
+#[cfg(target_env = "sgx")]
 pub fn untrusted_call_endpoint_raw(
     endpoint: &ClientEndpoint,
     mut request: Vec<u8>,
@@ -93,4 +103,12 @@ pub fn untrusted_call_endpoint_raw(
     }
 
     Ok(response)
+}
+
+#[cfg(not(target_env = "sgx"))]
+pub fn untrusted_call_endpoint_raw(
+    _endpoint: &ClientEndpoint,
+    _request: Vec<u8>,
+) -> Result<Vec<u8>> {
+    Err(Error::new("Only supported in SGX builds"))
 }
