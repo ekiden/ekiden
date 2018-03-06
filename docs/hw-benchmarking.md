@@ -9,5 +9,6 @@
    This script is meant to be sourced, and it starts a background job in your current shell.
 
 Then start the nodes and run the benchmarking program.
+See [/testnet/tendermint/README.md](/testnet/tendermint/README.md) for how to use the consensus testnet.
 
 See issue [#292](https://github.com/sunblaze-ucb/ekiden/issues/292) for a sample set of commands we used to this in our experiments.
