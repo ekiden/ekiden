@@ -13,8 +13,8 @@ cat >genesis.json <<EOF
 EOF
 
 for n in val1 val2 val3; do
-  # mkdir "validators/$n"
-  # docker run "$IMAGE_TAG" gen_validator > "validators/$n/priv_validator.json"
+  mkdir "validators/$n"
+  docker run --rm "$IMAGE_TAG" gen_validator > "validators/$n/priv_validator.json"
   jq ".pub_key as \$k | {pub_key: \$k, power: $VALIDATOR_POWER, name: \"$n\"}" <"validators/$n/priv_validator.json" >"validators/$n/pub_validator.json"
   jq ".validators |= .+ [$(cat validators/$n/pub_validator.json)]" <genesis.json >tmpgenesis
   mv tmpgenesis genesis.json
