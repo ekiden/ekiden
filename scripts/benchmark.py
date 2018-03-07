@@ -97,7 +97,8 @@ if __name__ == '__main__':
                     print("  Difference:", diff, "ns")
                     print("  Deviation:", previous_result['deviation'], "ns")
                     print("")
-                    have_errors = True
+                    # TODO: Performance on CI is too variable to fail builds due to slow benchmarks.
+                    # have_errors = True
 
     # Store results.
     if args.output:
