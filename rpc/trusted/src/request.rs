@@ -5,6 +5,7 @@ use ekiden_enclave_common::quote::MrEnclave;
 use super::error::DispatchError;
 
 /// Wrapper for requests to provide additional request metadata.
+#[derive(Debug, Clone)]
 pub struct Request<T> {
     /// Underlying request message.
     message: Option<T>,

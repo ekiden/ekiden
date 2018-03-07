@@ -7,9 +7,6 @@ authors = [
 ]
 
 [dependencies]
-sgx_types = { path = "../../third_party/rust-sgx-sdk/sgx_types" }
-sgx_tseal = { path = "../../third_party/rust-sgx-sdk/sgx_tseal" }
-sgx_tse = { path = "../../third_party/rust-sgx-sdk/sgx_tse" }
 sodalite = "0.3.0"
 protobuf = "1.4.3"
 lazy_static = { version = "1.0", features = ["spin_no_std"] }

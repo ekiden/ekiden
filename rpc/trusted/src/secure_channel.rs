@@ -1,4 +1,6 @@
+#[cfg(target_env = "sgx")]
 use sgx_tseal::SgxSealedData;
+#[cfg(target_env = "sgx")]
 use sgx_types::*;
 
 use protobuf;
@@ -7,9 +9,11 @@ use sodalite;
 
 use std::collections::HashMap;
 #[cfg(not(target_env = "sgx"))]
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 #[cfg(target_env = "sgx")]
 use std::sync::SgxMutex as Mutex;
+#[cfg(target_env = "sgx")]
+use std::sync::SgxMutexGuard as MutexGuard;
 
 use ekiden_common::error::{Error, Result};
 use ekiden_common::random;
@@ -26,7 +30,7 @@ const SECRET_SEED_LEN: usize = 32;
 type SecretSeed = [u8; SECRET_SEED_LEN];
 
 #[derive(Default)]
-struct ClientSession {
+pub struct ClientSession {
     /// Client short-term public key.
     client_public_key: sodalite::BoxPublicKey,
     /// Contract short-term public key.
@@ -44,7 +48,7 @@ struct ClientSession {
 }
 
 /// Secure channel context.
-struct SecureChannelContext {
+pub struct SecureChannelContext {
     /// Secret seed used to generate server public and private keys.
     seed: SecretSeed,
     /// Public server key.
@@ -75,6 +79,19 @@ impl SecureChannelContext {
         }
     }
 
+    /// Global secure channel context instance.
+    ///
+    /// Calling this method will take a lock on the global instance which
+    /// will be released once the value goes out of scope.
+    pub fn get<'a>() -> MutexGuard<'a, Self> {
+        SECURE_CHANNEL_CTX.lock().unwrap()
+    }
+
+    /// Channel readiness status.
+    pub fn is_ready(&self) -> bool {
+        self.ready
+    }
+
     /// Checks channel readiness status.
     fn ensure_ready(&self) -> Result<()> {
         if !self.ready {
@@ -95,6 +112,7 @@ impl SecureChannelContext {
         self.seed = seed.clone();
 
         // Keypair has been changed, we need to refresh the attestation report.
+        #[cfg(target_env = "sgx")]
         self.refresh_attestation_report()?;
 
         self.ready = true;
@@ -116,6 +134,7 @@ impl SecureChannelContext {
     }
 
     /// Unseal and configure a keypair for the secure channel.
+    #[cfg(target_env = "sgx")]
     pub fn unseal_keypair(&mut self, sealed_keys: &[u8]) -> Result<()> {
         let sealed_data = unsafe {
             SgxSealedData::<SecretSeed>::from_raw_sealed_data_t(
@@ -137,6 +156,11 @@ impl SecureChannelContext {
             }
             None => Err(Error::new("Failed to unseal keypair")),
         }
+    }
+
+    #[cfg(not(target_env = "sgx"))]
+    pub fn unseal_keypair(&mut self, _sealed_keys: &[u8]) -> Result<()> {
+        Err(Error::new("Only supported in SGX builds"))
     }
 
     /// Generate a fresh attestation report for IAS.
@@ -161,6 +185,7 @@ impl SecureChannelContext {
     }
 
     /// Return sealed keypair.
+    #[cfg(target_env = "sgx")]
     pub fn get_sealed_keypair(&self) -> Result<Vec<u8>> {
         let void: [u8; 0] = [0_u8; 0];
         let sealed_data = match SgxSealedData::<SecretSeed>::seal_data_ex(
@@ -190,6 +215,11 @@ impl SecureChannelContext {
         };
 
         Ok(raw_data)
+    }
+
+    #[cfg(not(target_env = "sgx"))]
+    pub fn get_sealed_keypair(&self) -> Result<Vec<u8>> {
+        Err(Error::new("Only supported in SGX builds"))
     }
 
     /// Convert client short-term public key into session hash map key.
