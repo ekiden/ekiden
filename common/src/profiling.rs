@@ -1,8 +1,6 @@
-#[cfg(feature = "profiling")]
 use std::time::Instant;
 
 /// Guard for profiling a block of code.
-#[cfg(feature = "profiling")]
 pub struct ProfileGuard {
     crate_name: &'static str,
     function_name: &'static str,
@@ -10,7 +8,6 @@ pub struct ProfileGuard {
     start: Instant,
 }
 
-#[cfg(feature = "profiling")]
 impl ProfileGuard {
     /// Create new profile guard.
     pub fn new(
@@ -52,7 +49,6 @@ impl ProfileGuard {
     }
 }
 
-#[cfg(feature = "profiling")]
 impl Drop for ProfileGuard {
     fn drop(&mut self) {
         self.finalize();
