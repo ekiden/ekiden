@@ -89,7 +89,9 @@ if __name__ == '__main__':
                     deviation=previous_result['deviation'],
                 ))
 
-                if diff > args.fail_deviations * previous_result['deviation']:
+                max_diff = max(args.fail_deviations * previous_result['deviation'], 100)
+
+                if diff > max_diff:
                     print("ERROR: Benchmark '{}' is much slower in the current build:".format(benchmark))
                     print("  Runtime:", result['median'], "ns")
                     print("  Difference:", diff, "ns")
