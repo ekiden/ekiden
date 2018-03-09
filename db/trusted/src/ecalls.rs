@@ -1,8 +1,8 @@
 use ekiden_common::profile_block;
 use ekiden_enclave_trusted::utils::{read_enclave_request, write_enclave_response};
 
-use super::db::Db;
 use super::diffs;
+use super::handle::DatabaseHandle;
 
 #[no_mangle]
 pub extern "C" fn db_state_diff(
@@ -60,22 +60,20 @@ pub extern "C" fn db_state_set(state: *const u8, state_length: usize) {
 
     let state = read_enclave_request(state, state_length);
 
-    // TODO: Error handling.
-    match Db::instance().import(&state) {
-        Ok(_) => {}
-        _ => panic!("Error while importing state"),
-    }
+    // TODO: Propagate errors.
+    DatabaseHandle::instance()
+        .import(&state)
+        .expect("Error importing state");
 }
 
 #[no_mangle]
 pub extern "C" fn db_state_get(state: *mut u8, state_capacity: usize, state_length: *mut usize) {
     profile_block!();
 
-    // TODO: Error handling.
-    let result = match Db::instance().export() {
-        Ok(state) => state,
-        _ => panic!("Error while exporting state"),
-    };
+    // TODO: Propagate errors.
+    let result = DatabaseHandle::instance()
+        .export()
+        .expect("Error exporting state");
 
     // Copy back response.
     write_enclave_response(&result, state, state_capacity, state_length);

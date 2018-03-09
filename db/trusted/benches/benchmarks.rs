@@ -6,13 +6,14 @@ extern crate ekiden_db_trusted;
 
 use test::Bencher;
 
-use ekiden_db_trusted::Db;
+use ekiden_db_trusted::{Database, DatabaseHandle};
 use ekiden_db_trusted::ecalls::{db_state_apply, db_state_diff, db_state_get, db_state_set};
 
 /// Populate the database with some dummy state.
 fn generate_dummy_state() {
-    let mut db = Db::instance();
-    db.set_raw("example_key", vec![42; 128]);
+    let mut db = DatabaseHandle::instance();
+    db.insert(b"example_key1", &vec![42; 128]);
+    db.insert(b"example_key2", &vec![21; 128]);
 }
 
 /// Export current database state.
@@ -32,10 +33,10 @@ fn export_db_state() -> Vec<u8> {
 
 /// Benchmark raw database set with a 128-byte value.
 #[bench]
-fn benchmark_set_raw128(b: &mut Bencher) {
+fn benchmark_insert_raw128(b: &mut Bencher) {
     b.iter(|| {
-        let mut db = Db::instance();
-        db.set_raw("example_key", vec![42; 128]);
+        let mut db = DatabaseHandle::instance();
+        db.insert(b"example_key", &vec![42; 128]);
     });
 }
 
@@ -45,8 +46,9 @@ fn benchmark_get_raw128(b: &mut Bencher) {
     generate_dummy_state();
 
     b.iter(|| {
-        let db = Db::instance();
-        assert_eq!(db.get_raw("example_key"), &vec![42; 128]);
+        let db = DatabaseHandle::instance();
+        assert_eq!(db.get(b"example_key1"), Some(vec![42; 128]));
+        assert_eq!(db.get(b"example_key2"), Some(vec![21; 128]));
     });
 }
 
@@ -78,8 +80,8 @@ fn benchmark_diff(b: &mut Bencher) {
     let old_state = export_db_state();
 
     {
-        let mut db = Db::instance();
-        db.set_raw("example_key", vec![21; 128]);
+        let mut db = DatabaseHandle::instance();
+        db.insert(b"example_key1", &vec![21; 128]);
     }
 
     let new_state = export_db_state();
@@ -109,8 +111,8 @@ fn benchmark_apply(b: &mut Bencher) {
     let old_state = export_db_state();
 
     {
-        let mut db = Db::instance();
-        db.set_raw("example_key", vec![21; 128]);
+        let mut db = DatabaseHandle::instance();
+        db.insert(b"example_key1", &vec![21; 128]);
     }
 
     let new_state = export_db_state();
