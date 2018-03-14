@@ -12,6 +12,7 @@ profiling = []
 
 [dependencies]
 protobuf = "1.4.3"
+byteorder = "1"
 
 [target.'cfg(not(target_env = "sgx"))'.dependencies]
 rand = "0.4.2"

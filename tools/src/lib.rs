@@ -2,6 +2,8 @@
 
 extern crate cc;
 extern crate mktemp;
+extern crate protobuf;
+extern crate protoc;
 extern crate protoc_rust;
 extern crate sgx_edl;
 
@@ -14,6 +16,17 @@ use std::process::Command;
 
 use sgx_edl::EDL;
 pub use sgx_edl::define_edl;
+
+/// Arguments for protoc.
+#[derive(Debug, Default)]
+pub struct ProtocArgs<'a> {
+    /// --lang_out= param
+    pub out_dir: &'a str,
+    /// -I args
+    pub includes: &'a [&'a str],
+    /// List of .proto files to compile
+    pub input: &'a [&'a str],
+}
 
 /// SGX build mode.
 pub enum SgxMode {
@@ -183,13 +196,70 @@ pub fn build_trusted(edl: Vec<EDL>) {
     println!("cargo:rustc-link-lib=static=enclave_t");
 }
 
+/// Generate Rust code for Protocol Buffer messages.
+pub fn protoc(args: ProtocArgs) {
+    // Run protoc.
+    protoc_rust::run(protoc_rust::Args {
+        out_dir: args.out_dir,
+        includes: args.includes,
+        input: args.input,
+    }).expect("Failed to run protoc");
+
+    // Output descriptor of the generated files into a temporary file.
+    let temp_dir = mktemp::Temp::new_dir().expect("Failed to create temporary directory");
+    let temp_file = temp_dir.to_path_buf().join("descriptor.pbbin");
+    let temp_file = temp_file.to_str().expect("utf-8 file name");
+
+    let protoc = protoc::Protoc::from_env_path();
+
+    protoc
+        .write_descriptor_set(protoc::DescriptorSetOutArgs {
+            out: temp_file,
+            includes: args.includes,
+            input: args.input,
+            include_imports: true,
+        })
+        .unwrap();
+
+    let mut fds = Vec::new();
+    let mut file = fs::File::open(temp_file).unwrap();
+    file.read_to_end(&mut fds).unwrap();
+
+    drop(file);
+    drop(temp_dir);
+
+    let fds: protobuf::descriptor::FileDescriptorSet = protobuf::parse_from_bytes(&fds).unwrap();
+
+    // Generate Ekiden-specific impls for all messages.
+    for file in fds.get_file() {
+        let out_filename = Path::new(&args.out_dir)
+            .join(file.get_name())
+            .with_extension("rs");
+        let mut out_file = fs::OpenOptions::new()
+            .append(true)
+            .open(out_filename)
+            .unwrap();
+
+        writeln!(&mut out_file, "").unwrap();
+        writeln!(&mut out_file, "// Ekiden-specific implementations.").unwrap();
+
+        for message_type in file.get_message_type() {
+            writeln!(
+                &mut out_file,
+                "impl_serializable_protobuf!({});",
+                message_type.get_name()
+            ).unwrap();
+        }
+    }
+}
+
 /// Build local contract API files.
 pub fn build_api() {
-    protoc_rust::run(protoc_rust::Args {
+    protoc(ProtocArgs {
         out_dir: "src/generated/",
         input: &["src/api.proto"],
         includes: &["src/"],
-    }).expect("Failed to run protoc");
+    });
 }
 
 /// Generates a module file with specified exported submodules.

@@ -8,7 +8,7 @@ use std::sync::SgxMutexGuard as MutexGuard;
 
 use ekiden_common::error::Result;
 use ekiden_common::profile_block;
-use ekiden_common::serializer::Serializable;
+use ekiden_common::serializer::{Deserializable, Serializable};
 use ekiden_enclave_trusted::utils::{read_enclave_request, write_enclave_response};
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::reflection::ApiMethodDescriptor;
@@ -55,7 +55,7 @@ struct ApiMethodHandlerDispatchImpl<Request, Response> {
 
 impl<Request, Response> ApiMethodHandlerDispatch for ApiMethodHandlerDispatchImpl<Request, Response>
 where
-    Request: Serializable + Send + 'static,
+    Request: Deserializable + Send + 'static,
     Response: Serializable + Send + 'static,
 {
     /// Dispatches the given raw request.
@@ -71,7 +71,7 @@ where
         }
 
         // Deserialize request.
-        let request_message = match Serializable::read(&request) {
+        let request_message = match Deserializable::read(&request) {
             Ok(message) => request.copy_metadata_to(message),
             _ => {
                 return response::Response::error(
@@ -121,7 +121,7 @@ impl EnclaveMethod {
     /// Create a new enclave method descriptor.
     pub fn new<Request, Response, Handler>(method: ApiMethodDescriptor, handler: Handler) -> Self
     where
-        Request: Serializable + Send + 'static,
+        Request: Deserializable + Send + 'static,
         Response: Serializable + Send + 'static,
         Handler: ApiMethodHandler<Request, Response> + Sync + Send + 'static,
     {

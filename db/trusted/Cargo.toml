@@ -18,4 +18,3 @@ sodalite = "0.3.0"
 
 [build-dependencies]
 ekiden-tools = { path = "../../tools" }
-protoc-rust = "1.4"

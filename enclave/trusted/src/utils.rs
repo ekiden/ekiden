@@ -4,7 +4,7 @@ use std::slice::{from_raw_parts, from_raw_parts_mut};
 #[cfg(target_env = "sgx")]
 use sgx_trts::trts::rsgx_raw_is_outside_enclave;
 
-use ekiden_common::serializer::Serializable;
+use ekiden_common::serializer::{Deserializable, Serializable};
 
 /// Deserialize request buffer from untrusted memory.
 ///
@@ -20,7 +20,7 @@ use ekiden_common::serializer::Serializable;
 /// buffer will also cause a panic.
 pub fn read_enclave_request<R>(src: *const u8, src_length: usize) -> R
 where
-    R: Serializable,
+    R: Deserializable,
 {
     if src.is_null() {
         panic!("Source buffer must not be null");

@@ -2,6 +2,7 @@ extern crate byteorder;
 extern crate protobuf;
 extern crate sodalite;
 
+#[macro_use]
 extern crate ekiden_common;
 
 pub mod reflection;
