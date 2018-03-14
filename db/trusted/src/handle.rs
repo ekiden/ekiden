@@ -106,6 +106,12 @@ impl Database for DatabaseHandle {
         self.dirty = true;
         self.state.remove(key)
     }
+
+    /// Clear database state.
+    fn clear(&mut self) {
+        self.dirty = true;
+        self.state.clear();
+    }
 }
 
 #[cfg(test)]
@@ -116,6 +122,7 @@ mod tests {
     fn test_basic_operations() {
         let mut db = DatabaseHandle::instance();
 
+        db.clear();
         db.insert(b"foo", b"hello world");
         db.insert(b"bar", b"another data value");
 

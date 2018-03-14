@@ -22,6 +22,9 @@ pub mod ecalls;
 pub mod handle;
 pub use handle::DatabaseHandle;
 
+#[macro_use]
+pub mod schema;
+
 /// Database interface exposed to contracts.
 pub trait Database {
     /// Returns true if the database contains a value for the specified key.
@@ -41,4 +44,7 @@ pub trait Database {
     /// Remove entry with given key, returning the value at the key if the key was previously
     /// in the database.
     fn remove(&mut self, key: &[u8]) -> Option<Vec<u8>>;
+
+    /// Clear database state.
+    fn clear(&mut self);
 }
