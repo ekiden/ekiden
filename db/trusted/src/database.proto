@@ -17,3 +17,13 @@ message BsdiffPatch {
     // Compressed patch stream from bsdiff.
     bytes patch_bz2 = 2;
 }
+
+// Serialized state.
+message State {
+    message KeyValue {
+        bytes key = 1;
+        bytes value = 2;
+    }
+
+    repeated KeyValue state = 1;
+}

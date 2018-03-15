@@ -1,26 +1,14 @@
-#![feature(core_intrinsics)]
-#![feature(use_extern_macros)]
+# Database
 
-extern crate bsdiff;
-extern crate bzip2;
-#[macro_use]
-extern crate lazy_static;
-extern crate protobuf;
-extern crate sodalite;
+The Ekiden database serves as a persistent state store for contracts.
 
-extern crate ekiden_common;
-extern crate ekiden_enclave_trusted;
-extern crate key_manager_client;
+## Interfaces
 
-mod generated;
+Only the trusted API exposed to contracts should be considered relatively stable. **How state is serialized and stored outside the contract and the EDL interface is currently an unstable implementation detail which will change in future versions.**
 
-mod crypto;
-mod diffs;
-pub mod ecalls;
+### Trusted API exposed to contracts
 
-pub mod handle;
-pub use handle::DatabaseHandle;
-
+```rust
 /// Database interface exposed to contracts.
 pub trait Database {
     /// Returns true if the database contains a value for the specified key.
@@ -41,3 +29,4 @@ pub trait Database {
     /// in the database.
     fn remove(&mut self, key: &[u8]) -> Option<Vec<u8>>;
 }
+```
