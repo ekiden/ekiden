@@ -14,7 +14,11 @@ use std::process::Command;
 /// These descriptors are used to build the final EDL definition file by
 /// combining multiple EDL files from different crates.
 pub struct EDL {
+    /// Namespace (e.g., crate name) to avoid name conflicts.
+    pub namespace: String,
+    /// Name.
     pub name: String,
+    /// Contents.
     pub data: String,
 }
 
@@ -77,13 +81,14 @@ fn edger8r(
     writeln!(&mut enclave_edl_file, "enclave {{").unwrap();
 
     for ref edl_item in edl {
-        let edl_item_filename = Path::new(&output).join(&edl_item.name);
+        let edl_item_filename =
+            Path::new(&output).join(format!("{}_{}", edl_item.namespace, edl_item.name));
         let mut edl_file = fs::File::create(&edl_item_filename)?;
         edl_file.write_all(edl_item.data.as_bytes())?;
         writeln!(
             &mut enclave_edl_file,
-            "from \"{}\" import *;",
-            edl_item.name
+            "from \"{}_{}\" import *;",
+            edl_item.namespace, edl_item.name
         ).unwrap();
     }
 
@@ -244,6 +249,7 @@ macro_rules! define_edl {
             // Local EDL definitions.
             $(
                 output.push($crate::EDL {
+                    namespace: env!("CARGO_PKG_NAME").to_owned(),
                     name: $local_edl.to_owned(),
                     data: include_str!($local_edl).to_owned(),
                 });
