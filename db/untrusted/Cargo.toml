@@ -10,7 +10,7 @@ authors = [
 sgx-simulation = []
 
 [dependencies]
-sgx_types = { path = "../../third_party/rust-sgx-sdk/sgx_types" }
+sgx_types = { git = "https://github.com/ekiden/rust-sgx-sdk", branch = "ekiden/0.9.7" }
 ekiden-common = { path = "../../common" }
 ekiden-enclave-untrusted = { path = "../../enclave/untrusted" }
 

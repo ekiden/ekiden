@@ -46,4 +46,3 @@ members = [
     # Clients.
     "clients/token",
 ]
-exclude = ["third_party"]

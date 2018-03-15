@@ -34,7 +34,6 @@ enum BuildPart {
 struct BuildConfiguration {
     mode: SgxMode,
     intel_sdk_dir: String,
-    rust_sdk_dir: String,
 }
 
 // Paths.
@@ -44,14 +43,12 @@ static SGX_SDK_INCLUDE_PATH: &'static str = "include";
 static SGX_SDK_TLIBC_INCLUDE_PATH: &'static str = "include/tlibc";
 static SGX_SDK_STLPORT_INCLUDE_PATH: &'static str = "include/stlport";
 static SGX_SDK_EPID_INCLUDE_PATH: &'static str = "include/epid";
-static RUST_SDK_EDL_PATH: &'static str = "edl";
 
 /// Get current build environment configuration.
 fn get_build_configuration() -> BuildConfiguration {
     // Ensure build script is restarted if any of the env variables changes.
     println!("cargo:rerun-if-env-changed=SGX_MODE");
     println!("cargo:rerun-if-env-changed=INTEL_SGX_SDK");
-    println!("cargo:rerun-if-env-changed=RUST_SGX_SDK");
 
     BuildConfiguration {
         mode: match env::var("SGX_MODE")
@@ -62,7 +59,6 @@ fn get_build_configuration() -> BuildConfiguration {
             _ => SgxMode::Simulation,
         },
         intel_sdk_dir: env::var("INTEL_SGX_SDK").expect("Please define INTEL_SGX_SDK"),
-        rust_sdk_dir: env::var("RUST_SGX_SDK").expect("Please define RUST_SGX_SDK"),
     }
 }
 
@@ -99,13 +95,6 @@ fn edger8r(
             "--search-path",
             Path::new(&config.intel_sdk_dir)
                 .join(SGX_SDK_INCLUDE_PATH)
-                .to_str()
-                .unwrap(),
-        ])
-        .args(&[
-            "--search-path",
-            Path::new(&config.rust_sdk_dir)
-                .join(RUST_SDK_EDL_PATH)
                 .to_str()
                 .unwrap(),
         ])
@@ -242,7 +231,7 @@ macro_rules! define_edl {
     (
         $( use $external_edl:ident ; )*
 
-        $( $local_edl:expr ),*
+        $( $local_edl:expr ),* $(,)*
     ) => {
         pub fn edl() -> Vec<$crate::EDL> {
             let mut output = vec![];

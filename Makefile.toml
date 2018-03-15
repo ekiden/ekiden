@@ -2,7 +2,6 @@
 PROJECT_ROOT = { script = ["git rev-parse --show-toplevel"] }
 EKIDEN_ROOT = "${PROJECT_ROOT}"
 INTEL_SGX_SDK = "/opt/sgxsdk"
-RUST_SGX_SDK = "${EKIDEN_ROOT}/third_party/rust-sgx-sdk"
 SGX_ARCH = "x64"
 XARGO_TARGET_PATH = "${EKIDEN_ROOT}/xargo"
 XARGO_DEFAULT_CONFIG_TEMPLATE = "${EKIDEN_ROOT}/xargo/Xargo.toml.template"
@@ -74,7 +73,6 @@ script = ['''
     if [ ! -f Xargo.toml ]; then
         cp ${XARGO_DEFAULT_CONFIG_TEMPLATE} Xargo.toml
         trap cleanup_xargo_toml EXIT INT TERM
-        sed -i "s#@EKIDEN_ROOT#${EKIDEN_ROOT}#g" Xargo.toml
     fi
 
     xargo build --target x86_64-unknown-linux-sgx
@@ -95,7 +93,6 @@ script = ['''
     if [ ! -f Xargo.toml ]; then
         cp ${XARGO_DEFAULT_CONFIG_TEMPLATE} Xargo.toml
         trap cleanup_xargo_toml EXIT INT TERM
-        sed -i "s#@EKIDEN_ROOT#${EKIDEN_ROOT}#g" Xargo.toml
     fi
 
     xargo build --target x86_64-unknown-linux-sgx --release
