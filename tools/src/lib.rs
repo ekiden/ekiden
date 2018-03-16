@@ -1,6 +1,9 @@
+#![feature(use_extern_macros)]
+
 extern crate cc;
 extern crate mktemp;
 extern crate protoc_rust;
+extern crate sgx_edl;
 
 use std::env;
 use std::fs;
@@ -9,18 +12,8 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::process::Command;
 
-/// EDL descriptor.
-///
-/// These descriptors are used to build the final EDL definition file by
-/// combining multiple EDL files from different crates.
-pub struct EDL {
-    /// Namespace (e.g., crate name) to avoid name conflicts.
-    pub namespace: String,
-    /// Name.
-    pub name: String,
-    /// Contents.
-    pub data: String,
-}
+use sgx_edl::EDL;
+pub use sgx_edl::define_edl;
 
 /// SGX build mode.
 pub enum SgxMode {
@@ -217,45 +210,4 @@ pub fn generate_mod(output_dir: &str, modules: &[&str]) {
     let mut file =
         fs::File::create(output_gitignore_file).expect("Failed to create .gitignore file");
     writeln!(&mut file, "*").unwrap();
-}
-
-/// Macro for easier EDL definitions.
-///
-/// Example use:
-/// ```
-/// define_edl! {
-///     // EDL definitions from external crates.
-///     use ekiden_rpc_edl;
-///
-///     // Local EDL definitions.
-///     "core.edl"
-/// }
-/// ```
-#[macro_export]
-macro_rules! define_edl {
-    (
-        $( use $external_edl:ident ; )*
-
-        $( $local_edl:expr ),* $(,)*
-    ) => {
-        pub fn edl() -> Vec<$crate::EDL> {
-            let mut output = vec![];
-
-            // Imported EDL definitions.
-            $(
-                output.append(&mut $external_edl::edl());
-            )*
-
-            // Local EDL definitions.
-            $(
-                output.push($crate::EDL {
-                    namespace: env!("CARGO_PKG_NAME").to_owned(),
-                    name: $local_edl.to_owned(),
-                    data: include_str!($local_edl).to_owned(),
-                });
-            )*
-
-            output
-        }
-    }
 }

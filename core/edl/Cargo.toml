@@ -9,3 +9,4 @@ authors = [
 ekiden-tools = { path = "../../tools" }
 ekiden-rpc-edl = { path = "../../rpc/edl" }
 ekiden-db-edl = { path = "../../db/edl" }
+sgx_edl = { git = "https://github.com/ekiden/rust-sgx-sdk", tag = "v0.9.7-ekiden1" }
