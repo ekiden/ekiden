@@ -16,12 +16,6 @@ BUILD_FOR_SGX_TARGET = "true"
 [tasks.post-build]
 alias = "contract-post-build"
 
-[tasks.compiler-rt]
-description = "Build the compiler-rt-patch in Rust SGX SDK"
-script = [
-    "make -C ${RUST_SGX_SDK}/compiler-rt"
-]
-
 [tasks.contract-post-build]
 dependencies = [
     "contract-link",
@@ -29,7 +23,6 @@ dependencies = [
 ]
 
 [tasks.contract-link]
-dependencies = ["compiler-rt"]
 script_runner = "bash"
 script = ['''
     # TODO: Should be based on debug/release builds.
@@ -53,9 +46,8 @@ script = ['''
       -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles \
       -L${SGX_LIBRARY_PATH} \
       -L${BUILD_TARGET_DIR}/x86_64-unknown-linux-sgx/${BUILD_MODE} \
-      -L${RUST_SGX_SDK}/compiler-rt \
       -Wl,--whole-archive -l${Trts_Library_Name} -Wl,--no-whole-archive \
-      -Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -l${Crypto_Library_Name} -l${KeyExchange_Library_Name} -l${Service_Library_Name} -lcompiler-rt-patch -l${CARGO_MAKE_CRATE_NAME//-/_} -Wl,--end-group \
+      -Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -l${Crypto_Library_Name} -l${KeyExchange_Library_Name} -l${Service_Library_Name} -l${CARGO_MAKE_CRATE_NAME//-/_} -Wl,--end-group \
       -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
       -Wl,-pie,-eenclave_entry -Wl,--export-dynamic \
       -Wl,--defsym,__ImageBase=0 \

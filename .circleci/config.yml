@@ -8,7 +8,6 @@ jobs:
       - run: echo 'PS1='"'"'\$ '"'"'; . /root/.bashrc' >> $BASH_ENV
       - run: echo 'export SGX_MODE=SIM' >> $BASH_ENV
       - run: echo 'export INTEL_SGX_SDK=/opt/sgxsdk' >> $BASH_ENV
-      - run: echo 'export RUST_SGX_SDK=/root/project/third_party/rust-sgx-sdk' >> $BASH_ENV
       - checkout
       - run: git submodule update --init --recursive
 

@@ -1,6 +1,9 @@
+#![feature(use_extern_macros)]
+
 extern crate cc;
 extern crate mktemp;
 extern crate protoc_rust;
+extern crate sgx_edl;
 
 use std::env;
 use std::fs;
@@ -9,14 +12,8 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::process::Command;
 
-/// EDL descriptor.
-///
-/// These descriptors are used to build the final EDL definition file by
-/// combining multiple EDL files from different crates.
-pub struct EDL {
-    pub name: String,
-    pub data: String,
-}
+use sgx_edl::EDL;
+pub use sgx_edl::define_edl;
 
 /// SGX build mode.
 pub enum SgxMode {
@@ -34,7 +31,6 @@ enum BuildPart {
 struct BuildConfiguration {
     mode: SgxMode,
     intel_sdk_dir: String,
-    rust_sdk_dir: String,
 }
 
 // Paths.
@@ -44,14 +40,12 @@ static SGX_SDK_INCLUDE_PATH: &'static str = "include";
 static SGX_SDK_TLIBC_INCLUDE_PATH: &'static str = "include/tlibc";
 static SGX_SDK_STLPORT_INCLUDE_PATH: &'static str = "include/stlport";
 static SGX_SDK_EPID_INCLUDE_PATH: &'static str = "include/epid";
-static RUST_SDK_EDL_PATH: &'static str = "edl";
 
 /// Get current build environment configuration.
 fn get_build_configuration() -> BuildConfiguration {
     // Ensure build script is restarted if any of the env variables changes.
     println!("cargo:rerun-if-env-changed=SGX_MODE");
     println!("cargo:rerun-if-env-changed=INTEL_SGX_SDK");
-    println!("cargo:rerun-if-env-changed=RUST_SGX_SDK");
 
     BuildConfiguration {
         mode: match env::var("SGX_MODE")
@@ -62,7 +56,6 @@ fn get_build_configuration() -> BuildConfiguration {
             _ => SgxMode::Simulation,
         },
         intel_sdk_dir: env::var("INTEL_SGX_SDK").expect("Please define INTEL_SGX_SDK"),
-        rust_sdk_dir: env::var("RUST_SGX_SDK").expect("Please define RUST_SGX_SDK"),
     }
 }
 
@@ -81,13 +74,14 @@ fn edger8r(
     writeln!(&mut enclave_edl_file, "enclave {{").unwrap();
 
     for ref edl_item in edl {
-        let edl_item_filename = Path::new(&output).join(&edl_item.name);
+        let edl_item_filename =
+            Path::new(&output).join(format!("{}_{}", edl_item.namespace, edl_item.name));
         let mut edl_file = fs::File::create(&edl_item_filename)?;
         edl_file.write_all(edl_item.data.as_bytes())?;
         writeln!(
             &mut enclave_edl_file,
-            "from \"{}\" import *;",
-            edl_item.name
+            "from \"{}_{}\" import *;",
+            edl_item.namespace, edl_item.name
         ).unwrap();
     }
 
@@ -99,13 +93,6 @@ fn edger8r(
             "--search-path",
             Path::new(&config.intel_sdk_dir)
                 .join(SGX_SDK_INCLUDE_PATH)
-                .to_str()
-                .unwrap(),
-        ])
-        .args(&[
-            "--search-path",
-            Path::new(&config.rust_sdk_dir)
-                .join(RUST_SDK_EDL_PATH)
                 .to_str()
                 .unwrap(),
         ])
@@ -223,44 +210,4 @@ pub fn generate_mod(output_dir: &str, modules: &[&str]) {
     let mut file =
         fs::File::create(output_gitignore_file).expect("Failed to create .gitignore file");
     writeln!(&mut file, "*").unwrap();
-}
-
-/// Macro for easier EDL definitions.
-///
-/// Example use:
-/// ```
-/// define_edl! {
-///     // EDL definitions from external crates.
-///     use ekiden_rpc_edl;
-///
-///     // Local EDL definitions.
-///     "core.edl"
-/// }
-/// ```
-#[macro_export]
-macro_rules! define_edl {
-    (
-        $( use $external_edl:ident ; )*
-
-        $( $local_edl:expr ),*
-    ) => {
-        pub fn edl() -> Vec<$crate::EDL> {
-            let mut output = vec![];
-
-            // Imported EDL definitions.
-            $(
-                output.append(&mut $external_edl::edl());
-            )*
-
-            // Local EDL definitions.
-            $(
-                output.push($crate::EDL {
-                    name: $local_edl.to_owned(),
-                    data: include_str!($local_edl).to_owned(),
-                });
-            )*
-
-            output
-        }
-    }
 }

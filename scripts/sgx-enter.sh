@@ -25,7 +25,6 @@ if [ ! "$(docker ps -q -f name=${EKIDEN_CONTAINER_NAME})" ]; then
       -v ${WORK_DIR}:/code \
       -e "SGX_MODE=SIM" \
       -e "INTEL_SGX_SDK=/opt/sgxsdk" \
-      -e "RUST_SGX_SDK=/code/third_party/rust-sgx-sdk" \
       -w /code \
       "$ekiden_image" \
       /usr/bin/env $ekiden_shell

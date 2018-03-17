@@ -1,7 +1,4 @@
 enclave {
-    from "sgx_tstd.edl" import *;
-    from "sgx_stdio.edl" import *;
-    from "sgx_backtrace.edl" import *;
+    // Import from Intel SGX SDK.
     from "sgx_tstdc.edl" import *;
-    from "sgx_time.edl" import *;
 };
