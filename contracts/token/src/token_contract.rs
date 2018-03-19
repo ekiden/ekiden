@@ -1,6 +1,5 @@
-use ekiden_core_common::{Error, Result};
-
-use ekiden_core_trusted::db::database_schema;
+use ekiden_core::error::{Error, Result};
+use ekiden_trusted::db::database_schema;
 
 database_schema! {
     pub struct TokenDb {

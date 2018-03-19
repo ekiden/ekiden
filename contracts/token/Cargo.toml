@@ -12,11 +12,11 @@ crate-type = ["staticlib"]
 default = []
 
 [dependencies]
-ekiden-core-common = { path = "../../core/common" }
-ekiden-core-trusted = { path = "../../core/trusted" }
+ekiden-core = { path = "../../core/common" }
+ekiden-trusted = { path = "../../core/trusted" }
 protobuf = "1.4.3"
 token-api = { path = "./api" }
 
 [build-dependencies]
 ekiden-tools = { path = "../../tools" }
-ekiden-core-edl = { path = "../../core/edl" }
+ekiden-edl = { path = "../../core/edl" }

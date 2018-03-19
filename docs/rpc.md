@@ -2,7 +2,7 @@
 
 ## Defining an API
 
-An API may be defined by using the `rpc_api` macro provided by `ekiden_core_common`. It is usually defined in its own API crate as it needs to be available for import both for enclaves and clients.
+An API may be defined by using the `rpc_api` macro provided by `ekiden_core`. It is usually defined in its own API crate as it needs to be available for import both for enclaves and clients.
 
 A simple API definition looks as follows:
 ```rust
@@ -35,7 +35,7 @@ This can be done as follows:
 ```rust
 #![feature(use_extern_macros)]
 
-use ekiden_core_trusted::rpc::create_enclave_rpc;
+use ekiden_trusted::rpc::create_enclave_rpc;
 use dummy_api::{with_api, HelloWorldRequest, HelloWorldResponse};
 
 with_api! {

@@ -2,8 +2,8 @@
 
 extern crate protobuf;
 
-extern crate ekiden_core_common;
-extern crate ekiden_core_trusted;
+extern crate ekiden_core;
+extern crate ekiden_trusted;
 
 extern crate token_api;
 
@@ -13,8 +13,8 @@ use token_api::{with_api, CreateRequest, CreateResponse, GetBalanceRequest, GetB
                 TransferRequest, TransferResponse};
 use token_contract::TokenContract;
 
-use ekiden_core_common::Result;
-use ekiden_core_trusted::rpc::create_enclave_rpc;
+use ekiden_core::error::Result;
+use ekiden_trusted::rpc::create_enclave_rpc;
 
 // Create enclave RPC handlers.
 with_api! {

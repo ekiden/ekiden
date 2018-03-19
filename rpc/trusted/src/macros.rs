@@ -26,10 +26,10 @@ macro_rules! create_enclave_rpc {
         /// from the outside.
         #[no_mangle]
         pub extern "C" fn __ekiden_rpc_create_enclave() {
-            use ekiden_core_common::error::Result;
-            use ekiden_core_common::rpc::reflection::ApiMethodDescriptor;
-            use ekiden_core_trusted::rpc::dispatcher::{Dispatcher, EnclaveMethod};
-            use ekiden_core_trusted::rpc::request::Request;
+            use ekiden_core::error::Result;
+            use ekiden_core::rpc::reflection::ApiMethodDescriptor;
+            use ekiden_trusted::rpc::dispatcher::{Dispatcher, EnclaveMethod};
+            use ekiden_trusted::rpc::request::Request;
 
             // Register generated methods using the dispatcher.
             let mut dispatcher = Dispatcher::get();

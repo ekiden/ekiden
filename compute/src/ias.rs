@@ -7,8 +7,8 @@ use std::str::FromStr;
 use base64;
 use reqwest;
 
-use ekiden_core_common::hex_encoded_struct;
-use ekiden_core_common::quote::AttestationReport;
+use ekiden_core::enclave::quote::AttestationReport;
+use ekiden_core::hex_encoded_struct;
 
 /// Intel IAS API URL.
 const IAS_API_URL: &'static str = "https://test-as.sgx.trustedservices.intel.com";

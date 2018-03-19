@@ -16,9 +16,9 @@ use std::fmt::Write;
 use std::sync::Mutex;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-use ekiden_core_common::{Error, Result};
-use ekiden_core_common::rpc::api;
-use ekiden_core_untrusted::{Enclave, EnclaveDb, EnclaveRpc};
+use ekiden_core::error::{Error, Result};
+use ekiden_core::rpc::api;
+use ekiden_untrusted::{Enclave, EnclaveDb, EnclaveRpc};
 
 use compute_api::{CallContractRequest, CallContractResponse, Compute};
 use consensus_api::{self, Consensus, ConsensusClient};

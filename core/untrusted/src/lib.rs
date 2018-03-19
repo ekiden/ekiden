@@ -8,5 +8,14 @@ pub use ekiden_db_untrusted::EnclaveDb;
 pub use ekiden_enclave_untrusted::Enclave;
 pub use ekiden_rpc_untrusted::EnclaveRpc;
 
-#[macro_use]
-pub mod rpc;
+pub mod enclave {
+    pub use ekiden_enclave_untrusted::*;
+}
+
+pub mod rpc {
+    pub use ekiden_rpc_untrusted::*;
+}
+
+pub mod db {
+    pub use ekiden_db_untrusted::*;
+}

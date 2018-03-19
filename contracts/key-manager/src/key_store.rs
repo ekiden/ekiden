@@ -7,8 +7,9 @@ use std::sync::SgxMutex as Mutex;
 #[cfg(target_env = "sgx")]
 use std::sync::SgxMutexGuard as MutexGuard;
 
-use ekiden_core_common::{random, Error, Result};
-use ekiden_core_common::quote::MrEnclave;
+use ekiden_core::enclave::quote::MrEnclave;
+use ekiden_core::error::{Error, Result};
+use ekiden_core::random;
 
 /// Key store, which actually stores the key manager keys.
 pub struct KeyStore {

@@ -1,5 +1,4 @@
 #![feature(use_extern_macros)]
-#![no_std]
 
 extern crate ekiden_db_trusted;
 extern crate ekiden_rpc_trusted;

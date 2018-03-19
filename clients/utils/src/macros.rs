@@ -82,7 +82,7 @@ macro_rules! contract_client {
     ($contract:ident, $args:ident, $backend:ident) => {
         $contract::Client::new(
             $backend,
-            value_t!($args, "mr-enclave", ekiden_core_common::quote::MrEnclave).unwrap_or_else(|e| e.exit())
+            value_t!($args, "mr-enclave", ekiden_core::enclave::quote::MrEnclave).unwrap_or_else(|e| e.exit())
         )
     };
     ($contract:ident, $args:ident) => {

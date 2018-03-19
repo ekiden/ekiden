@@ -1,3 +1,5 @@
+use ekiden_core::rpc::rpc_api;
+
 rpc_api! {
     metadata {
         name = token;

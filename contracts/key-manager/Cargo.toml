@@ -12,12 +12,12 @@ crate-type = ["staticlib"]
 default = []
 
 [dependencies]
-ekiden-core-common = { path = "../../core/common" }
-ekiden-core-trusted = { path = "../../core/trusted" }
+ekiden-core = { path = "../../core/common" }
+ekiden-trusted = { path = "../../core/trusted" }
 key-manager-api = { path = "./api" }
 lazy_static = { version = "1.0", features = ["spin_no_std"] }
 protobuf = "1.4.3"
 
 [build-dependencies]
 ekiden-tools = { path = "../../tools" }
-ekiden-core-edl = { path = "../../core/edl" }
+ekiden-edl = { path = "../../core/edl" }

@@ -20,7 +20,7 @@ jobs:
       # Cargo tests. Some tests are excluded as they currently don't compile.
       - run: |
           cargo test --all \
-            --exclude ekiden-core-untrusted \
+            --exclude ekiden-untrusted \
             --exclude ekiden-enclave-untrusted \
             --exclude ekiden-rpc-untrusted \
             --exclude ekiden-db-untrusted \
