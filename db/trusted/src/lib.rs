@@ -8,6 +8,7 @@ extern crate lazy_static;
 extern crate protobuf;
 extern crate sodalite;
 
+#[macro_use]
 extern crate ekiden_common;
 extern crate ekiden_enclave_trusted;
 extern crate key_manager_client;
@@ -20,6 +21,9 @@ pub mod ecalls;
 
 pub mod handle;
 pub use handle::DatabaseHandle;
+
+#[macro_use]
+pub mod schema;
 
 /// Database interface exposed to contracts.
 pub trait Database {
@@ -40,4 +44,7 @@ pub trait Database {
     /// Remove entry with given key, returning the value at the key if the key was previously
     /// in the database.
     fn remove(&mut self, key: &[u8]) -> Option<Vec<u8>>;
+
+    /// Clear database state.
+    fn clear(&mut self);
 }
