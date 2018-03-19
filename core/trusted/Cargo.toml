@@ -1,11 +1,11 @@
 [package]
 name = "ekiden-trusted"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 authors = [
     "Raymond Cheng <me@raymondcheng.net>",
     "Jernej Kos <jernej@kos.mx>"
 ]
 
 [dependencies]
-ekiden-rpc-trusted = { path = "../../rpc/trusted" }
-ekiden-db-trusted = { path = "../../db/trusted" }
+ekiden-rpc-trusted = { path = "../../rpc/trusted", version = "0.1.0-alpha.0" }
+ekiden-db-trusted = { path = "../../db/trusted", version = "0.1.0-alpha.0" }

@@ -1,6 +1,6 @@
 [package]
 name = "consensus"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 authors = ["Ekiden Developers <ekiden-dev@googlegroups.com>"]
 build = "build.rs"
 

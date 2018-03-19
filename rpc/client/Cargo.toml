@@ -1,12 +1,12 @@
 [package]
 name = "ekiden-rpc-client"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 authors = ["Jernej Kos <jernej@kos.mx>"]
 
 [dependencies]
-ekiden-common = { path = "../../common" }
-ekiden-enclave-common = { path = "../../enclave/common" }
-ekiden-rpc-common = { path = "../common" }
+ekiden-common = { path = "../../common", version = "0.1.0-alpha.0" }
+ekiden-enclave-common = { path = "../../enclave/common", version = "0.1.0-alpha.0" }
+ekiden-rpc-common = { path = "../common", version = "0.1.0-alpha.0" }
 protobuf = "1.4.3"
 sodalite = "0.3.0"
 
@@ -15,7 +15,7 @@ futures-sgx = { git = "https://github.com/ekiden/futures-rs" }
 
 [target.'cfg(not(target_env = "sgx"))'.dependencies]
 byteorder = "1.2.1"
-compute-api = { path = "../../compute/api" }
+compute-api = { path = "../../compute/api", version = "0.1.0-alpha.0" }
 futures = "0.1"
 grpc = "0.2.1"
 httpbis  = "0.4.1"
@@ -24,5 +24,5 @@ tls-api  = "0.1.12"
 tokio-core = "0.1"
 
 [build-dependencies]
-ekiden-tools = { path = "../../tools" }
+ekiden-tools = { path = "../../tools", version = "0.1.0-alpha.0" }
 protoc-rust-grpc = "0.2.1"

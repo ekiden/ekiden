@@ -1,12 +1,12 @@
 [package]
 name = "ekiden-edl"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 authors = [
     "Jernej Kos <jernej@kos.mx>"
 ]
 
 [dependencies]
-ekiden-tools = { path = "../../tools" }
-ekiden-rpc-edl = { path = "../../rpc/edl" }
-ekiden-db-edl = { path = "../../db/edl" }
+ekiden-tools = { path = "../../tools", version = "0.1.0-alpha.0" }
+ekiden-rpc-edl = { path = "../../rpc/edl", version = "0.1.0-alpha.0" }
+ekiden-db-edl = { path = "../../db/edl", version = "0.1.0-alpha.0" }
 sgx_edl = { git = "https://github.com/ekiden/rust-sgx-sdk", tag = "v0.9.7-ekiden1" }

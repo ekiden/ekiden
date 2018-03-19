@@ -1,14 +1,14 @@
 [package]
 name = "ekiden-untrusted"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 authors = [
     "Jernej Kos <jernej@kos.mx>"
 ]
 
 [dependencies]
-ekiden-enclave-untrusted = { path = "../../enclave/untrusted" }
-ekiden-rpc-untrusted = { path = "../../rpc/untrusted" }
-ekiden-db-untrusted = { path = "../../db/untrusted" }
+ekiden-enclave-untrusted = { path = "../../enclave/untrusted", version = "0.1.0-alpha.0" }
+ekiden-rpc-untrusted = { path = "../../rpc/untrusted", version = "0.1.0-alpha.0" }
+ekiden-db-untrusted = { path = "../../db/untrusted", version = "0.1.0-alpha.0" }
 
 [build-dependencies]
-ekiden-tools = { path = "../../tools" }
+ekiden-tools = { path = "../../tools", version = "0.1.0-alpha.0" }

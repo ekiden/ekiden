@@ -1,12 +1,12 @@
 [package]
 name = "key-manager-api"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 authors = ["Jernej Kos <jernej@kos.mx>"]
 build = "build.rs"
 
 [dependencies]
-ekiden-core = { path = "../../../core/common" }
+ekiden-core = { path = "../../../core/common", version = "0.1.0-alpha.0" }
 protobuf = "1.4.3"
 
 [build-dependencies]
-ekiden-tools = { path = "../../../tools" }
+ekiden-tools = { path = "../../../tools", version = "0.1.0-alpha.0" }
