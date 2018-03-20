@@ -10,7 +10,9 @@ extern crate ekiden_enclave_untrusted;
 extern crate ekiden_rpc_common;
 
 pub mod enclave;
+#[doc(hidden)]
 pub mod ocall_proxy;
+#[doc(hidden)]
 pub mod ecall_proxy;
 
 #[macro_use]

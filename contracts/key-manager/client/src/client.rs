@@ -76,7 +76,7 @@ impl KeyManager {
 
     /// Configures identity of key manager contract.
     ///
-    /// This method must be called before the key manager client can be used.
+    /// **This method must be called before the key manager client can be used.**
     pub fn set_contract(&mut self, mr_enclave: MrEnclave) {
         self.mr_enclave.get_or_insert(mr_enclave);
     }

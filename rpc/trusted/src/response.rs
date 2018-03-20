@@ -1,3 +1,4 @@
+//! RPC response type.
 use std;
 
 use protobuf::Message;

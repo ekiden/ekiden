@@ -17,6 +17,7 @@ mod generated;
 
 mod crypto;
 mod diffs;
+#[doc(hidden)]
 pub mod ecalls;
 
 pub mod handle;
@@ -39,6 +40,8 @@ pub trait Database {
     ///
     /// If the database did have this key present, the value is updated, and the old value is
     /// returned.
+    ///
+    /// [`None`]: std::option::Option
     fn insert(&mut self, key: &[u8], value: &[u8]) -> Option<Vec<u8>>;
 
     /// Remove entry with given key, returning the value at the key if the key was previously

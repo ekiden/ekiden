@@ -9,4 +9,4 @@ extern crate ekiden_core;
 mod api;
 mod generated;
 
-pub use generated::api::*;
+pub use generated::api::{GetOrCreateKeyRequest, GetOrCreateKeyResponse};

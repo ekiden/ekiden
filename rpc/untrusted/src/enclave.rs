@@ -1,3 +1,4 @@
+//! Enclave RPC interface.
 use sgx_types::*;
 
 use protobuf;

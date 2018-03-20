@@ -1,3 +1,4 @@
+//! Enclave interface.
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 

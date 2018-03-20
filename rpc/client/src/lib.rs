@@ -22,10 +22,10 @@ mod secure_channel;
 mod client;
 mod future;
 
+#[doc(hidden)]
 #[macro_use]
-mod macros;
+pub mod macros;
 
 // Re-export.
 pub use client::ContractClient;
-pub use ekiden_enclave_common::quote;
 pub use future::{ClientFuture, FutureExtra};

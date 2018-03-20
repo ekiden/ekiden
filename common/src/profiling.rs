@@ -1,3 +1,4 @@
+//! Profiling helpers.
 use std::time::Instant;
 
 /// Guard for profiling a block of code.
@@ -55,6 +56,9 @@ impl Drop for ProfileGuard {
     }
 }
 
+/// Profile a given block.
+///
+/// Results of profiling are output to stdout.
 #[cfg(feature = "profiling")]
 #[macro_export]
 macro_rules! profile_block {
@@ -82,6 +86,9 @@ macro_rules! profile_block {
     }
 }
 
+/// Profile a given block.
+///
+/// Results of profiling are output to stdout.
 #[cfg(not(feature = "profiling"))]
 #[macro_export]
 macro_rules! profile_block {

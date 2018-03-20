@@ -1,3 +1,4 @@
+//! Secure channel handling.
 #[cfg(target_env = "sgx")]
 use sgx_tseal::SgxSealedData;
 #[cfg(target_env = "sgx")]
@@ -29,6 +30,7 @@ use super::request::Request;
 const SECRET_SEED_LEN: usize = 32;
 type SecretSeed = [u8; SECRET_SEED_LEN];
 
+/// Single secure channel session between client and contract.
 #[derive(Default)]
 pub struct ClientSession {
     /// Client short-term public key.

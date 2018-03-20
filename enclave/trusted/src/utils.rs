@@ -1,3 +1,4 @@
+//! Enclave utilities.
 use std::io::Cursor;
 use std::slice::{from_raw_parts, from_raw_parts_mut};
 
@@ -11,7 +12,7 @@ use ekiden_common::serializer::{Deserializable, Serializable};
 /// # EDL
 ///
 /// In order for this function to work, the source buffer must be declared using
-/// the [user_check] attribute in the EDL.
+/// the `[user_check]` attribute in the EDL.
 ///
 /// # Panics
 ///
@@ -47,7 +48,7 @@ where
 /// # EDL
 ///
 /// In order for this function to work, the destination buffer must be declared
-/// using the [user_check] attribute in the EDL.
+/// using the `[user_check]` attribute in the EDL.
 ///
 /// # Panics
 ///

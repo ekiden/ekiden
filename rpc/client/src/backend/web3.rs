@@ -1,3 +1,4 @@
+//! gRPC client backend.
 use std::sync::{Arc, Mutex};
 
 use grpc;
@@ -161,6 +162,7 @@ impl ComputeNodes {
     }
 }
 
+/// gRPC client backend.
 pub struct Web3ContractClientBackend {
     /// Handle of the reactor used for running all futures.
     reactor: tokio_core::reactor::Remote,

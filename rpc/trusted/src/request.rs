@@ -1,3 +1,4 @@
+//! RPC request type.
 use std::ops::Deref;
 
 use ekiden_enclave_common::quote::MrEnclave;
@@ -52,7 +53,9 @@ impl<T> Request<T> {
     /// This method can be used when extracting a part of a request data (e.g. the
     /// payload) and the caller would like to keep the associated metadata. The
     /// metadata will be cloned and the given `message` will be wrapped into a
-    /// `Request` object.
+    /// [`Request`] object.
+    ///
+    /// [`Request`]: Request
     pub fn copy_metadata_to<M>(&self, message: M) -> Request<M> {
         Request {
             message: Some(message),
@@ -65,7 +68,9 @@ impl<T> Request<T> {
 
     /// Get short-term public key of the client making this request.
     ///
-    /// If the request was made over a non-secure channel, this will be `None`.
+    /// If the request was made over a non-secure channel, this will be [`None`].
+    ///
+    /// [`None`]: std::option::Option
     pub fn get_client_public_key(&self) -> Option<&Vec<u8>> {
         self.public_key.as_ref()
     }
@@ -73,7 +78,9 @@ impl<T> Request<T> {
     /// Get MRENCLAVE of the client making this request.
     ///
     /// If the request was made over a channel without client attestation, this
-    /// will be `None`.
+    /// will be [`None`].
+    ///
+    /// [`None`]: std::option::Option
     pub fn get_client_mr_enclave(&self) -> Option<&MrEnclave> {
         self.mr_enclave.as_ref()
     }

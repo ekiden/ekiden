@@ -1,3 +1,4 @@
+//! RPC method dispatcher.
 use std::collections::HashMap;
 #[cfg(not(target_env = "sgx"))]
 use std::sync::{Mutex, MutexGuard};
@@ -148,6 +149,10 @@ lazy_static! {
     static ref DISPATCHER: Mutex<Dispatcher> = Mutex::new(Dispatcher::new());
 }
 
+/// RPC method dispatcher.
+///
+/// The dispatcher holds all registered RPC methods and provides an entry point
+/// for their invocation.
 pub struct Dispatcher {
     /// Registered RPC methods.
     methods: HashMap<String, EnclaveMethod>,

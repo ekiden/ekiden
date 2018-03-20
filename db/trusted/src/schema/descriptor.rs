@@ -1,3 +1,4 @@
+//! Field descriptors used in the schema-based interface.
 use std::borrow::Borrow;
 use std::marker::PhantomData;
 
@@ -51,6 +52,9 @@ where
     ///
     /// The value may be any borrowed form of the descriptor's value type, but [`Serializable`]
     /// on the borrowed form must match those for the value type.
+    ///
+    /// [`None`]: std::option::Option
+    /// [`Serializable`]: ekiden_common::serializer::Serializable
     pub fn insert<Q>(&self, value: &Q) -> Option<T>
     where
         T: Borrow<Q>,
@@ -109,6 +113,8 @@ where
     ///
     /// The key may be any borrowed form of the descriptor's key type, but [`Serializable`]
     /// on the borrowed form must match those for the key type.
+    ///
+    /// [`Serializable`]: ekiden_common::serializer::Serializable
     fn get_key_for_subkey<Q>(&self, subkey: &Q) -> Vec<u8>
     where
         K: Borrow<Q>,
@@ -134,6 +140,9 @@ where
     ///
     /// The value may be any borrowed form of the descriptor's value type, but [`Serializable`]
     /// on the borrowed form must match those for the value type.
+    ///
+    /// [`None`]: std::option::Option
+    /// [`Serializable`]: ekiden_common::serializer::Serializable
     pub fn insert<Q, P>(&self, key: &Q, value: &P) -> Option<V>
     where
         K: Borrow<Q>,
@@ -153,6 +162,8 @@ where
     ///
     /// The key may be any borrowed form of the descriptor's key type, but [`Serializable`]
     /// on the borrowed form must match those for the key type.
+    ///
+    /// [`Serializable`]: ekiden_common::serializer::Serializable
     pub fn get<Q>(&self, key: &Q) -> Option<V>
     where
         K: Borrow<Q>,
@@ -170,6 +181,8 @@ where
     ///
     /// The key may be any borrowed form of the descriptor's key type, but [`Serializable`]
     /// on the borrowed form must match those for the key type.
+    ///
+    /// [`Serializable`]: ekiden_common::serializer::Serializable
     pub fn remove<Q>(&self, key: &Q) -> Option<V>
     where
         K: Borrow<Q>,
@@ -186,6 +199,8 @@ where
     ///
     /// The key may be any borrowed form of the descriptor's key type, but [`Serializable`]
     /// on the borrowed form must match those for the key type.
+    ///
+    /// [`Serializable`]: ekiden_common::serializer::Serializable
     pub fn contains_key<Q>(&self, key: &Q) -> bool
     where
         K: Borrow<Q>,
