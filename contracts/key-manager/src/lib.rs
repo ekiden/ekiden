@@ -5,17 +5,15 @@ extern crate lazy_static;
 extern crate protobuf;
 
 extern crate ekiden_core;
+extern crate ekiden_key_manager_api;
 extern crate ekiden_trusted;
-
-extern crate key_manager_api;
 
 mod key_store;
 
 use ekiden_core::error::Result;
+use ekiden_key_manager_api::{with_api, GetOrCreateKeyRequest, GetOrCreateKeyResponse};
 use ekiden_trusted::rpc::create_enclave_rpc;
 use ekiden_trusted::rpc::request::Request;
-
-use key_manager_api::{with_api, GetOrCreateKeyRequest, GetOrCreateKeyResponse};
 
 use key_store::KeyStore;
 

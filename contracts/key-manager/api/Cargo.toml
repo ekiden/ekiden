@@ -1,5 +1,5 @@
 [package]
-name = "key-manager-api"
+name = "ekiden-key-manager-api"
 version = "0.1.0-alpha.0"
 authors = ["Jernej Kos <jernej@kos.mx>"]
 build = "build.rs"

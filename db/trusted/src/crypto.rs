@@ -4,7 +4,7 @@ use ekiden_common::error::{Error, Result};
 use ekiden_common::random;
 
 #[cfg(target_env = "sgx")]
-use key_manager_client::KeyManager;
+use ekiden_key_manager_client::KeyManager;
 
 use super::generated::database::CryptoSecretbox;
 

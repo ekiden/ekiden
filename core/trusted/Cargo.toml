@@ -9,4 +9,4 @@ authors = [
 [dependencies]
 ekiden-rpc-trusted = { path = "../../rpc/trusted", version = "0.1.0-alpha.0" }
 ekiden-db-trusted = { path = "../../db/trusted", version = "0.1.0-alpha.0" }
-key-manager-client = { path = "../../contracts/key-manager/client", version = "0.1.0-alpha.0" }
+ekiden-key-manager-client = { path = "../../contracts/key-manager/client", version = "0.1.0-alpha.0" }

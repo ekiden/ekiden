@@ -56,9 +56,9 @@ jobs:
           command: ./target/debug/compute target/enclave/token.signed.so
           background: true
       - run:
-          command: ./target/debug/compute target/enclave/key-manager.signed.so -p 9003 --disable-key-manager
+          command: ./target/debug/compute target/enclave/ekiden-key-manager.signed.so -p 9003 --disable-key-manager
           background: true
-      - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
+      - run: ./target/debug/token-client --mr-enclave $(cat target/enclave/token.mrenclave)
 
 workflows:
   version: 2

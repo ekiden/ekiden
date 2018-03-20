@@ -9,15 +9,14 @@ use std::sync::SgxMutexGuard as MutexGuard;
 
 use ekiden_common::error::{Error, Result};
 use ekiden_enclave_common::quote::MrEnclave;
+use ekiden_key_manager_api::with_api;
 use ekiden_rpc_client::{create_client_rpc, FutureExtra};
 use ekiden_rpc_common::client::ClientEndpoint;
 use ekiden_rpc_trusted::client::OcallContractClientBackend;
 
-use key_manager_api::with_api;
-
 // Create API client for the key manager.
 with_api! {
-    create_client_rpc!(key_manager, key_manager_api, api);
+    create_client_rpc!(key_manager, ekiden_key_manager_api, api);
 }
 
 /// Key manager client interface.

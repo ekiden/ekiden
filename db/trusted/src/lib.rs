@@ -11,7 +11,7 @@ extern crate sodalite;
 #[macro_use]
 extern crate ekiden_common;
 extern crate ekiden_enclave_trusted;
-extern crate key_manager_client;
+extern crate ekiden_key_manager_client;
 
 mod generated;
 
