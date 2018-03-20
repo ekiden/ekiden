@@ -1,5 +1,5 @@
 [package]
-name = "compute-api"
+name = "ekiden-compute-api"
 version = "0.1.0-alpha.0"
 authors = [
     "Raymond Cheng <me@raymondcheng.net>",

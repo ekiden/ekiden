@@ -17,12 +17,11 @@ extern crate hyper;
 #[macro_use]
 extern crate prometheus;
 
+extern crate ekiden_compute_api;
+extern crate ekiden_consensus_api;
 extern crate ekiden_core;
 extern crate ekiden_rpc_client;
 extern crate ekiden_untrusted;
-
-extern crate compute_api;
-extern crate consensus_api;
 
 mod ias;
 mod instrumentation;
@@ -33,11 +32,11 @@ use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 
+use ekiden_compute_api::ComputeServer;
 use ekiden_core::rpc::client::ClientEndpoint;
 use ekiden_untrusted::rpc::router::RpcRouter;
 
 use clap::{App, Arg};
-use compute_api::ComputeServer;
 use server::ComputeServerImpl;
 
 fn main() {

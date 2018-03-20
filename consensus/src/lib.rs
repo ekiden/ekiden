@@ -7,7 +7,7 @@ extern crate tls_api;
 extern crate tokio_core;
 extern crate tokio_proto;
 
-extern crate consensus_api;
+extern crate ekiden_consensus_api;
 
 mod ekidenmint;
 mod errors;
@@ -25,7 +25,7 @@ use std::time;
 use abci::server::{AbciProto, AbciService};
 use tokio_proto::TcpServer;
 
-use consensus_api::ConsensusServer;
+use ekiden_consensus_api::ConsensusServer;
 use errors::Error;
 use generated::tendermint::ResponseBroadcastTx;
 use rpc::ConsensusServerImpl;

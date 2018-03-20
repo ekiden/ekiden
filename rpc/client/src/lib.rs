@@ -1,6 +1,4 @@
 #[cfg(not(target_env = "sgx"))]
-extern crate compute_api;
-#[cfg(not(target_env = "sgx"))]
 extern crate grpc;
 #[cfg(not(target_env = "sgx"))]
 extern crate rand;
@@ -14,6 +12,8 @@ extern crate protobuf;
 extern crate sodalite;
 
 extern crate ekiden_common;
+#[cfg(not(target_env = "sgx"))]
+extern crate ekiden_compute_api;
 extern crate ekiden_enclave_common;
 extern crate ekiden_rpc_common;
 

@@ -1,5 +1,5 @@
 [package]
-name = "consensus-api"
+name = "ekiden-consensus-api"
 version = "0.1.0-alpha.0"
 authors = [
     "Raymond Cheng <me@raymondcheng.net>",
@@ -13,6 +13,6 @@ grpc = "0.2.1"
 tls-api = "0.1.12"
 
 [build-dependencies]
-ekiden-tools = { path = "../../tools" }
+ekiden-tools = { path = "../../tools", version = "0.1.0-alpha.0" }
 protoc-rust = "1.4"
 protoc-rust-grpc = "0.2.1"

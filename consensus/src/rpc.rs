@@ -4,7 +4,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use grpc;
 use protobuf::{self, Message};
 
-use consensus_api::{self, Consensus};
+use ekiden_consensus_api::{self, Consensus};
 
 use super::state;
 
@@ -30,8 +30,8 @@ impl ConsensusServerImpl {
     fn replace_fallible(
         &self,
         payload: Vec<u8>,
-    ) -> Result<consensus_api::ReplaceResponse, Box<std::error::Error>> {
-        let mut stored = consensus_api::StoredTx::new();
+    ) -> Result<ekiden_consensus_api::ReplaceResponse, Box<std::error::Error>> {
+        let mut stored = ekiden_consensus_api::StoredTx::new();
         stored.set_replace(payload);
         let stored_bytes = stored.write_to_bytes()?;
 
@@ -49,14 +49,14 @@ impl ConsensusServerImpl {
         broadcast_channel.send(req).unwrap();
         rx.recv().unwrap()?;
 
-        Ok(consensus_api::ReplaceResponse::new())
+        Ok(ekiden_consensus_api::ReplaceResponse::new())
     }
 
     fn add_diff_fallible(
         &self,
         payload: Vec<u8>,
-    ) -> Result<consensus_api::AddDiffResponse, Box<std::error::Error>> {
-        let mut stored = consensus_api::StoredTx::new();
+    ) -> Result<ekiden_consensus_api::AddDiffResponse, Box<std::error::Error>> {
+        let mut stored = ekiden_consensus_api::StoredTx::new();
         stored.set_diff(payload);
         let stored_bytes = stored.write_to_bytes()?;
 
@@ -74,7 +74,7 @@ impl ConsensusServerImpl {
         broadcast_channel.send(req).unwrap();
         rx.recv().unwrap()?;
 
-        Ok(consensus_api::AddDiffResponse::new())
+        Ok(ekiden_consensus_api::AddDiffResponse::new())
     }
 }
 
@@ -82,12 +82,12 @@ impl Consensus for ConsensusServerImpl {
     fn get(
         &self,
         _options: grpc::RequestOptions,
-        _req: consensus_api::GetRequest,
-    ) -> grpc::SingleResponse<consensus_api::GetResponse> {
+        _req: ekiden_consensus_api::GetRequest,
+    ) -> grpc::SingleResponse<ekiden_consensus_api::GetResponse> {
         let s = self.state.lock().unwrap();
         match s.everything {
             Some(ref si) => {
-                let mut response = consensus_api::GetResponse::new();
+                let mut response = ekiden_consensus_api::GetResponse::new();
                 {
                     let mut checkpoint = response.mut_checkpoint();
                     checkpoint.set_payload(si.checkpoint.clone());
@@ -103,12 +103,12 @@ impl Consensus for ConsensusServerImpl {
     fn get_diffs(
         &self,
         _options: grpc::RequestOptions,
-        req: consensus_api::GetDiffsRequest,
-    ) -> grpc::SingleResponse<consensus_api::GetDiffsResponse> {
+        req: ekiden_consensus_api::GetDiffsRequest,
+    ) -> grpc::SingleResponse<ekiden_consensus_api::GetDiffsResponse> {
         let s = self.state.lock().unwrap();
         match s.everything {
             Some(ref si) => {
-                let mut response = consensus_api::GetDiffsResponse::new();
+                let mut response = ekiden_consensus_api::GetDiffsResponse::new();
                 if si.checkpoint_height > req.get_since_height() {
                     // We don't have diffs going back far enough.
                     {
@@ -132,8 +132,8 @@ impl Consensus for ConsensusServerImpl {
     fn replace(
         &self,
         _options: grpc::RequestOptions,
-        req: consensus_api::ReplaceRequest,
-    ) -> grpc::SingleResponse<consensus_api::ReplaceResponse> {
+        req: ekiden_consensus_api::ReplaceRequest,
+    ) -> grpc::SingleResponse<ekiden_consensus_api::ReplaceResponse> {
         match self.replace_fallible(req.get_payload().to_vec()) {
             Ok(res) => grpc::SingleResponse::completed(res),
             Err(e) => grpc::SingleResponse::err(grpc::Error::Panic(e.description().to_owned())),
@@ -143,8 +143,8 @@ impl Consensus for ConsensusServerImpl {
     fn add_diff(
         &self,
         _options: grpc::RequestOptions,
-        req: consensus_api::AddDiffRequest,
-    ) -> grpc::SingleResponse<consensus_api::AddDiffResponse> {
+        req: ekiden_consensus_api::AddDiffRequest,
+    ) -> grpc::SingleResponse<ekiden_consensus_api::AddDiffResponse> {
         match self.add_diff_fallible(req.get_payload().to_vec()) {
             Ok(res) => grpc::SingleResponse::completed(res),
             Err(e) => grpc::SingleResponse::err(grpc::Error::Panic(e.description().to_owned())),

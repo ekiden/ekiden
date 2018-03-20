@@ -16,12 +16,11 @@ use std::fmt::Write;
 use std::sync::Mutex;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
+use ekiden_compute_api::{CallContractRequest, CallContractResponse, Compute};
+use ekiden_consensus_api::{self, Consensus, ConsensusClient};
 use ekiden_core::error::{Error, Result};
 use ekiden_core::rpc::api;
 use ekiden_untrusted::{Enclave, EnclaveDb, EnclaveRpc};
-
-use compute_api::{CallContractRequest, CallContractResponse, Compute};
-use consensus_api::{self, Consensus, ConsensusClient};
 
 use super::instrumentation;
 
@@ -127,7 +126,7 @@ impl ComputeServerWorker {
         }
     }
 
-    fn set_cached_state(&mut self, checkpoint: &consensus_api::Checkpoint) -> Result<()> {
+    fn set_cached_state(&mut self, checkpoint: &ekiden_consensus_api::Checkpoint) -> Result<()> {
         self.cached_state = Some(CachedStateInitialized {
             encrypted_state: checkpoint.get_payload().to_vec(),
             height: checkpoint.get_height(),
@@ -173,7 +172,8 @@ impl ComputeServerWorker {
                         .as_ref()
                         .unwrap()
                         .get_diffs(grpc::RequestOptions::new(), {
-                            let mut consensus_request = consensus_api::GetDiffsRequest::new();
+                            let mut consensus_request =
+                                ekiden_consensus_api::GetDiffsRequest::new();
                             consensus_request.set_since_height(height);
                             consensus_request
                         })
@@ -189,7 +189,7 @@ impl ComputeServerWorker {
                         .unwrap()
                         .get(
                             grpc::RequestOptions::new(),
-                            consensus_api::GetRequest::new(),
+                            ekiden_consensus_api::GetRequest::new(),
                         )
                         .wait()
                     {
@@ -275,14 +275,14 @@ impl ComputeServerWorker {
                         .as_ref()
                         .unwrap()
                         .add_diff(grpc::RequestOptions::new(), {
-                            let mut add_diff_req = consensus_api::AddDiffRequest::new();
+                            let mut add_diff_req = ekiden_consensus_api::AddDiffRequest::new();
                             add_diff_req.set_payload(diff_res);
                             add_diff_req
                         })
                         .wait()?;
                 }
                 None => {
-                    let mut consensus_replace_request = consensus_api::ReplaceRequest::new();
+                    let mut consensus_replace_request = ekiden_consensus_api::ReplaceRequest::new();
                     consensus_replace_request.set_payload(encrypted_state);
 
                     self.consensus

@@ -197,7 +197,7 @@ spec:
             - bash
             - "-c"
             - |
-              consensus \
+              ekiden-consensus \
                 --tendermint-host localhost \
                 --tendermint-port 46657 \
                 --tendermint-abci-port 46658 \
@@ -211,12 +211,12 @@ spec:
             - bash
             - "-c"
             - |
-              compute \
+              ekiden-compute \
                 --grpc-threads 4 \
                 --port 9003 \
                 --disable-key-manager \
                 --consensus-host disabled \
-                /ekiden/lib/key-manager.signed.so
+                /ekiden/lib/ekiden-key-manager.signed.so
           volumeMounts:
             - name: ias
               mountPath: /ias
@@ -233,7 +233,7 @@ spec:
             - |
               fqdn_suffix=$(hostname -f | sed 's#[^.]*\.\(\)#\1#')
 
-              compute \
+              ekiden-compute \
                 --grpc-threads 128 \
                 --port 9001 \
                 --key-manager-host ekiden-benchmark-0.${fqdn_suffix} \
