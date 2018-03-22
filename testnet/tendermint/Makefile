@@ -4,7 +4,7 @@ TM_SHA256SUM := 36d773d4c2890addc61cc87a72c1e9c21c89516921b0defb0edfebde719b4b85
 prep: authorize.stamp connect
 
 stop: | connect
-	./cmd.sh killall tendermint consensus
+	./cmd.sh killall tendermint ekiden-consensus
 
 clear: | install-tendermint.stamp connect
 	./cmd.sh ./tendermint unsafe_reset_all
@@ -16,7 +16,7 @@ genesis.stamp: genesis.json | install-tendermint.stamp connect
 genesis.json:
 	./create_validator_keys.sh $(TM_VERSION)
 
-install-consensus.stamp: ../../target/release/consensus | connect
+install-consensus.stamp: ../../target/release/ekiden-consensus | connect
 	./send.sh $<
 	touch $@
 
