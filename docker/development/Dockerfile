@@ -1,4 +1,4 @@
-FROM docker.io/baiduxlab/sgx-rust-experimental
+FROM docker.io/ekiden/rust-sgx-sdk:0.9.7
 
 ENV HOME="/root"
 ENV PATH="${HOME}/.cargo/bin:${PATH}"

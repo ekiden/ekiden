@@ -1,3 +1,4 @@
+//! Error types used in Ekiden.
 use std::{error, fmt, result};
 
 /// A custom result type which uses `Error` to avoid the need to repeat the

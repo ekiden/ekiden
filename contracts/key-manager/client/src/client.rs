@@ -8,20 +8,21 @@ use std::sync::SgxMutex as Mutex;
 use std::sync::SgxMutexGuard as MutexGuard;
 
 use ekiden_common::error::{Error, Result};
-use ekiden_enclave_common::quote::{MrEnclave, MRENCLAVE_LEN};
+use ekiden_enclave_common::quote::MrEnclave;
+use ekiden_key_manager_api::with_api;
 use ekiden_rpc_client::{create_client_rpc, FutureExtra};
 use ekiden_rpc_common::client::ClientEndpoint;
 use ekiden_rpc_trusted::client::OcallContractClientBackend;
 
-use key_manager_api::with_api;
-
 // Create API client for the key manager.
 with_api! {
-    create_client_rpc!(key_manager, key_manager_api, api);
+    create_client_rpc!(key_manager, ekiden_key_manager_api, api);
 }
 
 /// Key manager client interface.
 pub struct KeyManager {
+    /// Key manager contract MRENCLAVE.
+    mr_enclave: Option<MrEnclave>,
     /// Internal API client.
     client: Option<key_manager::Client<OcallContractClientBackend>>,
     /// Local key cache.
@@ -34,12 +35,10 @@ lazy_static! {
 }
 
 impl KeyManager {
-    /// Key manager contract MRENCLAVE.
-    const MR_ENCLAVE: MrEnclave = MrEnclave(*include_bytes!("generated/key_manager_mrenclave.bin"));
-
     /// Construct new key manager interface.
     fn new() -> Self {
         KeyManager {
+            mr_enclave: None,
             client: None,
             cache: HashMap::new(),
         }
@@ -51,11 +50,14 @@ impl KeyManager {
     /// contract, so this operation may fail due to the key manager being unavailable or
     /// issues with establishing a mutually authenticated secure channel.
     fn connect(&mut self) -> Result<()> {
-        if KeyManager::is_self() {
-            return Err(Error::new(
-                "Tried to call key manager from inside the key manager itself",
-            ));
-        }
+        let mr_enclave = match self.mr_enclave {
+            Some(ref mr_enclave) => mr_enclave.clone(),
+            None => {
+                return Err(Error::new(
+                    "Tried to call key manager without known manager identity",
+                ))
+            }
+        };
 
         if self.client.is_some() {
             return Ok(());
@@ -66,10 +68,17 @@ impl KeyManager {
             _ => return Err(Error::new("Failed to create key manager client backend")),
         };
 
-        let client = key_manager::Client::new(backend, KeyManager::MR_ENCLAVE);
+        let client = key_manager::Client::new(backend, mr_enclave);
         self.client.get_or_insert(client);
 
         Ok(())
+    }
+
+    /// Configures identity of key manager contract.
+    ///
+    /// **This method must be called before the key manager client can be used.**
+    pub fn set_contract(&mut self, mr_enclave: MrEnclave) {
+        self.mr_enclave.get_or_insert(mr_enclave);
     }
 
     /// Get global key manager client instance.
@@ -77,21 +86,7 @@ impl KeyManager {
     /// Calling this method will take a lock on the global instance, which will
     /// be released once the value goes out of scope.
     pub fn get<'a>() -> Result<MutexGuard<'a, KeyManager>> {
-        let mut manager = KEY_MANAGER.lock().unwrap();
-
-        // Ensure manager is connected.
-        manager.connect()?;
-
-        Ok(manager)
-    }
-
-    /// Checks if the client is running inside the key manager itself.
-    ///
-    /// This should be used to prevent the key manager contract from trying to also
-    /// contact the key manager. This determination is based on the MRENCLAVE being
-    /// all zeroes in the key manager contract itself.
-    pub fn is_self() -> bool {
-        KeyManager::MR_ENCLAVE == MrEnclave([0; MRENCLAVE_LEN])
+        Ok(KEY_MANAGER.lock().unwrap())
     }
 
     /// Clear local key cache.
@@ -107,6 +102,9 @@ impl KeyManager {
     /// the key has already been cached locally, it will be retrieved from
     /// cache.
     pub fn get_or_create_key(&mut self, name: &str, size: usize) -> Result<Vec<u8>> {
+        // Ensure manager is connected.
+        self.connect()?;
+
         // Check cache first.
         match self.cache.entry(name.to_string()) {
             Entry::Occupied(entry) => Ok(entry.get().clone()),

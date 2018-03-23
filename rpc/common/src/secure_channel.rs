@@ -1,3 +1,4 @@
+//! Common structures for secure channels.
 use byteorder::{ByteOrder, LittleEndian};
 
 use sodalite;

@@ -1,10 +1,10 @@
 [package]
-name = "compute-api"
-version = "0.1.0"
-authors = [
-    "Raymond Cheng <me@raymondcheng.net>",
-    "Jernej Kos <jernej@kos.mx>"
-]
+name = "ekiden-compute-api"
+version = "0.1.0-alpha.0"
+authors = ["Ekiden Developers <ekiden-dev@googlegroups.com>"]
+description = "Ekiden compute node API"
+keywords = ["ekiden"]
+repository = "https://github.com/ekiden/ekiden"
 build = "build.rs"
 
 [dependencies]
@@ -13,6 +13,6 @@ grpc = "0.2.1"
 tls-api = "0.1.12"
 
 [build-dependencies]
-ekiden-tools = { path = "../../tools" }
+ekiden-tools = { path = "../../tools", version = "0.1.0-alpha.0" }
 protoc-rust = "1.4"
 protoc-rust-grpc = "0.2.1"

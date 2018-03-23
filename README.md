@@ -123,7 +123,7 @@ The key manager contract is special and must be run in a compute node listening 
 by default. Run it as you would run any other compute node, but specifying the key manager
 contract and changing the port:
 ```bash
-$ scripts/run_contract.sh key-manager -p 9003 --disable-key-manager --consensus-host disabled
+$ scripts/run_contract.sh ekiden-key-manager -p 9003 --disable-key-manager --consensus-host disabled
 ```
 
 ### Contract client

@@ -1,3 +1,4 @@
+//! Enclave RPC interface.
 use sgx_types::*;
 
 use protobuf;
@@ -113,11 +114,6 @@ impl EnclaveRpc for Enclave {
 
     /// Perform enclave initialization.
     fn initialize(&self) -> Result<api::ContractInitResponse> {
-        let status = unsafe { ecall_proxy::rpc_init(self.get_id()) };
-        if status != sgx_status_t::SGX_SUCCESS {
-            return Err(Error::new("Failed to initialize enclave RPC"));
-        }
-
         // Call contract init.
         // TODO: This call will not be needed after Ekiden Identity.
         let request = api::ContractInitRequest::new();

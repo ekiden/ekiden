@@ -1,4 +1,7 @@
+//! Higher-level schema-based database interface.
 pub mod descriptor;
+
+#[doc(hidden)]
 #[macro_use]
 pub mod macros;
 

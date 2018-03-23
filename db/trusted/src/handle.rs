@@ -1,3 +1,4 @@
+//! Low-level key-value database interface.
 use std::collections::HashMap;
 #[cfg(not(target_env = "sgx"))]
 use std::sync::{Mutex, MutexGuard};

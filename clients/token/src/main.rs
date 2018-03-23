@@ -8,7 +8,7 @@ extern crate tokio_core;
 
 #[macro_use]
 extern crate client_utils;
-extern crate ekiden_core_common;
+extern crate ekiden_core;
 extern crate ekiden_rpc_client;
 
 extern crate token_api;

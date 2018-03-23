@@ -1,3 +1,4 @@
+//! gRPC client backend.
 use std::sync::{Arc, Mutex};
 
 use grpc;
@@ -13,7 +14,7 @@ use ekiden_common::error::{Error, Result};
 use ekiden_enclave_common::quote::AttestationReport;
 use ekiden_rpc_common::api;
 
-use compute_api::{CallContractRequest, Compute, ComputeClient};
+use ekiden_compute_api::{CallContractRequest, Compute, ComputeClient};
 
 use super::ContractClientBackend;
 use super::super::future::ClientFuture;
@@ -161,6 +162,7 @@ impl ComputeNodes {
     }
 }
 
+/// gRPC client backend.
 pub struct Web3ContractClientBackend {
     /// Handle of the reactor used for running all futures.
     reactor: tokio_core::reactor::Remote,

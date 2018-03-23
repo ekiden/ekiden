@@ -5,10 +5,6 @@ members = [
     # Common.
     "common",
 
-    # Key manager is special and must be built before any other contracts in
-    # order for key-manager-client to include its MRENCLAVE.
-    "contracts/key-manager",
-
     # Enclave loader.
     "enclave/common",
     "enclave/untrusted",
@@ -41,6 +37,9 @@ members = [
     "consensus",
 
     # Contracts.
+    # Key manager is special and must be built before any other contracts so that
+    # the other contracts can include its MRENCLAVE.
+    "contracts/key-manager",
     "contracts/token",
 
     # Clients.

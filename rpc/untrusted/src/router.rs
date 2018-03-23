@@ -1,3 +1,4 @@
+//! Untrusted router for RPC requests coming outside enclaves.
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
@@ -25,15 +26,18 @@ lazy_static! {
     static ref RPC_ROUTER: RwLock<RpcRouter> = RwLock::new(RpcRouter::new());
 }
 
+/// Router for RPC requests coming from enclaves.
+///
+/// Users of [`EnclaveRpc`] should register handlers for endpoints supported by
+/// [`ClientEndpoint`].
+///
+/// [`EnclaveRpc`]: super::EnclaveRpc
+/// [`ClientEndpoint`]: ekiden_rpc_common::client::ClientEndpoint
 pub struct RpcRouter {
     /// Registered routes.
     routes: HashMap<ClientEndpoint, Arc<Handler>>,
 }
 
-/// Router for RPC requests coming from enclaves.
-///
-/// Users of `EkidenEnclave` should register handlers for endpoints supported
-/// by `libcontract_common::client::ClientEndpoint`.
 impl RpcRouter {
     /// Create a new router instance.
     fn new() -> Self {

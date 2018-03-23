@@ -281,3 +281,64 @@ pub fn generate_mod(output_dir: &str, modules: &[&str]) {
         fs::File::create(output_gitignore_file).expect("Failed to create .gitignore file");
     writeln!(&mut file, "*").unwrap();
 }
+
+/// Extract contract identity from a compiled contract and write it to an output file.
+pub fn generate_contract_identity(output: &str, contract: &str) {
+    // Sigstruct headers in bundled enclave.
+    const SIGSTRUCT_HEADER_1: &[u8] =
+        b"\x06\x00\x00\x00\xe1\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00";
+    const SIGSTRUCT_HEADER_2: &[u8] =
+        b"\x01\x01\x00\x00\x60\x00\x00\x00\x60\x00\x00\x00\x01\x00\x00\x00";
+
+    let mut contract_file = fs::File::open(contract).expect("Failed to open contract file");
+    let mut current_offset = 0;
+    loop {
+        // Update current offset.
+        current_offset = contract_file.seek(io::SeekFrom::Current(0)).unwrap();
+
+        // Read the buffer.
+        let mut buffer = vec![0; SIGSTRUCT_HEADER_1.len()];
+        contract_file
+            .read_exact(&mut buffer)
+            .expect("Failed to find SIGSTRUCT header in contract");
+
+        if buffer == SIGSTRUCT_HEADER_1 {
+            // Skip 8 bytes and expect to find the second header there.
+            contract_file
+                .seek(io::SeekFrom::Current(8))
+                .expect("Failed to find SIGSTRUCT header in contract");
+
+            let mut buffer = vec![0u8; SIGSTRUCT_HEADER_2.len()];
+            contract_file
+                .read_exact(&mut buffer)
+                .expect("Failed to find SIGSTRUCT header in contract");
+
+            if buffer == SIGSTRUCT_HEADER_2 {
+                // Found SIGSTRUCT header at current offset.
+                break;
+            }
+
+            panic!("Failed to find SIGSTRUCT header in contract");
+        } else {
+            // Structure not found at current offset, move to next offset.
+            contract_file
+                .seek(io::SeekFrom::Start(current_offset + 1))
+                .expect("Failed to find SIGSTRUCT header in contract");
+        }
+    }
+
+    // Read ENCLAVEHASH field at offset 920 from second header (32 bytes).
+    let mut mr_enclave = vec![0u8; 32];
+    contract_file.seek(io::SeekFrom::Current(920)).unwrap();
+    contract_file
+        .read_exact(&mut mr_enclave)
+        .expect("Failed to read ENCLAVEHASH from conract");
+
+    // Write ENCLAVEHASH to given output file.
+    let mut output_file = fs::File::create(output).expect("Failed to create output file");
+    output_file
+        .write_all(&mr_enclave)
+        .expect("Failed to write contract ENCLAVEHASH");
+
+    println!("cargo:rerun-if-changed={}", contract);
+}

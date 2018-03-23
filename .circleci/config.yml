@@ -20,11 +20,11 @@ jobs:
       # Cargo tests. Some tests are excluded as they currently don't compile.
       - run: |
           cargo test --all \
-            --exclude ekiden-core-untrusted \
+            --exclude ekiden-untrusted \
             --exclude ekiden-enclave-untrusted \
             --exclude ekiden-rpc-untrusted \
             --exclude ekiden-db-untrusted \
-            --exclude consensus \
+            --exclude ekiden-consensus \
             -- --test-threads 1
 
       # Cargo benchmarks. We first fetch the latest benchmark results from master and then
@@ -45,7 +45,7 @@ jobs:
 
       # Test: end-to-end token contract
       - run:
-          command: ./target/debug/consensus
+          command: ./target/debug/ekiden-consensus
           background: true
       - run: tendermint init
       - run:
@@ -53,12 +53,12 @@ jobs:
           background: true
       - run: echo "$IAS_PKCS12" | base64 --decode --ignore-garbage > client.pfx
       - run:
-          command: ./target/debug/compute target/enclave/token.signed.so
+          command: ./target/debug/ekiden-compute target/enclave/token.signed.so
           background: true
       - run:
-          command: ./target/debug/compute target/enclave/key-manager.signed.so -p 9003 --disable-key-manager
+          command: ./target/debug/ekiden-compute target/enclave/ekiden-key-manager.signed.so -p 9003 --disable-key-manager
           background: true
-      - run: ./target/debug/token-client --mr-enclave $(python scripts/parse_enclave.py target/enclave/token.signed.so 2>/dev/null | grep ENCLAVEHASH | cut -f2)
+      - run: ./target/debug/token-client --mr-enclave $(cat target/enclave/token.mrenclave)
 
 workflows:
   version: 2

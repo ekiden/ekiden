@@ -1,14 +1,14 @@
 [package]
 name = "ekiden-rpc-common"
-version = "0.1.0"
-authors = [
-    "Raymond Cheng <me@raymondcheng.net>",
-    "Jernej Kos <jernej@kos.mx>"
-]
+version = "0.1.0-alpha.0"
+authors = ["Ekiden Developers <ekiden-dev@googlegroups.com>"]
+description = "Ekiden common RPC functionality"
+keywords = ["ekiden"]
+repository = "https://github.com/ekiden/ekiden"
 build = "build.rs"
 
 [dependencies]
-ekiden-common = { path = "../../common" }
+ekiden-common = { path = "../../common", version = "0.1.0-alpha.0" }
 protobuf = "1.4.3"
 sodalite = "0.3.0"
 byteorder = "1.2.1"
@@ -17,4 +17,4 @@ byteorder = "1.2.1"
 rand = "0.4.2"
 
 [build-dependencies]
-ekiden-tools = { path = "../../tools" }
+ekiden-tools = { path = "../../tools", version = "0.1.0-alpha.0" }

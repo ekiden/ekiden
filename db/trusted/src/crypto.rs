@@ -4,7 +4,7 @@ use ekiden_common::error::{Error, Result};
 use ekiden_common::random;
 
 #[cfg(target_env = "sgx")]
-use key_manager_client::KeyManager;
+use ekiden_key_manager_client::KeyManager;
 
 use super::generated::database::CryptoSecretbox;
 
@@ -13,16 +13,11 @@ const SECRETBOX_ZEROBYTES: usize = 32;
 /// Retrieve or generate state secret key.
 #[cfg(target_env = "sgx")]
 fn get_state_key() -> Result<sodalite::SecretboxKey> {
-    if KeyManager::is_self() {
-        // State for the key manager itself.
-        Err(Error::new("State for key manager not yet implemented"))
-    } else {
-        let key = KeyManager::get()?.get_or_create_key("state", sodalite::SECRETBOX_KEY_LEN)?;
-        let mut state_key = [0; sodalite::SECRETBOX_KEY_LEN];
-        state_key.copy_from_slice(key.as_slice());
+    let key = KeyManager::get()?.get_or_create_key("state", sodalite::SECRETBOX_KEY_LEN)?;
+    let mut state_key = [0; sodalite::SECRETBOX_KEY_LEN];
+    state_key.copy_from_slice(key.as_slice());
 
-        Ok(state_key)
-    }
+    Ok(state_key)
 }
 
 #[cfg(not(target_env = "sgx"))]

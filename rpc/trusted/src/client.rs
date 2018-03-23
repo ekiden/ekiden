@@ -1,3 +1,4 @@
+//! OCALL-based RPC client backend used inside enclaves.
 use sodalite;
 
 use futures::future::{self, Future};
@@ -12,6 +13,10 @@ use ekiden_rpc_common::client::ClientEndpoint;
 use super::quote::create_attestation_report_for_public_key;
 use super::untrusted;
 
+/// Contract client that can be used inside enclaves.
+///
+/// It relays contract calls via an OCALL to the untrusted world which may then
+/// dispatch the calls to other compute nodes.
 pub struct OcallContractClientBackend {
     /// Endpoint that the client is connecting to.
     endpoint: ClientEndpoint,

@@ -5,14 +5,13 @@ use std::sync::Arc;
 use futures::Future;
 use tokio_core;
 
-use protobuf::Message;
+use protobuf::{self, Message};
 
-use ekiden_core_common::{Error, Result};
-use ekiden_core_common::rpc::api;
-use ekiden_core_common::rpc::api::services::*;
-use ekiden_core_common::rpc::client::ClientEndpoint;
-use ekiden_core_untrusted::impl_rpc_handler;
-use ekiden_core_untrusted::rpc::router::Handler;
+use ekiden_core::error::{Error, Result};
+use ekiden_core::rpc::api;
+use ekiden_core::rpc::api::services::*;
+use ekiden_core::rpc::client::ClientEndpoint;
+use ekiden_untrusted::rpc::router::Handler;
 
 use ekiden_rpc_client::backend::{ContractClientBackend, Web3ContractClientBackend};
 
@@ -60,10 +59,28 @@ impl IASProxy {
     }
 }
 
-impl_rpc_handler! {
-    for IASProxy {
-        IASProxyGetSpid => get_spid,
-        IASProxyVerifyQuote => verify_quote,
+impl Handler for IASProxy {
+    /// Return a list of endpoints that the handler can handle.
+    fn get_endpoints(&self) -> Vec<ClientEndpoint> {
+        return vec![
+            ClientEndpoint::IASProxyGetSpid,
+            ClientEndpoint::IASProxyVerifyQuote,
+        ];
+    }
+
+    /// Handle a request and return a response.
+    fn handle(&self, endpoint: &ClientEndpoint, request: Vec<u8>) -> Result<Vec<u8>> {
+        match *endpoint {
+            ClientEndpoint::IASProxyGetSpid => {
+                Ok(self.get_spid(protobuf::parse_from_bytes(&request)?)?
+                    .write_to_bytes()?)
+            }
+            ClientEndpoint::IASProxyVerifyQuote => {
+                Ok(self.verify_quote(protobuf::parse_from_bytes(&request)?)?
+                    .write_to_bytes()?)
+            }
+            _ => Err(Error::new("Invalid RPC router endpoint")),
+        }
     }
 }
 

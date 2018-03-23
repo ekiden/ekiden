@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate clap;
-extern crate consensus;
+extern crate ekiden_consensus;
 
 use clap::{App, Arg};
 
@@ -46,7 +46,7 @@ fn main() {
         )
         .get_matches();
 
-    let config = consensus::Config {
+    let config = ekiden_consensus::Config {
         tendermint_host: matches.value_of("tendermint-host").unwrap().to_string(),
         tendermint_port: value_t!(matches, "tendermint-port", u16).unwrap_or_else(|e| e.exit()),
         tendermint_abci_port: value_t!(matches, "tendermint-abci-port", u16)
@@ -60,7 +60,7 @@ fn main() {
         "Ekiden Consensus Node starting on port {} ... ",
         config.grpc_port
     );
-    if let Err(e) = consensus::run(&config) {
+    if let Err(e) = ekiden_consensus::run(&config) {
         eprintln!("Application error: {}", e);
         std::process::exit(1);
     }

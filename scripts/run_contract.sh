@@ -12,5 +12,5 @@ if [ "$1" = "--client" ]; then
 else
   contract="$1"
   shift 1
-  cargo run -p compute "$PROJ_ROOT/target/enclave/$contract.signed.so" -- "$@"
+  cargo run -p ekiden-compute "$PROJ_ROOT/target/enclave/$contract.signed.so" -- "$@"
 fi

@@ -1,3 +1,4 @@
+//! Obtain random bytes in and outside enclaves.
 #[cfg(not(target_env = "sgx"))]
 use rand::{OsRng, Rng};
 

@@ -1,5 +1,7 @@
+//! RPC-specific error types.
 use ekiden_rpc_common::api;
 
+/// Error that may occur during request dispatch.
 #[derive(Debug, Clone)]
 pub struct DispatchError {
     /// Error code.

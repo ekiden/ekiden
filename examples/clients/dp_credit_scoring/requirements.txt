@@ -1,5 +1,0 @@
-pandas
-protobuf
-scipy
-sklearn
-xlrd

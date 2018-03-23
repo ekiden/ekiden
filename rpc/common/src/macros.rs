@@ -6,6 +6,8 @@
 /// containing the API definition is specified by using the special `api` token
 /// in its place.
 ///
+/// # Examples
+///
 /// For example, if you want to create enclave glue from the given API, and
 /// have the `create_enclave_rpc` macro available, you can invoke it with this
 /// concrete API by doing:
@@ -24,6 +26,18 @@ macro_rules! rpc_api {
     (
         $($api: tt)*
     ) => {
+        /// Invoke another macro passing the API as specified argument.
+        ///
+        /// # Examples
+        ///
+        /// For example, if you want to create enclave glue from the given API, and
+        /// have the `create_enclave_rpc` macro available, you can invoke it with this
+        /// concrete API by doing:
+        /// ```
+        /// with_api! {
+        ///     create_enclave_rpc!(api);
+        /// }
+        /// ```
         #[macro_export]
         macro_rules! with_api {
             // TODO: Repetition in nested macros currently not possible (see the Rust language

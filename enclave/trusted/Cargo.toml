@@ -1,9 +1,9 @@
 [package]
 name = "ekiden-enclave-trusted"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 authors = [
     "Jernej Kos <jernej@kos.mx>"
 ]
 
 [dependencies]
-ekiden-common = { path = "../../common" }
+ekiden-common = { path = "../../common", version = "0.1.0-alpha.0" }

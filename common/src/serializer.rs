@@ -1,3 +1,4 @@
+//! Serialization and deserialization.
 use std::io::{Cursor, Read, Write};
 use std::str;
 
@@ -157,7 +158,7 @@ impl Deserializable for bool {
 }
 
 /// Serializable implementation generator for Protocol Buffers messages. We cannot
-/// just implement this generically for all types satisfying the protobuf::Message
+/// just implement this generically for all types satisfying the `protobuf::Message`
 /// bound as Rust currently lacks specialization support.
 #[macro_export]
 macro_rules! impl_serializable_protobuf {

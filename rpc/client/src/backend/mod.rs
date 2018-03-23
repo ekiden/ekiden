@@ -1,3 +1,4 @@
+//! RPC client backend.
 mod base;
 
 #[cfg(not(target_env = "sgx"))]
