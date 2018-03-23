@@ -12,10 +12,13 @@ mod key_store;
 
 use ekiden_core::error::Result;
 use ekiden_key_manager_api::{with_api, GetOrCreateKeyRequest, GetOrCreateKeyResponse};
+use ekiden_trusted::enclave::enclave_init;
 use ekiden_trusted::rpc::create_enclave_rpc;
 use ekiden_trusted::rpc::request::Request;
 
 use key_store::KeyStore;
+
+enclave_init!();
 
 // Create enclave RPC handlers.
 with_api! {
