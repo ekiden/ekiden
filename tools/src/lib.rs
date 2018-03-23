@@ -291,10 +291,9 @@ pub fn generate_contract_identity(output: &str, contract: &str) {
         b"\x01\x01\x00\x00\x60\x00\x00\x00\x60\x00\x00\x00\x01\x00\x00\x00";
 
     let mut contract_file = fs::File::open(contract).expect("Failed to open contract file");
-    let mut current_offset = 0;
     loop {
         // Update current offset.
-        current_offset = contract_file.seek(io::SeekFrom::Current(0)).unwrap();
+        let current_offset = contract_file.seek(io::SeekFrom::Current(0)).unwrap();
 
         // Read the buffer.
         let mut buffer = vec![0; SIGSTRUCT_HEADER_1.len()];
