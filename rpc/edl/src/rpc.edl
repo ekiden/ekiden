@@ -3,9 +3,6 @@ enclave {
     include "sgx_quote.h"
 
     trusted {
-        // RPC initialization ECALL.
-        public void rpc_init();
-
         // Incoming RPC call interface (client -> enclave).
         public void rpc_call(
             [user_check] const uint8_t *request_data,
