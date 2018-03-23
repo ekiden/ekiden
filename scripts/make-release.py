@@ -133,9 +133,9 @@ def publish(root_dir):
         cargo('publish', '--no-verify', cwd=path)
 
 
-def bump_docker_version(root_dir, version, image_dir):
+def bump_docker_version(root_dir, version, image_dir, dockerfile='Dockerfile'):
     """Bump Dockerfile dependency version."""
-    filename = os.path.join(root_dir, image_dir, 'Dockerfile')
+    filename = os.path.join(root_dir, image_dir, dockerfile)
     if not git('ls-files', filename):
         print('ERROR: Dockerfile not in Git repository: {}'.format(filename))
         sys.exit(1)
@@ -238,6 +238,7 @@ if __name__ == '__main__':
     if args.bump_docker_images:
         print('=== Building and tagging Docker images...')
         bump_docker_version(root_dir, args.version, 'docker/testing')
+        bump_docker_version(root_dir, args.version, 'docker/deployment', dockerfile='Dockerfile.build')
         ci_update_image(root_dir, 'ekiden/testing', args.version)
         script_update_version(root_dir, 'sgx-enter.sh', args.version)
         script_update_version(root_dir, 'sgx-enter-hw.sh', args.version)

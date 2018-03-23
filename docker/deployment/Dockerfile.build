@@ -1,4 +1,4 @@
-FROM ekiden/rust-sgx-sdk
+FROM docker.io/ekiden/development:0.1.0-alpha.0
 
 ENV HOME="/root"
 ENV PATH="${HOME}/.cargo/bin:${PATH}"
@@ -18,50 +18,14 @@ ADD . /code
 
 # Build all Ekiden binaries and resources.
 RUN cd /code && \
-    cargo make build-release-flow && \
-    \
-    cd /code/clients/token && \
-    cargo build --release --features benchmark && \
-    \
-    cd /code/clients/ethtoken && \
-    mv /code/target/release/ethtoken-client /code/target/release/ethtoken-client-orig && \
-    cargo build --release --features "benchmark benchmark_transfer" && \
-    mv /code/target/release/ethtoken-client /code/target/release/benchmark-ethtoken-transfer && \
-    cargo build --release --features "benchmark benchmark_get_balance" && \
-    mv /code/target/release/ethtoken-client /code/target/release/benchmark-ethtoken-get-balance && \
-    \
-    cd /code/compute && \
-    mv /code/target/release/compute /code/target/release/compute-orig && \
-    cargo build --release --features "no_diffs" && \
-    mv /code/target/release/compute /code/target/release/compute-no_diffs && \
-    cargo build --release --features "no_diffs no_cache" && \
-    mv /code/target/release/compute /code/target/release/compute-no_diffs-no_cache && \
-    \
-    cd /code && \
-    python2 clients/dp_credit_scoring/src/prep_data.py --api-proto contracts/dp_credit_scoring/api/src/generated/api_pb2.py > clients/dp_credit_scoring/prepped-data
+    cargo make build-release-flow
 
 # Package all binaries and resources.
 RUN mkdir -p /package/bin /package/lib /package/res && \
     cp /code/target/enclave/*.signed.so /package/lib && \
     cp /code/target/enclave/*.mrenclave /package/lib && \
-    cp /code/target/release/compute-orig /package/bin/compute && \
-    cp /code/target/release/compute-no_diffs /package/bin && \
-    cp /code/target/release/compute-no_diffs-no_cache /package/bin && \
-    cp /code/target/release/consensus /package/bin && \
-    cp /code/target/release/token-client /package/bin && \
-    cp /code/target/release/ethtoken-client-orig /package/bin/ethtoken-client && \
-    cp /code/target/release/benchmark-token-transfer /package/bin && \
-    cp /code/target/release/benchmark-token-transfer-multi /package/bin && \
-    cp /code/target/release/benchmark-token-get-balance /package/bin && \
-    cp /code/target/release/benchmark-ethtoken-transfer /package/bin && \
-    cp /code/target/release/benchmark-ethtoken-get-balance /package/bin && \
-    cp /code/target/release/benchmark-dp-credit-scoring-train /package/bin && \
-    cp /code/target/release/benchmark-dp-credit-scoring-infer /package/bin && \
-    cp /code/clients/dp_credit_scoring/src/prep_data.py /package/res && \
-    cp /code/contracts/dp_credit_scoring/api/src/generated/api_pb2.py /package/res && \
-    cp /code/target/release/benchmark-iot-learner-train /package/bin && \
-    cp /code/target/release/benchmark-iot-learner-infer /package/bin && \
-    cp /code/clients/iot_learner/iot_data.pb /package/res && \
+    cp /code/target/release/ekiden-compute /package/bin && \
+    cp /code/target/release/ekiden-consensus /package/bin && \
     cp /code/docker/deployment/Dockerfile.runtime /package/Dockerfile
 
 # This is a builder container which outputs the contents of the package
