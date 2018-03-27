@@ -19,13 +19,6 @@ pub trait EnclaveRpc {
 
     /// Perform a raw RPC call against the enclave.
     fn call_raw(&self, request: Vec<u8>) -> Result<Vec<u8>>;
-
-    /// Perform enclave initialization.
-    fn initialize(&self) -> Result<api::ContractInitResponse>;
-
-    /// Restore enclave from previous initialization.
-    // TODO: Remove this method (will not be needed after Ekiden Identity).
-    fn restore(&self, sealed_keys: Vec<u8>) -> Result<api::ContractRestoreResponse>;
 }
 
 impl EnclaveRpc for Enclave {
@@ -108,27 +101,6 @@ impl EnclaveRpc for Enclave {
         unsafe {
             response.set_len(response_length);
         }
-
-        Ok(response)
-    }
-
-    /// Perform enclave initialization.
-    fn initialize(&self) -> Result<api::ContractInitResponse> {
-        // Call contract init.
-        // TODO: This call will not be needed after Ekiden Identity.
-        let request = api::ContractInitRequest::new();
-        let response: api::ContractInitResponse = self.call(api::METHOD_CONTRACT_INIT, &request)?;
-
-        Ok(response)
-    }
-
-    /// Restore enclave from previous initialization.
-    fn restore(&self, sealed_keys: Vec<u8>) -> Result<api::ContractRestoreResponse> {
-        let mut request = api::ContractRestoreRequest::new();
-        request.set_sealed_keys(sealed_keys);
-
-        let response: api::ContractRestoreResponse =
-            self.call(api::METHOD_CONTRACT_RESTORE, &request)?;
 
         Ok(response)
     }

@@ -1,14 +1,18 @@
+use sgx_types;
+
 use std::collections::HashMap;
 use std::fs::File;
-use std::io;
-use std::io::{Error, ErrorKind, Read};
+use std::io::Read;
+use std::ops::Deref;
 use std::str::FromStr;
 
 use base64;
 use reqwest;
 
-use ekiden_core::enclave::quote::AttestationReport;
+use ekiden_core::enclave::api as identity_api;
+use ekiden_core::error::{Error, Result};
 use ekiden_core::hex_encoded_struct;
+use ekiden_untrusted::enclave;
 
 /// Intel IAS API URL.
 const IAS_API_URL: &'static str = "https://test-as.sgx.trustedservices.intel.com";
@@ -36,47 +40,39 @@ pub struct IASConfiguration {
 #[derive(Clone)]
 pub struct IAS {
     /// SPID assigned by Intel.
-    spid: SPID,
+    spid: sgx_types::sgx_spid_t,
     /// Client used for IAS requests.
     client: Option<reqwest::Client>,
 }
 
 impl IAS {
     /// Construct new IAS interface.
-    pub fn new(config: Option<IASConfiguration>) -> io::Result<IAS> {
+    pub fn new(config: Option<IASConfiguration>) -> Result<IAS> {
         match config {
             Some(config) => {
                 Ok(IAS {
-                    spid: config.spid.clone(),
+                    spid: sgx_types::sgx_spid_t {
+                        id: config.spid.clone().0,
+                    },
                     client: {
                         // Read and parse PKCS#12 archive.
                         let mut buffer = Vec::new();
                         File::open(&config.pkcs12_archive)?.read_to_end(&mut buffer)?;
                         let identity = match reqwest::Identity::from_pkcs12_der(&buffer, "") {
                             Ok(identity) => identity,
-                            _ => {
-                                return Err(Error::new(
-                                    ErrorKind::Other,
-                                    "Failed to load IAS credentials",
-                                ))
-                            }
+                            _ => return Err(Error::new("Failed to load IAS credentials")),
                         };
 
                         // Create client with the identity.
                         match reqwest::ClientBuilder::new().identity(identity).build() {
                             Ok(client) => Some(client),
-                            _ => {
-                                return Err(Error::new(
-                                    ErrorKind::Other,
-                                    "Failed to create IAS client",
-                                ))
-                            }
+                            _ => return Err(Error::new("Failed to create IAS client")),
                         }
                     },
                 })
             }
             None => Ok(IAS {
-                spid: SPID([0; SPID_LEN]),
+                spid: sgx_types::sgx_spid_t { id: [0; SPID_LEN] },
                 client: None,
             }),
         }
@@ -87,35 +83,34 @@ impl IAS {
         &self,
         endpoint: &str,
         data: &HashMap<&str, String>,
-    ) -> io::Result<reqwest::Response> {
+    ) -> Result<reqwest::Response> {
         let endpoint = format!("{}{}", IAS_API_URL, endpoint);
 
         let client = match self.client {
             Some(ref client) => client,
-            None => return Err(Error::new(ErrorKind::Other, "IAS is not configured")),
+            None => return Err(Error::new("IAS is not configured")),
         };
 
         match client.post(&endpoint).json(&data).send() {
             Ok(response) => Ok(response),
-            _ => return Err(Error::new(ErrorKind::Other, "Request to IAS failed")),
+            _ => return Err(Error::new("Request to IAS failed")),
         }
     }
 
     /// Make authenticated web request to IAS report endpoint.
-    pub fn verify_quote(&self, nonce: &[u8], quote: &[u8]) -> io::Result<AttestationReport> {
+    pub fn verify_quote(&self, nonce: &[u8], quote: &[u8]) -> Result<identity_api::AvReport> {
         // Generate mock report when client is not configured.
         if self.client.is_none() {
-            let report = AttestationReport::new(
+            let mut av_report = identity_api::AvReport::new();
+            av_report.set_body(
                 // TODO: Generate other mock fields.
                 format!(
-                    "{{\"isvEnclaveQuoteBody\": \"{}\"}}",
+                    "{{\"isvEnclaveQuoteStatus\": \"OK\", \"isvEnclaveQuoteBody\": \"{}\"}}",
                     base64::encode(&quote)
                 ).into_bytes(),
-                vec![],
-                vec![],
             );
 
-            return Ok(report);
+            return Ok(av_report);
         }
 
         let mut request = HashMap::new();
@@ -124,12 +119,12 @@ impl IAS {
 
         let mut response = self.make_request(IAS_ENDPOINT_REPORT, &request)?;
         if !response.status().is_success() {
-            return Err(Error::new(ErrorKind::Other, "Request to IAS failed"));
+            return Err(Error::new("Request to IAS failed"));
         }
 
-        Ok(AttestationReport::new(
-            // TODO: Handle errors.
-            response.text().unwrap().into_bytes(),
+        let mut av_report = identity_api::AvReport::new();
+        av_report.set_body(response.text()?.into_bytes());
+        av_report.set_signature(
             response
                 .headers()
                 .get_raw("X-IASReport-Signature")
@@ -137,6 +132,8 @@ impl IAS {
                 .one()
                 .unwrap()
                 .to_vec(),
+        );
+        av_report.set_certificates(
             response
                 .headers()
                 .get_raw("X-IASReport-Signing-Certificate")
@@ -144,11 +141,26 @@ impl IAS {
                 .one()
                 .unwrap()
                 .to_vec(),
-        ))
+        );
+
+        Ok(av_report)
+    }
+}
+
+impl enclave::identity::IAS for IAS {
+    fn get_spid(&self) -> &sgx_types::sgx_spid_t {
+        &self.spid
     }
 
-    /// Get configured SPID.
-    pub fn get_spid(&self) -> &[u8; SPID_LEN] {
-        &self.spid.0
+    fn get_quote_type(&self) -> sgx_types::sgx_quote_sign_type_t {
+        sgx_types::sgx_quote_sign_type_t::SGX_UNLINKABLE_SIGNATURE
+    }
+
+    fn sigrl(&self, _gid: &sgx_types::sgx_epid_group_id_t) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn report(&self, quote: &[u8]) -> identity_api::AvReport {
+        self.verify_quote(&[], quote).expect("IAS::verify_quote")
     }
 }

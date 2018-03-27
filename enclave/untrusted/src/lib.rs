@@ -1,9 +1,14 @@
 extern crate sgx_types;
 extern crate sgx_urts;
 
-extern crate ekiden_common;
+extern crate protobuf;
 
+extern crate ekiden_common;
+extern crate ekiden_enclave_common;
+
+pub mod ecall_proxy;
 pub mod enclave;
+pub mod identity;
 
 // Exports.
 pub use enclave::Enclave;

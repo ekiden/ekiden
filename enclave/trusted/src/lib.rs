@@ -1,8 +1,21 @@
 #[cfg(target_env = "sgx")]
 extern crate sgx_trts;
+#[cfg(target_env = "sgx")]
+extern crate sgx_tse;
+#[cfg(target_env = "sgx")]
+extern crate sgx_tseal;
+extern crate sgx_types;
+
+#[macro_use]
+extern crate lazy_static;
+extern crate protobuf;
+extern crate sodalite;
 
 extern crate ekiden_common;
+extern crate ekiden_enclave_common;
 
+pub mod crypto;
+pub mod identity;
 pub mod utils;
 
 /// Declare enclave initialization structures.

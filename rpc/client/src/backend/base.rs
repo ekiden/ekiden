@@ -1,8 +1,5 @@
 use futures::Future;
-use sodalite;
 
-use ekiden_common::error::Result;
-use ekiden_enclave_common::quote::AttestationReport;
 use ekiden_rpc_common::api;
 
 use super::super::future::ClientFuture;
@@ -18,12 +15,8 @@ pub trait ContractClientBackend: Send {
     /// Call contract with raw data.
     fn call_raw(&self, request: Vec<u8>) -> ClientFuture<Vec<u8>>;
 
-    /// Get attestation report of the local enclave for mutual attestation.
+    /// Get credentials.
     ///
-    /// This method can only be implemented by clients which are running in enclaves
-    /// and should return an error otherwise.
-    fn get_attestation_report(
-        &self,
-        public_key: &sodalite::BoxPublicKey,
-    ) -> Result<AttestationReport>;
+    /// This method should return `None` to connect anonymously.
+    fn get_credentials(&self) -> Option<super::ContractClientCredentials>;
 }

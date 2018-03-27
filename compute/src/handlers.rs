@@ -1,88 +1,14 @@
-/// Handlers for the endpoints available to be called from inside the enclave,
-/// which are registered using RpcRouter.
-use std::sync::Arc;
+//! Handlers for the endpoints available to be called from inside the enclave,
+//! which are registered using RpcRouter.
 
 use futures::Future;
 use tokio_core;
 
-use protobuf::{self, Message};
-
 use ekiden_core::error::{Error, Result};
-use ekiden_core::rpc::api;
-use ekiden_core::rpc::api::services::*;
 use ekiden_core::rpc::client::ClientEndpoint;
 use ekiden_untrusted::rpc::router::Handler;
 
 use ekiden_rpc_client::backend::{ContractClientBackend, Web3ContractClientBackend};
-
-use super::ias::IAS;
-
-/// IAS proxy endpoints.
-pub struct IASProxy {
-    /// Shared IAS interface.
-    ias: Arc<IAS>,
-}
-
-impl IASProxy {
-    pub fn new(ias: Arc<IAS>) -> Self {
-        IASProxy { ias: ias }
-    }
-
-    /// Handle get SPID request.
-    fn get_spid(&self, _request: IasGetSpidRequest) -> Result<IasGetSpidResponse> {
-        let mut response = IasGetSpidResponse::new();
-        response.set_spid(self.ias.get_spid().to_vec());
-
-        Ok(response)
-    }
-
-    /// Handle verify quote request.
-    fn verify_quote(&self, request: IasVerifyQuoteRequest) -> Result<IasVerifyQuoteResponse> {
-        match self.ias
-            .verify_quote(request.get_nonce(), request.get_quote())
-        {
-            Ok(report) => {
-                let mut response = IasVerifyQuoteResponse::new();
-                let mut serialized_report = api::AttestationReport::new();
-                serialized_report.set_body(report.body.clone());
-                serialized_report.set_signature(report.signature.clone());
-                serialized_report.set_certificates(report.certificates.clone());
-                response.set_report(serialized_report);
-
-                Ok(response)
-            }
-            _ => {
-                // Verification failed due to IAS communication error.
-                Err(Error::new("IAS communication error"))
-            }
-        }
-    }
-}
-
-impl Handler for IASProxy {
-    /// Return a list of endpoints that the handler can handle.
-    fn get_endpoints(&self) -> Vec<ClientEndpoint> {
-        return vec![
-            ClientEndpoint::IASProxyGetSpid,
-            ClientEndpoint::IASProxyVerifyQuote,
-        ];
-    }
-
-    /// Handle a request and return a response.
-    fn handle(&self, endpoint: &ClientEndpoint, request: Vec<u8>) -> Result<Vec<u8>> {
-        match *endpoint {
-            ClientEndpoint::IASProxyGetSpid => {
-                Ok(self.get_spid(protobuf::parse_from_bytes(&request)?)?
-                    .write_to_bytes()?)
-            }
-            ClientEndpoint::IASProxyVerifyQuote => {
-                Ok(self.verify_quote(protobuf::parse_from_bytes(&request)?)?
-                    .write_to_bytes()?)
-            }
-            _ => Err(Error::new("Invalid RPC router endpoint")),
-        }
-    }
-}
 
 /// Generic contract endpoint.
 ///

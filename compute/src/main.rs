@@ -1,5 +1,7 @@
 #![feature(use_extern_macros)]
 
+extern crate sgx_types;
+
 extern crate base64;
 extern crate futures;
 extern crate futures_cpupool;
@@ -29,7 +31,6 @@ mod handlers;
 mod server;
 
 use std::path::Path;
-use std::sync::Arc;
 use std::thread;
 
 use ekiden_compute_api::ComputeServer;
@@ -129,6 +130,13 @@ fn main() {
                 .default_value("1000")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("identity-file")
+                .long("identity-file")
+                .help("Path for saving persistent enclave identity")
+                .default_value("identity.pb")
+                .takes_value(true),
+        )
         .get_matches();
 
     let port = value_t!(matches, "port", u16).unwrap_or(9001);
@@ -137,25 +145,20 @@ fn main() {
     let reactor = tokio_core::reactor::Core::new().unwrap();
 
     // Setup IAS.
-    let ias = Arc::new(
-        ias::IAS::new(if matches.is_present("ias-spid") {
-            Some(ias::IASConfiguration {
-                spid: value_t!(matches, "ias-spid", ias::SPID).unwrap_or_else(|e| e.exit()),
-                pkcs12_archive: matches.value_of("ias-pkcs12").unwrap().to_string(),
-            })
-        } else {
-            eprintln!("WARNING: IAS is not configured, validation will always return an error.");
+    let ias = ias::IAS::new(if matches.is_present("ias-spid") {
+        Some(ias::IASConfiguration {
+            spid: value_t!(matches, "ias-spid", ias::SPID).unwrap_or_else(|e| e.exit()),
+            pkcs12_archive: matches.value_of("ias-pkcs12").unwrap().to_string(),
+        })
+    } else {
+        eprintln!("WARNING: IAS is not configured, validation will always return an error.");
 
-            None
-        }).unwrap(),
-    );
+        None
+    }).unwrap();
 
     // Setup enclave RPC routing.
     {
         let mut router = RpcRouter::get_mut();
-
-        // IAS proxy endpoints.
-        router.add_handler(handlers::IASProxy::new(ias.clone()));
 
         // Key manager endpoint.
         if !matches.is_present("disable-key-manager") {
@@ -181,6 +184,8 @@ fn main() {
         value_t!(matches, "consensus-port", u16).unwrap_or(9002),
         value_t!(matches, "max-batch-size", usize).unwrap_or(1000),
         value_t!(matches, "max-batch-timeout", u64).unwrap_or(1000) * 1_000_000,
+        ias,
+        matches.value_of("identity-file").unwrap_or("identity.pb"),
     )));
     let num_threads = value_t!(matches, "grpc-threads", usize).unwrap();
     server.http.set_cpu_pool_threads(num_threads);

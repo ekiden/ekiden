@@ -25,7 +25,6 @@ pub mod error;
 pub mod request;
 pub mod response;
 
-pub mod quote;
 pub mod secure_channel;
 
 #[macro_use]

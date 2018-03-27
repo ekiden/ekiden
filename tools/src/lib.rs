@@ -83,24 +83,26 @@ fn edger8r(
 
     // Create temporary files with all EDLs and import all of them in the core EDL.
     let edl_filename = Path::new(&output).join("enclave.edl");
-    let mut enclave_edl_file = fs::File::create(&edl_filename)?;
-    writeln!(&mut enclave_edl_file, "enclave {{").unwrap();
+    {
+        let mut enclave_edl_file = fs::File::create(&edl_filename)?;
+        writeln!(&mut enclave_edl_file, "enclave {{").unwrap();
 
-    for ref edl_item in edl {
-        let edl_item_filename =
-            Path::new(&output).join(format!("{}_{}", edl_item.namespace, edl_item.name));
-        let mut edl_file = fs::File::create(&edl_item_filename)?;
-        edl_file.write_all(edl_item.data.as_bytes())?;
-        writeln!(
-            &mut enclave_edl_file,
-            "from \"{}_{}\" import *;",
-            edl_item.namespace, edl_item.name
-        ).unwrap();
+        for ref edl_item in edl {
+            let edl_item_filename =
+                Path::new(&output).join(format!("{}_{}", edl_item.namespace, edl_item.name));
+            let mut edl_file = fs::File::create(&edl_item_filename)?;
+            edl_file.write_all(edl_item.data.as_bytes())?;
+            writeln!(
+                &mut enclave_edl_file,
+                "from \"{}_{}\" import *;",
+                edl_item.namespace, edl_item.name
+            ).unwrap();
+        }
+
+        writeln!(&mut enclave_edl_file, "}};").unwrap();
     }
 
-    writeln!(&mut enclave_edl_file, "}};").unwrap();
-
-    Command::new(edger8r_bin.to_str().unwrap())
+    let status = Command::new(edger8r_bin.to_str().unwrap())
         .args(&["--search-path", output])
         .args(&[
             "--search-path",
@@ -115,6 +117,9 @@ fn edger8r(
         })
         .arg(edl_filename.to_str().unwrap())
         .status()?;
+    if !status.success() {
+        panic!("edger8r did not execute successfully.");
+    }
 
     Ok(())
 }
@@ -235,20 +240,18 @@ pub fn protoc(args: ProtocArgs) {
         let out_filename = Path::new(&args.out_dir)
             .join(file.get_name())
             .with_extension("rs");
-        let mut out_file = fs::OpenOptions::new()
-            .append(true)
-            .open(out_filename)
-            .unwrap();
+        // Skip protos that we didn't generate, such as those imported from other packages.
+        if let Ok(mut out_file) = fs::OpenOptions::new().append(true).open(out_filename) {
+            writeln!(&mut out_file, "").unwrap();
+            writeln!(&mut out_file, "// Ekiden-specific implementations.").unwrap();
 
-        writeln!(&mut out_file, "").unwrap();
-        writeln!(&mut out_file, "// Ekiden-specific implementations.").unwrap();
-
-        for message_type in file.get_message_type() {
-            writeln!(
-                &mut out_file,
-                "impl_serializable_protobuf!({});",
-                message_type.get_name()
-            ).unwrap();
+            for message_type in file.get_message_type() {
+                writeln!(
+                    &mut out_file,
+                    "impl_serializable_protobuf!({});",
+                    message_type.get_name()
+                ).unwrap();
+            }
         }
     }
 }
@@ -270,6 +273,30 @@ pub fn generate_mod(output_dir: &str, modules: &[&str]) {
     // Create mod.rs
     let output_mod_file = Path::new(&output_dir).join("mod.rs");
     let mut file = fs::File::create(output_mod_file).expect("Failed to create module file");
+
+    for module in modules {
+        writeln!(&mut file, "pub mod {};", module).unwrap();
+    }
+
+    // Create .gitignore
+    let output_gitignore_file = Path::new(&output_dir).join(".gitignore");
+    let mut file =
+        fs::File::create(output_gitignore_file).expect("Failed to create .gitignore file");
+    writeln!(&mut file, "*").unwrap();
+}
+
+/// Generates a module file with specified imported modules and exported submodules.
+pub fn generate_mod_with_imports(output_dir: &str, imports: &[&str], modules: &[&str]) {
+    // Create directory if not exist
+    fs::create_dir_all(output_dir).unwrap();
+
+    // Create mod.rs
+    let output_mod_file = Path::new(&output_dir).join("mod.rs");
+    let mut file = fs::File::create(output_mod_file).expect("Failed to create module file");
+
+    for import in imports {
+        writeln!(&mut file, "use {};", import).unwrap();
+    }
 
     for module in modules {
         writeln!(&mut file, "pub mod {};", module).unwrap();
