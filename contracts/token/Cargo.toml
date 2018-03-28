@@ -4,10 +4,6 @@ version = "0.1.0-alpha.1"
 authors = ["Raymond Cheng <me@raymondcheng.net>"]
 build = "build.rs"
 
-[lib]
-name = "token"
-crate-type = ["staticlib"]
-
 [features]
 default = []
 

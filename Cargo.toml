@@ -36,12 +36,6 @@ members = [
     "consensus/api",
     "consensus",
 
-    # Contracts.
-    # Key manager is special and must be built before any other contracts so that
-    # the other contracts can include its MRENCLAVE.
-    "contracts/key-manager",
-    "contracts/token",
-
     # Clients.
     "clients/token",
 ]
