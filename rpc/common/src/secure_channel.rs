@@ -11,18 +11,16 @@ use super::api;
 // Nonce context is used to prevent message reuse in a different context.
 pub const NONCE_CONTEXT_LEN: usize = 16;
 type NonceContext = [u8; NONCE_CONTEXT_LEN];
-/// Nonce for use in channel initialization context (EkidenS-----Init).
-pub const NONCE_CONTEXT_INIT: NonceContext = [
-    69, 107, 105, 100, 101, 110, 83, 45, 45, 45, 45, 45, 73, 110, 105, 116
-];
-/// Nonce for use in request context (EkidenS--Request).
-pub const NONCE_CONTEXT_REQUEST: NonceContext = [
-    69, 107, 105, 100, 101, 110, 83, 45, 45, 82, 101, 113, 117, 101, 115, 116
-];
-/// Nonce for use in response context (EkidenS-Response).
-pub const NONCE_CONTEXT_RESPONSE: NonceContext = [
-    69, 107, 105, 100, 101, 110, 83, 45, 82, 101, 115, 112, 111, 110, 115, 101
-];
+/// Nonce for use in channel initialization context, contract -> client.
+pub const NONCE_CONTEXT_INIT: NonceContext = *b"EkidenS-----Init";
+/// Nonce for use in channel authentication context, client -> contract.
+pub const NONCE_CONTEXT_AUTHIN: NonceContext = *b"EkidenS---AuthIn";
+/// Nonce for use in channel authentication context, client -> contract.
+pub const NONCE_CONTEXT_AUTHOUT: NonceContext = *b"EkidenS--AuthOut";
+/// Nonce for use in request context.
+pub const NONCE_CONTEXT_REQUEST: NonceContext = *b"EkidenS--Request";
+/// Nonce for use in response context.
+pub const NONCE_CONTEXT_RESPONSE: NonceContext = *b"EkidenS-Response";
 
 /// Nonce generator.
 pub trait NonceGenerator {
@@ -168,8 +166,15 @@ pub enum SessionState {
     Closed,
     /// Session is being initialized.
     ///
-    /// From this state, the session will transition into `Established`.
+    /// From this state, the session will transition into `ClientAuthenticating` or `Established`.
     Init,
+    /// Client is authenticating (client only).
+    ///
+    /// From this state, the session will transition into `Established`.
+    /// The contract does not use this state. The contract is in the `Established` state while the
+    /// client is in this state. The contract tracks client authentication status in
+    /// `ekiden_rpc_trusted::secure_channel::ClientSession::client_mr_enclave`.
+    ClientAuthenticating,
     /// Secure channel is established.
     Established,
 }
@@ -180,6 +185,8 @@ impl SessionState {
         match (*self, new_state) {
             (SessionState::Closed, SessionState::Init) => {}
             (SessionState::Init, SessionState::Established) => {}
+            (SessionState::Init, SessionState::ClientAuthenticating) => {}
+            (SessionState::ClientAuthenticating, SessionState::Established) => {}
             (_, SessionState::Closed) => {}
             transition => {
                 return Err(Error::new(format!(

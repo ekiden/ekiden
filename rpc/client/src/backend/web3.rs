@@ -2,7 +2,6 @@
 use std::sync::{Arc, Mutex};
 
 use grpc;
-use sodalite;
 use tokio_core;
 
 use futures::future::{self, Future};
@@ -11,12 +10,11 @@ use protobuf;
 use protobuf::Message;
 
 use ekiden_common::error::{Error, Result};
-use ekiden_enclave_common::quote::AttestationReport;
 use ekiden_rpc_common::api;
 
 use ekiden_compute_api::{CallContractRequest, Compute, ComputeClient};
 
-use super::ContractClientBackend;
+use super::{ContractClientBackend, ContractClientCredentials};
 use super::super::future::ClientFuture;
 
 /// Address of a compute node.
@@ -231,13 +229,8 @@ impl ContractClientBackend for Web3ContractClientBackend {
         self.call_available_node(client_request)
     }
 
-    /// Get attestation report of the local enclave for mutual attestation.
-    fn get_attestation_report(
-        &self,
-        _public_key: &sodalite::BoxPublicKey,
-    ) -> Result<AttestationReport> {
-        Err(Error::new(
-            "This backend does not support mutual attestation",
-        ))
+    /// Get credentials.
+    fn get_credentials(&self) -> Option<ContractClientCredentials> {
+        None
     }
 }

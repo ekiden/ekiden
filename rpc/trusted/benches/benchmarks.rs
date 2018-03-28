@@ -5,6 +5,7 @@ extern crate sodalite;
 extern crate test;
 
 extern crate ekiden_common;
+extern crate ekiden_enclave_trusted;
 extern crate ekiden_rpc_common;
 extern crate ekiden_rpc_trusted;
 
@@ -22,7 +23,6 @@ use ekiden_rpc_common::secure_channel::{create_box, open_box, MonotonicNonceGene
                                         NONCE_CONTEXT_REQUEST, NONCE_CONTEXT_RESPONSE};
 use ekiden_rpc_trusted::dispatcher::{rpc_call, Dispatcher, EnclaveMethod};
 use ekiden_rpc_trusted::request::Request;
-use ekiden_rpc_trusted::secure_channel::SecureChannelContext;
 
 /// Register an empty method.
 fn register_empty_method() {
@@ -40,11 +40,7 @@ fn register_empty_method() {
 
 /// Prepare secure channel enclave parameters.
 fn prepare_secure_channel_enclave() {
-    let mut ctx = SecureChannelContext::get();
-
-    if !ctx.is_ready() {
-        ctx.generate_keypair().unwrap();
-    }
+    ekiden_enclave_trusted::identity::nosgx_init_dummy();
 }
 
 /// Prepare secure channel client parameters.
@@ -85,24 +81,22 @@ fn init_secure_channel(
     let response: api::ChannelInitResponse =
         protobuf::parse_from_bytes(response.get_payload()).unwrap();
 
-    let ctx = SecureChannelContext::get();
-    let contract_long_term_public_key = ctx.get_public_key();
     let mut nonce_generator = RandomNonceGenerator::new();
-    let mut shared_key: Option<sodalite::SecretboxKey> = None;
-    let response_box = open_box(
-        &response.get_response_box(),
+    let stpk_vec = open_box(
+        response
+            .get_authenticated_short_term_public_key()
+            .get_boxed_short_term_public_key(),
         &NONCE_CONTEXT_INIT,
         &mut nonce_generator,
-        &contract_long_term_public_key,
-        &private_key,
-        &mut shared_key,
+        &ekiden_enclave_trusted::identity::get_identity()
+            .public
+            .rpc_key_e_pub,
+        private_key,
+        &mut None,
     ).unwrap();
 
-    let response_box: api::ChannelInitResponseBox =
-        protobuf::parse_from_bytes(&response_box).unwrap();
-
     let mut short_term_public_key = [0u8; 32];
-    short_term_public_key.copy_from_slice(&response_box.get_short_term_public_key());
+    short_term_public_key.copy_from_slice(&stpk_vec);
 
     short_term_public_key
 }

@@ -53,10 +53,10 @@ jobs:
           background: true
       - run: echo "$IAS_PKCS12" | base64 --decode --ignore-garbage > client.pfx
       - run:
-          command: ./target/debug/ekiden-compute target/enclave/token.signed.so
+          command: ./target/debug/ekiden-compute target/enclave/token.signed.so --identity-file identity-token.pb
           background: true
       - run:
-          command: ./target/debug/ekiden-compute target/enclave/ekiden-key-manager.signed.so -p 9003 --disable-key-manager
+          command: ./target/debug/ekiden-compute target/enclave/ekiden-key-manager.signed.so -p 9003 --disable-key-manager --identity-file identity-km.pb
           background: true
       - run: ./target/debug/token-client --mr-enclave $(cat target/enclave/token.mrenclave)
 

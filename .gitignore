@@ -17,3 +17,6 @@ Enclave_t.h
 
 # Temporary files.
 *.swp
+
+# Saved enclave identity.
+/identity*.pb

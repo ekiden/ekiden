@@ -1,16 +1,14 @@
 //! OCALL-based RPC client backend used inside enclaves.
-use sodalite;
 
 use futures::future::{self, Future};
 
 use ekiden_common::error::Result;
-use ekiden_enclave_common::quote::{AttestationReport, QUOTE_CONTEXT_SC};
+use ekiden_enclave_trusted::identity;
 use ekiden_rpc_client::ClientFuture;
-use ekiden_rpc_client::backend::ContractClientBackend;
+use ekiden_rpc_client::backend::{ContractClientBackend, ContractClientCredentials};
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::client::ClientEndpoint;
 
-use super::quote::create_attestation_report_for_public_key;
 use super::untrusted;
 
 /// Contract client that can be used inside enclaves.
@@ -59,15 +57,11 @@ impl ContractClientBackend for OcallContractClientBackend {
         }))
     }
 
-    /// Get attestation report of the local enclave for mutual attestation.
-    fn get_attestation_report(
-        &self,
-        public_key: &sodalite::BoxPublicKey,
-    ) -> Result<AttestationReport> {
-        Ok(create_attestation_report_for_public_key(
-            &QUOTE_CONTEXT_SC,
-            &[0; 16],
-            &public_key,
-        )?)
+    /// Get credentials.
+    fn get_credentials(&self) -> Option<ContractClientCredentials> {
+        Some(ContractClientCredentials {
+            long_term_private_key: identity::get_identity().rpc_key_e_priv,
+            identity_proof: identity::get_proof(),
+        })
     }
 }

@@ -3,11 +3,13 @@ use sodalite;
 use protobuf;
 use protobuf::Message;
 
-use ekiden_common::error::Result;
+use ekiden_common::error::{Error, Result};
 use ekiden_common::random;
+use ekiden_enclave_common;
 use ekiden_rpc_common::api;
 use ekiden_rpc_common::secure_channel::{create_box, open_box, MonotonicNonceGenerator,
                                         NonceGenerator, RandomNonceGenerator, SessionState,
+                                        NONCE_CONTEXT_AUTHIN, NONCE_CONTEXT_AUTHOUT,
                                         NONCE_CONTEXT_INIT, NONCE_CONTEXT_REQUEST,
                                         NONCE_CONTEXT_RESPONSE};
 
@@ -73,16 +75,17 @@ impl SecureChannelContext {
     /// Setup secure channel.
     pub fn setup(
         &mut self,
-        contract_long_term_public_key: &[u8],
-        contract_response_box: &api::CryptoBox,
-    ) -> Result<()> {
-        self.contract_long_term_public_key
-            .copy_from_slice(&contract_long_term_public_key);
+        contract_astpk: &api::AuthenticatedShortTermPublicKey,
+        client_authentication_required: bool,
+    ) -> Result<ekiden_enclave_common::quote::IdentityAuthenticatedInfo> {
+        let iai = ekiden_enclave_common::quote::verify(contract_astpk.get_identity_proof())?;
 
-        // Open boxed short term server public key.
+        self.contract_long_term_public_key = iai.identity.rpc_key_e_pub.clone();
+
+        // Open boxed short term contract public key.
         let mut shared_key: Option<sodalite::SecretboxKey> = None;
-        let response_box = open_box(
-            &contract_response_box,
+        let contract_short_term_public_key = open_box(
+            contract_astpk.get_boxed_short_term_public_key(),
             &NONCE_CONTEXT_INIT,
             &mut self.long_term_nonce_generator,
             &self.contract_long_term_public_key,
@@ -90,12 +93,15 @@ impl SecureChannelContext {
             &mut shared_key,
         )?;
 
-        let response_box: api::ChannelInitResponseBox = protobuf::parse_from_bytes(&response_box)?;
-
         self.contract_short_term_public_key
-            .copy_from_slice(&response_box.get_short_term_public_key());
+            .copy_from_slice(&contract_short_term_public_key);
 
-        self.state.transition_to(SessionState::Established)?;
+        if client_authentication_required {
+            self.state
+                .transition_to(SessionState::ClientAuthenticating)?;
+        } else {
+            self.state.transition_to(SessionState::Established)?;
+        }
 
         // Cache shared channel key.
         let mut key = self.shared_key
@@ -105,6 +111,48 @@ impl SecureChannelContext {
             &self.contract_short_term_public_key,
             &self.client_private_key,
         );
+
+        Ok(iai)
+    }
+
+    /// Generate a client authentication box.
+    pub fn get_authentication(
+        &mut self,
+        client_ltsk: &sodalite::BoxSecretKey,
+        identity_proof: ekiden_enclave_common::api::IdentityProof,
+    ) -> Result<api::CryptoBox> {
+        if self.state != SessionState::ClientAuthenticating {
+            return Err(Error::new("Invalid secure channel access"));
+        }
+        let box_inner = create_box(
+            &self.client_public_key,
+            &NONCE_CONTEXT_AUTHIN,
+            &mut self.long_term_nonce_generator,
+            &self.contract_long_term_public_key,
+            client_ltsk,
+            &mut None,
+        )?;
+        let mut astpk = api::AuthenticatedShortTermPublicKey::new();
+        astpk.set_identity_proof(identity_proof);
+        astpk.set_boxed_short_term_public_key(box_inner);
+        let astpk_bytes = astpk.write_to_bytes()?;
+        let mut box_outer = create_box(
+            &astpk_bytes,
+            &NONCE_CONTEXT_AUTHOUT,
+            &mut self.short_term_nonce_generator,
+            &self.contract_short_term_public_key,
+            &self.client_private_key,
+            &mut self.shared_key,
+        )?;
+        box_outer.set_public_key(self.client_public_key.to_vec());
+        Ok(box_outer)
+    }
+
+    /// Call this after sending the client authentication box.
+    /// There's no response message to pass to this method.
+    /// It transitions the channel to Established state.
+    pub fn authentication_sent(&mut self) -> Result<()> {
+        self.state.transition_to(SessionState::Established)?;
 
         Ok(())
     }

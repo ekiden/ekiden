@@ -18,10 +18,13 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 
 use ekiden_compute_api::{CallContractRequest, CallContractResponse, Compute};
 use ekiden_consensus_api::{self, Consensus, ConsensusClient};
+use ekiden_core::enclave::api::IdentityProof;
+use ekiden_core::enclave::quote;
 use ekiden_core::error::{Error, Result};
 use ekiden_core::rpc::api;
-use ekiden_untrusted::{Enclave, EnclaveDb, EnclaveRpc};
+use ekiden_untrusted::{Enclave, EnclaveDb, EnclaveIdentity, EnclaveRpc};
 
+use super::ias::IAS;
 use super::instrumentation;
 
 /// This struct describes a call sent to the worker thread.
@@ -52,6 +55,9 @@ struct ComputeServerWorker {
     consensus: Option<ConsensusClient>,
     /// Contract running in an enclave.
     contract: Enclave,
+    /// Enclave identity proof.
+    #[allow(dead_code)]
+    identity_proof: IdentityProof,
     /// Cached state reconstituted from checkpoint and diffs. None if
     /// cache or state is uninitialized.
     cached_state: Option<CachedStateInitialized>,
@@ -65,19 +71,24 @@ struct ComputeServerWorker {
 
 impl ComputeServerWorker {
     fn new(
-        contract_filename: String,
-        consensus_host: String,
+        contract_filename: &str,
+        consensus_host: &str,
         consensus_port: u16,
         max_batch_size: usize,
         max_batch_timeout: u64,
+        ias: &IAS,
+        saved_identity_path: &str,
     ) -> Self {
-        // Connect to consensus node
+        let (contract, identity_proof) =
+            Self::create_contract(contract_filename, ias, saved_identity_path);
         ComputeServerWorker {
-            contract: Self::create_contract(&contract_filename),
+            contract,
+            identity_proof,
             cached_state: None,
             ins: instrumentation::WorkerMetrics::new(),
             max_batch_size: max_batch_size,
             max_batch_timeout: max_batch_timeout,
+            // Connect to consensus node
             // TODO: Use TLS client.
             consensus: match ConsensusClient::new_plain(
                 &consensus_host,
@@ -97,25 +108,29 @@ impl ComputeServerWorker {
     }
 
     /// Create an instance of the contract.
-    fn create_contract(contract_filename: &str) -> Enclave {
+    fn create_contract(
+        contract_filename: &str,
+        ias: &IAS,
+        saved_identity_path: &str,
+    ) -> (Enclave, IdentityProof) {
         // TODO: Handle contract initialization errors.
         let contract = Enclave::new(contract_filename).unwrap();
 
         // Initialize contract.
-        // TODO: Support contract restore.
-        let response = contract
-            .initialize()
-            .expect("Failed to initialize contract");
+        let identity_proof = contract
+            .identity_init(ias, saved_identity_path.as_ref())
+            .expect("EnclaveIdentity::identity_init");
 
         // Show contract MRENCLAVE in hex format.
+        let iai = quote::verify(&identity_proof).expect("Enclave identity proof invalid");
         let mut mr_enclave = String::new();
-        for &byte in response.get_mr_enclave() {
+        for &byte in &iai.mr_enclave[..] {
             write!(&mut mr_enclave, "{:02x}", byte).unwrap();
         }
 
         println!("Loaded contract with MRENCLAVE: {}", mr_enclave);
 
-        contract
+        (contract, identity_proof)
     }
 
     #[cfg(not(feature = "no_cache"))]
@@ -386,19 +401,24 @@ impl ComputeServerImpl {
         consensus_port: u16,
         max_batch_size: usize,
         max_batch_timeout: u64,
+        ias: IAS,
+        saved_identity_path: &str,
     ) -> Self {
         let contract_filename_owned = String::from(contract_filename);
         let consensus_host_owned = String::from(consensus_host);
+        let saved_identity_path_owned = String::from(saved_identity_path);
 
         let (request_sender, request_receiver) = channel();
         // move request_receiver
         std::thread::spawn(move || {
             ComputeServerWorker::new(
-                contract_filename_owned,
-                consensus_host_owned,
+                &contract_filename_owned,
+                &consensus_host_owned,
                 consensus_port,
                 max_batch_size,
                 max_batch_timeout,
+                &ias,
+                &saved_identity_path_owned,
             ).work(request_receiver);
         });
 

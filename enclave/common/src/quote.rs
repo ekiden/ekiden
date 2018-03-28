@@ -1,4 +1,7 @@
+//! A portable system for parsing and verifying enclave identity proofs.
+
 use std::io::{Cursor, Read, Seek, SeekFrom};
+use std::ops::Deref;
 use std::str::FromStr;
 
 use base64;
@@ -8,28 +11,19 @@ use serde_json;
 use ekiden_common::error::{Error, Result};
 use ekiden_common::hex_encoded_struct;
 
+use super::api::IdentityProof;
+
 pub const QUOTE_CONTEXT_LEN: usize = 8;
+/// The purpose of `QuoteContext` is to prevent quotes from being used in
+/// different contexts. The value is included as a prefix in report data.
 pub type QuoteContext = [u8; QUOTE_CONTEXT_LEN];
-/// Secure channel binding (EkQ-CoCl).
-pub const QUOTE_CONTEXT_SC: QuoteContext = [69, 107, 81, 45, 67, 111, 67, 108];
 
 // MRENCLAVE.
 hex_encoded_struct!(MrEnclave, MRENCLAVE_LEN, 32);
 
-/// Decoded quote body.
+/// Decoded report body.
 #[derive(Default, Debug)]
-pub struct Body {
-    version: u16,
-    signature_type: u16,
-    gid: u32,
-    isv_svn_qe: u16,
-    isv_svn_pce: u16,
-    basename: [u8; 32],
-}
-
-/// Decoded quote report body.
-#[derive(Default, Debug)]
-pub struct ReportBody {
+struct ReportBody {
     cpu_svn: [u8; 16],
     misc_select: u32,
     attributes: [u8; 16],
@@ -40,159 +34,119 @@ pub struct ReportBody {
     report_data: Vec<u8>,
 }
 
-/// Decoded quote.
+/// Decoded quote body.
 #[derive(Default, Debug)]
-pub struct Quote {
-    body: Body,
+struct QuoteBody {
+    version: u16,
+    signature_type: u16,
+    gid: u32,
+    isv_svn_qe: u16,
+    isv_svn_pce: u16,
+    basename: [u8; 32],
     report_body: ReportBody,
-    signature: Vec<u8>,
 }
 
-impl Quote {
-    /// Quote context offset.
-    const CONTEXT_OFFSET: usize = 0;
-    /// Quote context length.
-    const CONTEXT_LENGTH: usize = 8;
-    /// Report data public key offset.
-    const PUBLIC_KEY_OFFSET: usize = 8;
-    /// Report data public key length.
-    const PUBLIC_KEY_LENGTH: usize = 32;
-    /// Report data nonce offset.
-    const NONCE_OFFSET: usize = 40;
-    /// Report data nonce length.
-    const NONCE_LENGTH: usize = 16;
-
-    /// Decode quote.
-    pub fn decode(quote: &Vec<u8>) -> Result<Quote> {
-        let mut reader = Cursor::new(quote);
-        let mut quote: Quote = Quote::default();
+impl QuoteBody {
+    /// Decode quote body.
+    fn decode(quote_body: &Vec<u8>) -> Result<QuoteBody> {
+        let mut reader = Cursor::new(quote_body);
+        let mut quote_body: QuoteBody = QuoteBody::default();
 
         // TODO: Should we ensure that reserved bytes are all zero?
 
         // Body.
-        quote.body.version = reader.read_u16::<LittleEndian>()?;
-        quote.body.signature_type = reader.read_u16::<LittleEndian>()?;
-        quote.body.gid = reader.read_u32::<LittleEndian>()?;
-        quote.body.isv_svn_qe = reader.read_u16::<LittleEndian>()?;
-        quote.body.isv_svn_pce = reader.read_u16::<LittleEndian>()?;
+        quote_body.version = reader.read_u16::<LittleEndian>()?;
+        quote_body.signature_type = reader.read_u16::<LittleEndian>()?;
+        quote_body.gid = reader.read_u32::<LittleEndian>()?;
+        quote_body.isv_svn_qe = reader.read_u16::<LittleEndian>()?;
+        quote_body.isv_svn_pce = reader.read_u16::<LittleEndian>()?;
         reader.seek(SeekFrom::Current(4))?; // 4 reserved bytes.
-        reader.read_exact(&mut quote.body.basename)?;
+        reader.read_exact(&mut quote_body.basename)?;
 
         // Report body.
-        reader.read_exact(&mut quote.report_body.cpu_svn)?;
-        quote.report_body.misc_select = reader.read_u32::<LittleEndian>()?;
+        reader.read_exact(&mut quote_body.report_body.cpu_svn)?;
+        quote_body.report_body.misc_select = reader.read_u32::<LittleEndian>()?;
         reader.seek(SeekFrom::Current(28))?; // 28 reserved bytes.
-        reader.read_exact(&mut quote.report_body.attributes)?;
-        reader.read_exact(&mut quote.report_body.mr_enclave.0)?;
+        reader.read_exact(&mut quote_body.report_body.attributes)?;
+        reader.read_exact(&mut quote_body.report_body.mr_enclave.0)?;
         reader.seek(SeekFrom::Current(32))?; // 32 reserved bytes.
-        reader.read_exact(&mut quote.report_body.mr_signer)?;
+        reader.read_exact(&mut quote_body.report_body.mr_signer)?;
         reader.seek(SeekFrom::Current(96))?; // 96 reserved bytes.
-        quote.report_body.isv_prod_id = reader.read_u16::<LittleEndian>()?;
-        quote.report_body.isv_svn = reader.read_u16::<LittleEndian>()?;
+        quote_body.report_body.isv_prod_id = reader.read_u16::<LittleEndian>()?;
+        quote_body.report_body.isv_svn = reader.read_u16::<LittleEndian>()?;
         reader.seek(SeekFrom::Current(60))?; // 60 reserved bytes.
-        quote.report_body.report_data = vec![0; 64];
-        reader.read_exact(&mut quote.report_body.report_data)?;
+        quote_body.report_body.report_data = vec![0; 64];
+        reader.read_exact(&mut quote_body.report_body.report_data)?;
 
-        // Signature.
-        let signature_len = reader.read_u32::<LittleEndian>()? as usize;
-        quote.signature = vec![0; signature_len];
-        reader.read_exact(&mut quote.signature)?;
-
-        Ok(quote)
-    }
-
-    /// Extract quote context from report data.
-    ///
-    /// This method assumes that the given report was generated by an Ekiden
-    /// contract enclave, which provides the quote context in a specific location.
-    pub fn get_quote_context(&self) -> &[u8] {
-        &self.report_body.report_data
-            [Quote::CONTEXT_OFFSET..Quote::CONTEXT_OFFSET + Quote::CONTEXT_LENGTH]
-    }
-
-    /// Extract public key from report data.
-    ///
-    /// This method assumes that the given report was generated by an Ekiden
-    /// contract enclave, which provides the public key in a specific location.
-    pub fn get_public_key(&self) -> &[u8] {
-        &self.report_body.report_data
-            [Quote::PUBLIC_KEY_OFFSET..Quote::PUBLIC_KEY_OFFSET + Quote::PUBLIC_KEY_LENGTH]
-    }
-
-    /// Extract nonce from report data.
-    ///
-    /// This method assumes that the given report was generated by an Ekiden
-    /// contract enclave, which provides the nonce in a specific location.
-    pub fn get_nonce(&self) -> &[u8] {
-        &self.report_body.report_data
-            [Quote::NONCE_OFFSET..Quote::NONCE_OFFSET + Quote::NONCE_LENGTH]
-    }
-
-    /// Extract MRENCLAVE from report body.
-    pub fn get_mr_enclave(&self) -> &MrEnclave {
-        &self.report_body.mr_enclave
+        Ok(quote_body)
     }
 }
 
-/// Attestation report.
-#[derive(Default, Debug)]
-pub struct AttestationReport {
-    /// Raw report body (must be raw as the signature is computed over it). The body
-    /// is JSON-encoded as per the IAS API specification.
-    pub body: Vec<u8>,
-    /// Report signature.
-    pub signature: Vec<u8>,
-    /// Report signing certificate chain in PEM format.
-    pub certificates: Vec<u8>,
+/// Authenticated information obtained from validating an enclave identity proof.
+pub struct IdentityAuthenticatedInfo {
+    pub identity: super::identity::PublicIdentityComponents,
+    // TODO: add other av report/quote body/report fields we want to give the consumer
+    pub mr_enclave: MrEnclave,
 }
 
-impl AttestationReport {
-    pub fn new(body: Vec<u8>, signature: Vec<u8>, certificates: Vec<u8>) -> Self {
-        AttestationReport {
-            body: body,
-            signature: signature,
-            certificates: certificates,
+/// Verify attestation report.
+pub fn verify(identity_proof: &IdentityProof) -> Result<IdentityAuthenticatedInfo> {
+    // TODO: Verify IAS signature.
+
+    // Parse AV report body.
+    let avr_body = identity_proof.get_av_report().get_body();
+    let avr_body: serde_json::Value = match serde_json::from_slice(avr_body) {
+        Ok(avr_body) => avr_body,
+        _ => return Err(Error::new("Failed to parse AV report body")),
+    };
+
+    // TODO: Check timestamp, reject if report is too old (e.g. 1 day).
+
+    match avr_body["isvEnclaveQuoteStatus"].as_str() {
+        Some(status) => match status {
+            "OK" => {}
+            _ => {
+                return Err(Error::new(format!("Quote status was {}", status)));
+            }
+        },
+        None => {
+            return Err(Error::new(
+                "AV report body did not contain isvEnclaveQuoteStatus",
+            ));
         }
+    };
+
+    let quote_body = match avr_body["isvEnclaveQuoteBody"].as_str() {
+        Some(quote_body) => quote_body,
+        None => {
+            return Err(Error::new(
+                "AV report body did not contain isvEnclaveQuoteBody",
+            ))
+        }
+    };
+
+    let quote_body = match base64::decode(&quote_body) {
+        Ok(quote_body) => quote_body,
+        _ => return Err(Error::new("Failed to parse quote")),
+    };
+
+    let quote_body = match QuoteBody::decode(&quote_body) {
+        Ok(quote_body) => quote_body,
+        _ => return Err(Error::new("Failed to parse quote")),
+    };
+
+    // TODO: Apply common policy to report body, e.g., check enclave
+    // attributes for debug mode.
+
+    // Check report data.
+    let public_identity = identity_proof.get_public_identity();
+    let report_data_expected = super::identity::pack_report_data(public_identity);
+    if &quote_body.report_body.report_data[..] != &report_data_expected.d[..] {
+        return Err(Error::new("Report data did not match expected"));
     }
 
-    /// Verify attestation report.
-    pub fn verify(&self) -> Result<()> {
-        // TODO: Verify IAS signature.
-
-        Ok(())
-    }
-
-    /// Decode quote from attestation report.
-    ///
-    /// If the quote cannot be verified, an error will be returned.
-    pub fn get_quote(&self) -> Result<Quote> {
-        self.verify()?;
-
-        // Parse quote from body.
-        let body: serde_json::Value = match serde_json::from_slice(self.body.as_slice()) {
-            Ok(body) => body,
-            _ => return Err(Error::new("Failed to parse report body")),
-        };
-
-        // TODO: Check timestamp, reject if report is too old (e.g. 1 day).
-
-        let quote = match body["isvEnclaveQuoteBody"].as_str() {
-            Some(quote) => quote,
-            None => return Err(Error::new("Failed to parse quote")),
-        };
-
-        let quote = match base64::decode(&quote) {
-            Ok(quote) => quote,
-            _ => return Err(Error::new("Failed to parse quote")),
-        };
-
-        let quote = match Quote::decode(&quote) {
-            Ok(quote) => quote,
-            _ => return Err(Error::new("Failed to parse quote")),
-        };
-
-        // TODO: Verify enclave attributes.
-
-        Ok(quote)
-    }
+    Ok(IdentityAuthenticatedInfo {
+        identity: super::identity::unpack_public_identity(public_identity),
+        mr_enclave: quote_body.report_body.mr_enclave,
+    })
 }

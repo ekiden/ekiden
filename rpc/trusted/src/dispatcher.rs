@@ -21,9 +21,10 @@ use super::secure_channel::open_request_box;
 /// List of methods that allow plain requests. All other requests must be done over
 /// a secure channel.
 const PLAIN_METHODS: &'static [&'static str] = &[
-    api::METHOD_CONTRACT_INIT,
-    api::METHOD_CONTRACT_RESTORE,
     api::METHOD_CHANNEL_INIT,
+    // Authentication uses its own boxes very similar to RPC encryption, but with its own nonce
+    // contexts.
+    api::METHOD_CHANNEL_AUTH,
 ];
 
 /// Handler for an API method.
@@ -178,21 +179,11 @@ impl Dispatcher {
 
         dispatcher.add_method(EnclaveMethod::new(
             ApiMethodDescriptor {
-                name: api::METHOD_CONTRACT_INIT.to_owned(),
+                name: api::METHOD_CHANNEL_AUTH.to_owned(),
                 client_attestation_required: false,
             },
-            |request: &request::Request<api::ContractInitRequest>| {
-                super::secure_channel::contract_init(request)
-            },
-        ));
-
-        dispatcher.add_method(EnclaveMethod::new(
-            ApiMethodDescriptor {
-                name: api::METHOD_CONTRACT_RESTORE.to_owned(),
-                client_attestation_required: false,
-            },
-            |request: &request::Request<api::ContractRestoreRequest>| {
-                super::secure_channel::contract_restore(request)
+            |request: &request::Request<api::ChannelAuthRequest>| {
+                super::secure_channel::channel_auth(request)
             },
         ));
 

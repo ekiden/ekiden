@@ -4,6 +4,7 @@ extern crate sodalite;
 
 #[macro_use]
 extern crate ekiden_common;
+extern crate ekiden_enclave_common;
 
 pub mod reflection;
 pub mod secure_channel;
@@ -19,8 +20,4 @@ mod protocol;
 pub mod api {
     pub use generated::enclave_rpc::*;
     pub use protocol::*;
-
-    pub mod services {
-        pub use generated::enclave_services::*;
-    }
 }

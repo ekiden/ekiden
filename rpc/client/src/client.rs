@@ -16,7 +16,7 @@ use protobuf::{Message, MessageStatic};
 use ekiden_common::error::Error;
 #[cfg(not(target_env = "sgx"))]
 use ekiden_common::error::Result;
-use ekiden_enclave_common::quote::{AttestationReport, MrEnclave};
+use ekiden_enclave_common::quote::MrEnclave;
 use ekiden_rpc_common::api;
 
 use super::backend::ContractClientBackend;
@@ -44,8 +44,8 @@ struct ContractClientContext<Backend: ContractClientBackend + 'static> {
     mr_enclave: MrEnclave,
     /// Secure channel context.
     secure_channel: SecureChannelContext,
-    /// Client attestation required flag.
-    client_attestation: bool,
+    /// Client authentication required flag.
+    client_authentication: bool,
 }
 
 /// Helper for running client commands.
@@ -250,83 +250,98 @@ impl<Backend: ContractClientBackend + 'static> ContractClientContext<Backend> {
         // Context moved into the closure (renamed for clarity).
         let shared_context = context;
 
-        let result = future::lazy(move || -> ClientFuture<()> {
+        let result = future::lazy(move || {
+            // Return is futures::future::Either. A is immediate return. B is request.
+
             let request = {
                 let mut context = shared_context.lock().unwrap();
 
                 // If secure channel is already initialized, we don't need to do anything.
                 if !context.secure_channel.is_closed() {
-                    return Box::new(future::ok(()));
+                    return future::Either::A(future::ok(()));
                 }
 
                 // Reset secure channel.
                 match context.secure_channel.reset() {
                     Ok(()) => {}
-                    Err(error) => return Box::new(future::err(error)),
+                    Err(error) => return future::Either::A(future::err(error)),
                 };
 
                 let mut request = api::ChannelInitRequest::new();
-
-                // Provide mutual attestation if required.
-                if context.client_attestation {
-                    let report = match context
-                        .backend
-                        .get_attestation_report(&context.secure_channel.get_client_public_key())
-                    {
-                        Ok(report) => report,
-                        Err(error) => return Box::new(future::err(error)),
-                    };
-
-                    // Serialize attestation report.
-                    let mut serialized_report = api::AttestationReport::new();
-                    serialized_report.set_body(report.body.clone());
-                    serialized_report.set_signature(report.signature.clone());
-                    serialized_report.set_certificates(report.certificates.clone());
-
-                    request.set_client_attestation_report(serialized_report);
-                }
-
                 request.set_short_term_public_key(
                     context.secure_channel.get_client_public_key().to_vec(),
                 );
-
                 request
             };
 
             // Call remote channel init.
-            let result = Self::call::<api::ChannelInitRequest, api::ChannelInitResponse>(
-                shared_context.clone(),
-                api::METHOD_CHANNEL_INIT,
-                request,
-            ).and_then(move |mut response| {
-                let mut context = shared_context.lock().unwrap();
+            future::Either::B(
+                Self::call::<api::ChannelInitRequest, api::ChannelInitResponse>(
+                    shared_context.clone(),
+                    api::METHOD_CHANNEL_INIT,
+                    request,
+                ).and_then(move |response: api::ChannelInitResponse| {
+                    // Return is futures::future::Either. A is immediate return. B is request.
 
-                // Verify contract attestation.
-                let mut report = response.take_contract_attestation_report();
-                let report = AttestationReport::new(
-                    report.take_body(),
-                    report.take_signature(),
-                    report.take_certificates(),
-                );
+                    let request = {
+                        let mut context = shared_context.lock().unwrap();
+                        let client_authentication = context.client_authentication;
 
-                let quote = report.get_quote()?;
+                        // Verify contract identity and set up a secure channel.
+                        let iai = match context.secure_channel.setup(
+                            response.get_authenticated_short_term_public_key(),
+                            client_authentication,
+                        ) {
+                            Ok(iai) => iai,
+                            Err(e) => return future::Either::A(future::err(e)),
+                        };
 
-                // Verify MRENCLAVE.
-                if quote.get_mr_enclave() != &context.mr_enclave {
-                    return Err(Error::new(
-                        "Secure channel initialization failed: MRENCLAVE mismatch",
-                    ));
-                }
+                        // Verify MRENCLAVE.
+                        if &iai.mr_enclave != &context.mr_enclave {
+                            return future::Either::A(future::err(Error::new(
+                                "Secure channel initialization failed: MRENCLAVE mismatch",
+                            )));
+                        }
 
-                // Extract public key and establish a secure channel.
-                context
-                    .secure_channel
-                    .setup(&quote.get_public_key(), &response.take_response_box())?;
+                        // TODO: Other access control policy on enclave identity will go here.
 
-                Ok(())
-            });
+                        // If we don't need to authenticate, we're done.
+                        if !client_authentication {
+                            return future::Either::A(future::ok(()));
+                        }
 
-            Box::new(result)
+                        let mut request = api::ChannelAuthRequest::new();
+                        let credentials = match context.backend.get_credentials() {
+                                Some(credentials) => credentials,
+                                None => return future::Either::A(future::err(Error::new("Channel requires client authentication and backend has no credentials"))),
+                            };
+                        let bastpk = match context.secure_channel.get_authentication(
+                            &credentials.long_term_private_key,
+                            credentials.identity_proof,
+                        ) {
+                            Ok(bastpk) => bastpk,
+                            Err(e) => return future::Either::A(future::err(e)),
+                        };
+                        request.set_boxed_authenticated_short_term_public_key(bastpk);
+                        request
+                    };
+
+                    // Call remote channel auth.
+                    future::Either::B(
+                        Self::call::<api::ChannelAuthRequest, api::ChannelAuthResponse>(
+                            shared_context.clone(),
+                            api::METHOD_CHANNEL_AUTH,
+                            request,
+                        ).and_then(
+                            move |_response: api::ChannelAuthResponse| {
+                                let mut context = shared_context.lock().unwrap();
+
+                                context.secure_channel.authentication_sent()
+                            },
+                        ),
+                    )
+                }),
+            )
         });
 
         Box::new(result)
@@ -384,7 +399,8 @@ pub struct ContractClient<Backend: ContractClientBackend + 'static> {
 
 impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
     /// Constructs a new contract client.
-    pub fn new(backend: Backend, mr_enclave: MrEnclave, client_attestation: bool) -> Self {
+    /// The client API macro calls this.
+    pub fn new(backend: Backend, mr_enclave: MrEnclave, client_authentication: bool) -> Self {
         // Create request processing channel.
         #[cfg(not(target_env = "sgx"))]
         let (request_tx, request_rx) = mpsc::unbounded();
@@ -394,7 +410,7 @@ impl<Backend: ContractClientBackend + 'static> ContractClient<Backend> {
                 backend: backend,
                 mr_enclave: mr_enclave,
                 secure_channel: SecureChannelContext::default(),
-                client_attestation: client_attestation,
+                client_authentication: client_authentication,
             })),
             #[cfg(not(target_env = "sgx"))]
             request_tx: request_tx,

@@ -74,5 +74,13 @@ macro_rules! hex_encoded_struct {
                 Self::from_hex(&s)
             }
         }
+
+        impl Deref for $type {
+            type Target = [u8; $length_id];
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
     }
 }
