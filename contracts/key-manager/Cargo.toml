@@ -7,10 +7,6 @@ keywords = ["ekiden"]
 repository = "https://github.com/ekiden/ekiden"
 build = "build.rs"
 
-[lib]
-name = "ekiden_key_manager"
-crate-type = ["staticlib"]
-
 [features]
 default = []
 
